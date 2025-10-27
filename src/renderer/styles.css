@@ -1,0 +1,142 @@
+/* 全局和基础样式 */
+html, body, #root {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    font-family: sans-serif;
+    background-color: #2d2d2d; /* 为整个应用设置一个基础背景色 */
+}
+
+/* 标题栏容器 */
+#title-bar {
+    -webkit-app-region: drag; /* 关键：让整个标题栏区域可拖动窗口 */
+    height: 32px;
+    background-color: #2d2d2d;
+    color: #cccccc;
+    display: flex;
+    align-items: center;
+    padding-left: 0;
+}
+
+/* 菜单栏 */
+#menu-bar {
+    -webkit-app-region: no-drag; /* 菜单栏区域不可拖动，以便点击 */
+    display: flex;
+}
+
+.menu-item {
+    position: relative;
+    padding: 0 12px;
+    height: 32px;
+    line-height: 32px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.menu-item:hover {
+    background-color: #3e3e42;
+}
+
+/* 下拉子菜单 */
+.submenu {
+    display: none; /* 默认隐藏 */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #252526;
+    border: 1px solid #454545;
+    min-width: 200px;
+    z-index: 1000;
+    padding: 5px 0;
+}
+
+/* 鼠标悬停在 .menu-item 上时，显示其下的 .submenu */
+.menu-item:hover .submenu {
+    display: block;
+}
+
+.submenu-item {
+    padding: 8px 20px;
+    color: #cccccc;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.submenu-item:hover {
+    background-color: #094771;
+}
+
+/* 分隔线 */
+.submenu-separator {
+    border: 0;
+    height: 1px;
+    background-color: #454545;
+    margin: 5px 0;
+}
+
+/* 窗口标题文本 */
+#title {
+    -webkit-app-region: drag; /* 确保标题部分也是可拖动的 */
+    padding-left: 12px;
+    flex-grow: 1;  /* 占据所有剩余的可用空间 */
+    text-align: center; /* 让标题在它占据的空间内居中 */
+    white-space: nowrap; /* 防止标题换行 */
+    overflow: hidden;
+    text-overflow: ellipsis; /* 如果标题太长，用省略号显示 */
+}
+
+/* 窗口控制按钮 */
+#title-bar-btns {
+    -webkit-app-region: no-drag; /* 按钮区域不可拖动 */
+    display: flex;
+}
+
+#title-bar-btns button {
+    width: 46px;
+    height: 32px;
+    border: none;
+    background-color: transparent;
+    color: #cccccc;
+    font-size: 16px;
+    cursor: pointer;
+    outline: none; /* 移除点击时的轮廓 */
+}
+
+#title-bar-btns button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+#close-btn:hover {
+    background-color: #e81123;
+    color: white;
+}
+
+/* 编辑器区域 */
+#editor {
+    height: calc(100vh - 32px);
+}
+
+.cm-editor {
+    height: 100%;
+}
+
+/* 自定义滚动条样式 */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #2d2d2d;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 6px;
+    border: 3px solid #2d2d2d;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: #777;
+}

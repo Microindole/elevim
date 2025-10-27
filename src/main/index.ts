@@ -16,7 +16,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(app.getAppPath(), 'resources/icon.png'), // 我帮你修正了图标路径，先假设它在根目录的 resources 下
+    icon: path.join(app.getAppPath(), 'resources/logo-me.png'), // 我帮你修正了图标路径，先假设它在根目录的 resources 下
     frame: false,
     titleBarStyle: 'hidden',
     webPreferences: {

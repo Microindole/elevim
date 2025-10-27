@@ -4,9 +4,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "start": "npm run build && electron .",
-    "build": "npm run build:main && npm run build:renderer",
-    "build:main": "esbuild src/main/index.ts --bundle --platform=node --external:electron --outfile=dist/main/index.js && esbuild src/main/preload.ts --bundle --platform=node --external:electron --outfile=dist/main/preload.js",
-    "build:renderer": "esbuild src/renderer/index.ts --bundle --outfile=dist/renderer/index.js"
+    "build": "node build.js"
   },
   "repository": {
     "type": "git",
@@ -21,6 +19,8 @@
   "homepage": "https://github.com/Microindole/elevim#readme",
   "description": "",
   "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
     "electron": "^38.4.0",
     "esbuild": "^0.25.11",
     "typescript": "^5.9.3"
@@ -32,6 +32,8 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@codemirror/view": "^6.38.6",
-    "codemirror": "^6.0.2"
+    "codemirror": "^6.0.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
   }
 }
