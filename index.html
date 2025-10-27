@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Elevim Editor</title>
+    <!-- 添加一些基本样式，让编辑器铺满整个窗口 -->
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden; /* 防止出现滚动条 */
+        }
+        #editor {
+            height: 100vh; /* 视口高度 */
+        }
+        /* CodeMirror 的样式，确保它正常工作 */
+        .cm-editor {
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- 这是 CodeMirror 编辑器的挂载点 -->
+    <div id="editor"></div>
+
+    <!-- 
+      引入编译后的渲染进程脚本。
+      注意这里的路径是相对于 index.html 的，指向 dist 目录。
+    -->
+    <script src="./dist/renderer.js"></script>
+</body>
+</html>

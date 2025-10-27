@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    // --- 模块相关配置---
+    "module": "commonjs",             // 告诉 TS, 编译目标是 CommonJS 模块
+    "moduleResolution": "node",       // 使用 Node.js 的模块解析策略
+    "esModuleInterop": true,          // 允许 'import' 语法来导入 CommonJS 模块
+
+    // --- 输出目录配置---
+    "outDir": "./dist",               // 将编译后的 JS 文件全部输出到 'dist' 文件夹
+
+    // --- 其他基础配置 ---
+    "target": "ES2021",               // 编译目标的 JS 版本
+    "strict": true,                   // 启用所有严格类型检查选项
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*"],
+  "exclude": [
+    "src/renderer.ts" // <--- 添加这一行，告诉 tsc 不要管这个文件
+  ]
+}
