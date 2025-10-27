@@ -1,4 +1,3 @@
-// src/main/index.ts
 
 import { app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog, ipcMain } from 'electron';
 import * as path from 'path';
@@ -59,6 +58,13 @@ ipcMain.handle(IPC_CHANNELS.SAVE_FILE, async (_event, content: string): Promise<
   }
 });
 
+// --- 处理 IPC: 设置窗口标题 ---
+ipcMain.on(IPC_CHANNELS.SET_TITLE, (_event, title: string) => {
+  if (mainWindow) {
+    mainWindow.setTitle(title);
+  }
+});
+
 // --- 创建应用菜单 ---
 const menuTemplate: MenuItemConstructorOptions[] = [
   {
@@ -66,26 +72,19 @@ const menuTemplate: MenuItemConstructorOptions[] = [
     submenu: [
       {
         label: 'Open File...',
-        accelerator: 'CmdOrCtrl+O', // 设置快捷键
+        accelerator: 'CmdOrCtrl+O',
         async click() {
-          // 弹出文件选择对话框
-          const { canceled, filePaths } = await dialog.showOpenDialog({
-            properties: ['openFile'],
-            filters: [
-              { name: 'Text Files', extensions: ['txt', 'md', 'js', 'ts', 'html', 'css'] },
-              { name: 'All Files', extensions: ['*'] }
-            ]
-          });
-
-          // 如果用户没有取消并且选择了文件
+          const { canceled, filePaths } = await dialog.showOpenDialog({ /* ... */ });
           if (!canceled && filePaths.length > 0) {
             currentFilePath = filePaths[0];
-            const filePath = filePaths[0];
             try {
-              // 异步读取文件内容
-              const content = await fs.readFile(filePath, 'utf-8');
-              // 确保窗口仍然存在，然后通过 IPC 发送文件内容
-              mainWindow?.webContents.send(IPC_CHANNELS.FILE_OPENED, content);
+              const content = await fs.readFile(currentFilePath, 'utf-8');
+
+              mainWindow?.webContents.send(IPC_CHANNELS.FILE_OPENED, {
+                content: content,
+                filePath: currentFilePath
+              });
+
             } catch (error) {
               console.error('Failed to read file:', error);
             }

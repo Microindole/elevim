@@ -3,8 +3,8 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-    onFileOpen: (callback: (content: string) => void) => {
-        ipcRenderer.on(IPC_CHANNELS.FILE_OPENED, (_event, content) => callback(content));
+    onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => {
+        ipcRenderer.on(IPC_CHANNELS.FILE_OPENED, (_event, data) => callback(data));
     },
     saveFile: (content: string): Promise<string | null> => {
         // 使用 invoke/handle 模式进行双向通信
@@ -14,5 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onTriggerSave: (callback: () => void) => {
         // 监听来自主进程的触发信号
         ipcRenderer.on('trigger-save-file', () => callback());
+    },
+    setTitle: (title: string) => {
+        ipcRenderer.send(IPC_CHANNELS.SET_TITLE, title);
     }
 });

@@ -22,6 +22,8 @@ const myBasicSetup = [
 
 let view: EditorView;
 
+const defaultTitle = "Elevim Editor";
+
 window.addEventListener('DOMContentLoaded', () => {
     const startDoc = `// Welcome to Elevim!
 // Use CmdOrCtrl+O to open a file.
@@ -43,18 +45,33 @@ window.addEventListener('DOMContentLoaded', () => {
             parent: editorContainer,
         });
     }
+
+    // 初始化时设置默认标题
+    window.electronAPI.setTitle(defaultTitle);
 });
 
-// --- 监听主进程的消息 ---
-window.electronAPI.onFileOpen((content: string) => {
-    // 确保 view 已经被初始化
+// 当文件被打开时
+window.electronAPI.onFileOpen((data: { content: string; filePath: string }) => {
     if (view) {
-        // CodeMirror 状态是不可变的，所以我们通过 dispatch 一个 transaction 来更新它
-        // 这个 transaction 描述了一个替换操作：从文档开头(0)到结尾(view.state.doc.length)
-        // 替换为新的文件内容(content)
+        // 更新编辑器内容
         view.dispatch({
-            changes: { from: 0, to: view.state.doc.length, insert: content },
+            changes: { from: 0, to: view.state.doc.length, insert: data.content },
         });
+        // 更新窗口标题
+        const fileName = data.filePath.split(/[\\/]/).pop() ?? defaultTitle;
+        window.electronAPI.setTitle(fileName);
+    }
+});
+
+// 当收到保存触发指令时
+window.electronAPI.onTriggerSave(async () => {
+    if (view) {
+        const content = view.state.doc.toString();
+        const savedPath = await window.electronAPI.saveFile(content);
+        if (savedPath) {
+            const fileName = savedPath.split(/[\\/]/).pop() ?? defaultTitle;
+            window.electronAPI.setTitle(fileName); // 另存为后也要更新标题
+        }
     }
 });
 
