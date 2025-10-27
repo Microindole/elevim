@@ -17,5 +17,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     setTitle: (title: string) => {
         ipcRenderer.send(IPC_CHANNELS.SET_TITLE, title);
+    },
+    minimizeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE),
+    maximizeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MAXIMIZE),
+    closeWindow: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE),
+    showOpenDialog: () => ipcRenderer.send(IPC_CHANNELS.SHOW_OPEN_DIALOG),
+    triggerNewFile: () => ipcRenderer.send(IPC_CHANNELS.NEW_FILE),
+    triggerSaveFile: () => ipcRenderer.send('trigger-save-file'),
+    triggerSaveAsFile: () => ipcRenderer.send('trigger-save-as-file'),
+    onNewFile: (callback: () => void) => {
+        ipcRenderer.on(IPC_CHANNELS.NEW_FILE, () => callback());
     }
 });

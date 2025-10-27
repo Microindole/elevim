@@ -4,6 +4,14 @@ export interface IElectronAPI {
     saveFile: (content: string) => Promise<string | null>;
     onTriggerSave: (callback: () => void) => void;
     setTitle: (title: string) => void;
+    minimizeWindow: () => void;
+    maximizeWindow: () => void;
+    closeWindow: () => void;
+    showOpenDialog: () => void;
+    triggerNewFile: () => void;
+    triggerSaveFile: () => void;
+    triggerSaveAsFile: () => void;
+    onNewFile: (callback: () => void) => void;
 }
 
 declare global {

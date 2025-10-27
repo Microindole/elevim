@@ -9,25 +9,166 @@
             margin: 0;
             padding: 0;
             height: 100%;
-            overflow: hidden; /* 防止出现滚动条 */
+            overflow: hidden;
         }
+        /* vvvvv 添加标题栏样式 vvvvv */
+        #title-bar {
+            -webkit-app-region: drag; /* <-- 这是关键！告诉 Electron 这个区域可以拖动窗口 */
+            height: 32px; /* 标题栏高度 */
+            background-color: #2d2d2d; /* 和 One Dark 搭配的深灰色 */
+            color: #cccccc;
+            display: flex;
+            align-items: center;
+            font-family: sans-serif;
+            font-size: 14px;
+            padding-left: 0; /* 移除旧的 padding，因为现在由 menu-bar 管理 */
+        }
+
+        /* vvvv 添加 menu-bar 的样式 vvvv */
+        #menu-bar {
+            -webkit-app-region: no-drag; /* 菜单栏区域不可拖动，以便点击 */
+            display: flex;
+        }
+
+        .menu-item {
+            position: relative;
+            padding: 0 12px;
+            height: 32px;
+            line-height: 32px; /* 垂直居中文本 */
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .submenu {
+            display: none; /* 默认隐藏 */
+            position: absolute;
+            top: 100%; /* 从父元素的底部开始 */
+            left: 0;
+            background-color: #252526;
+            border: 1px solid #454545;
+            min-width: 200px;
+            z-index: 1000; /* 确保在最上层 */
+            padding: 5px 0;
+        }
+
+        .menu-item:hover .submenu,
+        .menu-item.active .submenu { /* 当父元素有 active class 时也显示 */
+            display: block; /* 鼠标悬停或 active 时显示 */
+        }
+
+        .submenu-item {
+            padding: 8px 20px;
+            color: #cccccc;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .submenu-item:hover {
+            background-color: #094771;
+        }
+
+        .submenu-separator {
+            border: 0;
+            height: 1px;
+            background-color: #454545;
+            margin: 5px 0;
+        }
+
+        #title {
+            -webkit-app-region: drag;
+            padding-left: 12px;
+            flex-grow: 1;  /* 告诉 #title 元素占据所有剩余的可用空间 */
+            text-align: center; /* 让标题在它占据的空间内居中 */
+        }
+
+
         #editor {
-            height: 100vh; /* 视口高度 */
+            /* 高度需要减去标题栏的高度 */
+            height: calc(100vh - 32px);
         }
-        /* CodeMirror 的样式，确保它正常工作 */
         .cm-editor {
             height: 100%;
+        }
+
+        #title-bar-btns {
+            -webkit-app-region: no-drag;
+            margin-left: auto; /* 这个其实可以删掉了，因为 flex-grow 已经处理了空间分配 */
+        }
+
+        #title-bar-btns button {
+            width: 46px;
+            height: 32px;
+            border: none;
+            background-color: transparent;
+            color: #cccccc;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #title-bar-btns button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        #close-btn:hover {
+            background-color: #e81123; /* 鼠标悬停在关闭按钮上时变红 */
+            color: white;
+        }
+
+        /* 整个滚动条的容器 */
+        ::-webkit-scrollbar {
+            width: 12px; /* 垂直滚动条的宽度 */
+            height: 12px; /* 水平滚动条的高度 */
+        }
+
+        /* 滚动条的轨道 (背景) */
+        ::-webkit-scrollbar-track {
+            background: #2d2d2d; /* 设置一个和标题栏匹配的深灰色背景 */
+        }
+
+        /* 滚动条的滑块 (可以拖动的部分) */
+        ::-webkit-scrollbar-thumb {
+            background-color: #555; /* 一个比轨道稍亮的灰色 */
+            border-radius: 6px; /* 给滑块添加圆角 */
+            border: 3px solid #2d2d2d; /* 创建一个“边距”效果，让滑块看起来更细 */
+        }
+
+        /* 鼠标悬停在滑块上时的样式 */
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: #777; /* 悬停时变得更亮 */
         }
     </style>
 </head>
 <body>
-    <!-- 这是 CodeMirror 编辑器的挂载点 -->
+    <!--
+      我们把 menu-bar 和 title 都放进 title-bar 这个统一的容器里。
+      title-bar 将作为 flex 容器。
+    -->
+    <div id="title-bar">
+        <div id="menu-bar">
+            <div class="menu-item" id="file-menu-btn"> <!-- 给 File 按钮一个 ID -->
+                File
+                <div class="submenu" id="file-submenu">
+                    <div class="submenu-item" id="new-file-item">New File</div>
+                    <hr class="submenu-separator">
+                    <div class="submenu-item" id="open-file-item">Open File...</div>
+                    <div class="submenu-item" id="save-item">Save</div>
+                    <div class="submenu-item" id="save-as-item">Save As...</div>
+                    <hr class="submenu-separator">
+                    <div class="submenu-item" id="quit-item">Quit</div>
+                </div>
+            </div>
+        </div>
+        <div id="title">*Untitled - Elevim Editor</div>
+        <div id="title-bar-btns">
+            <button id="minimize-btn">-</button>
+            <button id="maximize-btn">o</button>
+            <button id="close-btn">x</button>
+        </div>
+    </div>
+
+    <!-- 编辑器容器保持不变 -->
     <div id="editor"></div>
 
-    <!-- 
-      引入编译后的渲染进程脚本。
-      注意这里的路径是相对于 index.html 的，指向 dist 目录。
-    -->
-    <script src="./dist/renderer/index.js"></script>
+    <script src="./dist/renderer/index.js" defer></script>
 </body>
 </html>
