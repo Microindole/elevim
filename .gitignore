@@ -1,6 +1,7 @@
 # Logs
 logs
 *.log
+*.log.*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -69,6 +70,7 @@ web_modules/
 .env
 .env.*
 !.env.example
+!.env.test
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -137,3 +139,56 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+
+# ----------------------------------------------------------------
+# Electron 打包/构建产物 (重要)
+# ----------------------------------------------------------------
+# electron-builder
+/dist/
+/build/
+/release/
+
+# electron-forge
+/out/
+
+# 其他可能的打包工具输出
+/app-builds/
+/app/ # 如果你的源码在 /src，打包在 /app
+*.asar
+*.nectar
+
+
+# ----------------------------------------------------------------
+# IDE 和编辑器配置
+# ----------------------------------------------------------------
+# JetBrains (IntelliJ, WebStorm, etc.)
+.idea/
+*.iml
+
+# VS Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# ----------------------------------------------------------------
+# 操作系统生成的文件
+# ----------------------------------------------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Icon?
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
