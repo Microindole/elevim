@@ -1,4 +1,4 @@
-// src/renderer.ts
+// src/index.ts
 import { EditorState } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";

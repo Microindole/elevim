@@ -14,8 +14,11 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src/**/*"],
+  "include": [
+    "src/main/**/*",
+    "src/shared/**/*"
+  ],
   "exclude": [
-    "src/renderer.ts" // <--- 添加这一行，告诉 tsc 不要管这个文件
+    "node_modules"
   ]
 }

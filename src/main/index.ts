@@ -1,4 +1,4 @@
-// src/main.ts
+// src/index.ts
 
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
@@ -8,11 +8,12 @@ function createWindow() {
     width: 1200, // 宽度调大一些
     height: 800, // 高度调大一些
     webPreferences: {
-      // preload 脚本依然很重要，虽然我们暂时没用它做太多事
-    //   preload: path.join(__dirname, 'preload.ts'),
-      // 注意：在较新的 Electron 版本中，为了安全，默认是隔离的。
-      // nodeIntegration: false,
-      // contextIsolation: true,
+      // 这里的 __dirname 指向 'dist/main' 目录
+      preload: path.join(__dirname, 'preload.js'),
+      // contextIsolation 必须为 true (默认值)，这是 contextBridge 安全性的保障
+      contextIsolation: true,
+      // 为了安全，nodeIntegration 应该为 false (默认值)
+      nodeIntegration: false,
     }
   });
 
