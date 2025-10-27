@@ -4,7 +4,9 @@
   "main": "dist/main/index.js",
   "scripts": {
     "start": "npm run build && electron .",
-    "build": "node build.js"
+    "build": "node build.js",
+    "dist": "npm run build && electron-builder",
+    "release": "npm run dist -- --publish always"
   },
   "repository": {
     "type": "git",
@@ -23,7 +25,8 @@
     "@types/react-dom": "^19.2.2",
     "electron": "^38.4.0",
     "esbuild": "^0.25.11",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "electron-builder": "^26.0.12"
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.0",
@@ -35,5 +38,32 @@
     "codemirror": "^6.0.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
+  },
+  "build": {
+    "appId": "com.microindole.elevim",
+    "productName": "Elevim Editor",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": "nsis",
+      "icon": "resources/logo-me.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "resources/logo-me.png"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Microindole",
+        "repo": "elevim"
+      }
+    ]
   }
 }
