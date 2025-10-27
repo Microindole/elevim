@@ -5,7 +5,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { searchKeymap } from "@codemirror/search";
 import { indentOnInput } from "@codemirror/language";
 import { vim } from "@replit/codemirror-vim";
-import type { IElectronAPI } from '../shared/types';
+import { ipcRenderer } from 'electron';
 
 // 这是一个包含了大部分基础编辑器功能的扩展数组
 const myBasicSetup = [
@@ -55,5 +55,21 @@ window.electronAPI.onFileOpen((content: string) => {
         view.dispatch({
             changes: { from: 0, to: view.state.doc.length, insert: content },
         });
+    }
+});
+
+window.electronAPI.onTriggerSave(async () => {
+    if (view) {
+        const content = view.state.doc.toString();
+        try {
+            const savedPath = await window.electronAPI.saveFile(content);
+            if (savedPath) {
+                console.log(`File saved successfully to: ${savedPath}`);
+            } else {
+                console.log('Save operation was canceled by the user.');
+            }
+        } catch (error) {
+            console.error('Error saving file:', error);
+        }
     }
 });
