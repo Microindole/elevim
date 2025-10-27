@@ -1,12 +1,17 @@
 // src/main/preload.ts
 
 import { contextBridge, ipcRenderer } from 'electron';
+import { IPC_CHANNELS } from '../shared/constants';
 
-// 我们暴露一个名为 'electronAPI' 的全局对象给渲染进程
-contextBridge.exposeInMainWorld('electronAPI', {
-    // 定义一个函数 'onFileOpen'，它允许渲染进程设置一个监听器
-    // 当主进程通过 'file-opened' 频道发送数据时，这个监听器就会被触发
-    onFileOpen: (callback: (content: string) => void) => {
-        ipcRenderer.on('file-opened', (_event, content) => callback(content));
-    },
-});
+console.log('[Preload] Script loaded successfully!'); // <--- 添加日志
+
+try {
+    contextBridge.exposeInMainWorld('electronAPI', {
+        onFileOpen: (callback: (content: string) => void) => {
+            ipcRenderer.on(IPC_CHANNELS.FILE_OPENED, (_event, content) => callback(content));
+        },
+    });
+    console.log('[Preload] contextBridge exposed electronAPI.'); // <--- 添加成功日志
+} catch (error) {
+    console.error('[Preload] Failed to expose via contextBridge:', error); // <--- 添加错误日志
+}

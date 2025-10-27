@@ -1,30 +1,84 @@
-// src/index.ts
+// src/main/index.ts
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions, dialog } from 'electron';
 import * as path from 'path';
+import * as fs from 'node:fs/promises'; // 引入 Node.js 的文件系统模块
+import { IPC_CHANNELS } from '../shared/constants'; // 引入我们定义的常量
+
+// 将 mainWindow 提升到函数外部，以便在菜单的 click 事件中访问
+let mainWindow: BrowserWindow | null;
 
 function createWindow() {
-  const mainWindow = new BrowserWindow({
-    width: 1200, // 宽度调大一些
-    height: 800, // 高度调大一些
+  const preloadPath = path.join(__dirname, 'preload.js');
+  console.log(`[Main Process] Preload script path: ${preloadPath}`);
+  mainWindow = new BrowserWindow({ // 注意这里不再使用 const
+    width: 1200,
+    height: 800,
     webPreferences: {
-      // 这里的 __dirname 指向 'dist/main' 目录
       preload: path.join(__dirname, 'preload.js'),
-      // contextIsolation 必须为 true (默认值)，这是 contextBridge 安全性的保障
       contextIsolation: true,
-      // 为了安全，nodeIntegration 应该为 false (默认值)
       nodeIntegration: false,
     }
   });
 
-  // 加载 index.html
   mainWindow.loadFile('index.html');
-
-  // 打开开发者工具，方便调试
   mainWindow.webContents.openDevTools();
+
+  // 窗口关闭时清空引用
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
 }
 
+// --- 创建应用菜单 ---
+const menuTemplate: MenuItemConstructorOptions[] = [
+  {
+    label: 'File',
+    submenu: [
+      {
+        label: 'Open File...',
+        accelerator: 'CmdOrCtrl+O', // 设置快捷键
+        async click() {
+          // 弹出文件选择对话框
+          const { canceled, filePaths } = await dialog.showOpenDialog({
+            properties: ['openFile'],
+            filters: [
+              { name: 'Text Files', extensions: ['txt', 'md', 'js', 'ts', 'html', 'css'] },
+              { name: 'All Files', extensions: ['*'] }
+            ]
+          });
+
+          // 如果用户没有取消并且选择了文件
+          if (!canceled && filePaths.length > 0) {
+            const filePath = filePaths[0];
+            try {
+              // 异步读取文件内容
+              const content = await fs.readFile(filePath, 'utf-8');
+              // 确保窗口仍然存在，然后通过 IPC 发送文件内容
+              mainWindow?.webContents.send(IPC_CHANNELS.FILE_OPENED, content);
+            } catch (error) {
+              console.error('Failed to read file:', error);
+            }
+          }
+        }
+      },
+      {
+        type: 'separator' // 分割线
+      },
+      {
+        role: 'quit' // 使用内置的退出角色
+      }
+    ]
+  },
+  // 你可以在这里添加更多的菜单项，比如 'Edit', 'View' 等
+];
+
 app.whenReady().then(() => {
+  // 从模板构建菜单
+  const menu = Menu.buildFromTemplate(menuTemplate);
+  // 设置为应用菜单
+  Menu.setApplicationMenu(menu);
+
   createWindow();
 
   app.on('activate', () => {

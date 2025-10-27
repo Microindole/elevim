@@ -5,8 +5,8 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { searchKeymap } from "@codemirror/search";
 import { indentOnInput } from "@codemirror/language";
 import { vim } from "@replit/codemirror-vim";
+import type { IElectronAPI } from '../shared/types';
 
-// --- 我们手动重新创建 basicSetup 的核心功能 ---
 // 这是一个包含了大部分基础编辑器功能的扩展数组
 const myBasicSetup = [
     history(), // 撤销/重做功能
@@ -19,27 +19,41 @@ const myBasicSetup = [
     EditorView.lineWrapping, // 自动换行
     EditorView.theme({}, {dark: true}) // 使用一个简单的暗色主题
 ];
-// --- 手动创建结束 ---
+
+let view: EditorView;
 
 window.addEventListener('DOMContentLoaded', () => {
-  const startDoc = `// Welcome to Elevim!
-// Press 'i' to enter insert mode.
-// Press 'Esc' to exit insert mode.
+    const startDoc = `// Welcome to Elevim!
+// Use CmdOrCtrl+O to open a file.
 `;
-  const editorContainer = document.getElementById("editor");
+    const editorContainer = document.getElementById("editor");
 
-  if (editorContainer) {
-    const state = EditorState.create({
-      doc: startDoc,
-      extensions: [
-        vim(),
-        myBasicSetup // 使用我们自己定义的 setup
-      ],
-    });
+    if (editorContainer) {
+        const state = EditorState.create({
+            doc: startDoc,
+            extensions: [
+                vim(),
+                myBasicSetup,
+            ],
+        });
 
-    new EditorView({
-      state: state,
-      parent: editorContainer,
-    });
-  }
+        // 将创建的 EditorView 实例赋值给 view 变量
+        view = new EditorView({
+            state: state,
+            parent: editorContainer,
+        });
+    }
+});
+
+// --- 监听主进程的消息 ---
+window.electronAPI.onFileOpen((content: string) => {
+    // 确保 view 已经被初始化
+    if (view) {
+        // CodeMirror 状态是不可变的，所以我们通过 dispatch 一个 transaction 来更新它
+        // 这个 transaction 描述了一个替换操作：从文档开头(0)到结尾(view.state.doc.length)
+        // 替换为新的文件内容(content)
+        view.dispatch({
+            changes: { from: 0, to: view.state.doc.length, insert: content },
+        });
+    }
 });

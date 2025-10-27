@@ -15,8 +15,7 @@
     "skipLibCheck": true
   },
   "include": [
-    "src/main/**/*",
-    "src/shared/**/*"
+    "src/**/*"
   ],
   "exclude": [
     "node_modules"

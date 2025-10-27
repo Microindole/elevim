@@ -1,12 +1,12 @@
 {
   "name": "elevim",
   "version": "1.0.0",
-  "main": "dist/main/main.js",
+  "main": "dist/main/index.js",
   "scripts": {
     "start": "npm run build && electron .",
     "build": "npm run build:main && npm run build:renderer",
-    "build:main": "tsc",
-    "build:renderer": "esbuild src/renderer/index.ts --bundle --outfile=dist/renderer/renderer.js"
+    "build:main": "esbuild src/main/index.ts --bundle --platform=node --external:electron --outfile=dist/main/index.js && esbuild src/main/preload.ts --bundle --platform=node --external:electron --outfile=dist/main/preload.js",
+    "build:renderer": "esbuild src/renderer/index.ts --bundle --outfile=dist/renderer/index.js"
   },
   "repository": {
     "type": "git",
