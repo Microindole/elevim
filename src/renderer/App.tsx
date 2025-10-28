@@ -1,10 +1,11 @@
 // src/renderer/App.tsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import TitleBar from './components/TitleBar/TitleBar';
 import Editor from './components/Editor/Editor';
 import FileTree, { FileNode } from './components/FileTree/FileTree';
 import Tabs, { OpenFile } from './components/Tabs/Tabs';
 import StatusBar from './components/StatusBar/StatusBar';
+import CommandPalette, { Command } from './components/CommandPalette/CommandPalette';
 
 import './components/App/App.css';
 
@@ -16,6 +17,10 @@ const welcomeFile: OpenFile = {
 };
 
 export default function App() {
+
+    // === 命令行面板的可见性 ===
+    const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+
     // --- 状态 ---
     const [openFiles, setOpenFiles] = useState<OpenFile[]>([welcomeFile]);
     const [activeIndex, setActiveIndex] = useState<number>(0);
@@ -25,8 +30,6 @@ export default function App() {
     const programmaticChangeRef = useRef(false);
     const [cursorLine, setCursorLine] = useState(1);
     const [cursorCol, setCursorCol] = useState(1);
-
-    // --- 核心修复 #1: 使用 ref 来跟踪所有需要在稳定回调中访问的状态 ---
     const appStateRef = useRef({ openFiles, activeIndex });
     useEffect(() => {
         appStateRef.current = { openFiles, activeIndex };
@@ -203,6 +206,34 @@ export default function App() {
         if (isResizing.current) setSidebarWidth(e.clientX);
     }, []);
 
+    const commands = useMemo<Command[]>(() => [
+        { id: 'file.new', name: 'File: New File', action: handleMenuNewFile },
+        { id: 'file.open', name: 'File: Open File...', action: handleMenuOpenFile },
+        { id: 'file.openFolder', name: 'File: Open Folder...', action: handleMenuOpenFolder },
+        { id: 'file.save', name: 'File: Save', action: handleSave },
+        { id: 'file.saveAs', name: 'File: Save As...', action: handleMenuSaveAsFile },
+        { id: 'app.quit', name: 'Application: Quit', action: handleMenuCloseWindow },
+        // 未来可以添加更多命令，如 "Theme: Switch to Light Mode"
+    ], [handleMenuNewFile, handleMenuOpenFile, handleMenuOpenFolder, handleSave, handleMenuSaveAsFile, handleMenuCloseWindow]);
+
+
+    useEffect(() => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            // 检查是否按下了 Ctrl + Shift + P
+            if (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+                e.preventDefault(); // 阻止浏览器默认行为
+                setIsPaletteOpen(prev => !prev); // 切换命令面板的可见性
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+
+        // 组件卸载时移除监听器，以防内存泄漏
+        return () => {
+            window.removeEventListener('keydown', handleGlobalKeyDown);
+        };
+    }, []); // 空依赖数组确保这个 effect 只在组件挂载时运行一次
+
     useEffect(() => {
         window.addEventListener("mousemove", resize);
         window.addEventListener("mouseup", stopResizing);
@@ -214,6 +245,11 @@ export default function App() {
 
     return (
         <div className="main-layout">
+            <CommandPalette
+                isOpen={isPaletteOpen}
+                onClose={() => setIsPaletteOpen(false)}
+                commands={commands}
+            />
             <TitleBar
                 isDirty={activeFile?.isDirty ?? false}
                 currentFileName={activeFile?.name ?? "Elevim"}
