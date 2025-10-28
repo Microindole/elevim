@@ -1,0 +1,52 @@
+/* src/renderer/components/FileTree/FileTree.css */
+
+/* 文件树根节点容器，添加一些内边距 */
+.file-tree-root {
+    padding: 0 10px;
+    font-size: 14px; /* 为整个树设置基础字号 */
+}
+
+/* 单个树节点 (文件或文件夹) */
+.tree-node {
+    /* 可以在这里添加节点的通用样式，如果需要的话 */
+}
+
+/* 节点内容 (可点击部分) */
+.node-content {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px; /* 增加垂直和水平间距 */
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.1s ease-in-out;
+}
+.node-content:hover {
+    background-color: #2a2d2e;
+}
+
+.node-name {
+    margin-left: 6px; /* 文件名和图标之间的间距 */
+}
+
+/* 展开/折叠的小三角图标 */
+.caret {
+    font-size: 12px; /* 稍微调整大小 */
+    width: 16px; /* 给它一个固定宽度以对齐 */
+    text-align: center;
+    transition: transform 0.1s linear;
+}
+.caret-open {
+    transform: rotate(90deg);
+}
+
+/* 文件/文件夹图标容器 */
+.icon {
+    display: flex;
+    align-items: center;
+    color: #cccccc; /* 统一图标颜色 */
+}
+
+/* 子节点容器 (实现缩进的关键) */
+.node-children {
+    padding-left: 20px; /* 子节点向右缩进 20px */
+}

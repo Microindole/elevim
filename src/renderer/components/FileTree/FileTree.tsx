@@ -1,5 +1,6 @@
 import React from 'react';
 import TreeNode from './TreeNode'; // 我们即将创建这个新组件
+import './FileTree.css';
 
 export interface FileNode {
     name: string;
