@@ -1,0 +1,78 @@
+/* src/renderer/components/TitleBar/TitleBar.css */
+#title-bar {
+    -webkit-app-region: drag;
+    height: 32px;
+    background-color: #2d2d2d;
+    color: #cccccc;
+    display: flex;
+    align-items: center;
+}
+
+#menu-bar {
+    -webkit-app-region: no-drag;
+    display: flex;
+}
+
+.menu-item {
+    position: relative;
+    padding: 0 12px;
+    line-height: 32px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.menu-item:hover { background-color: #3e3e42; }
+
+.submenu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #252526;
+    border: 1px solid #454545;
+    min-width: 200px;
+    z-index: 1000;
+    padding: 5px 0;
+}
+.menu-item:hover .submenu { display: block; }
+
+.submenu-item {
+    padding: 8px 20px;
+    color: #cccccc;
+    font-size: 14px;
+}
+.submenu-item:hover { background-color: #094771; }
+
+.submenu-separator {
+    border: 0;
+    height: 1px;
+    background-color: #454545;
+    margin: 5px 0;
+}
+
+#title {
+    -webkit-app-region: drag;
+    padding-left: 12px;
+    flex-grow: 1;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#title-bar-btns {
+    -webkit-app-region: no-drag;
+    display: flex;
+}
+
+#title-bar-btns button {
+    width: 46px;
+    height: 32px;
+    border: none;
+    background-color: transparent;
+    color: #cccccc;
+    font-size: 16px;
+    cursor: pointer;
+    outline: none;
+}
+#title-bar-btns button:hover { background-color: rgba(255, 255, 255, 0.1); }
+#close-btn:hover { background-color: #e81123; color: white; }

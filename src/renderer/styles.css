@@ -1,11 +1,8 @@
 /* 全局和基础样式 */
 html, body, #root {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    overflow: hidden;
-    font-family: sans-serif;
-    background-color: #2d2d2d; /* 为整个应用设置一个基础背景色 */
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #1e1e1e; color: #d4d4d4;
 }
 
 /* 标题栏容器 */
@@ -140,3 +137,72 @@ html, body, #root {
 ::-webkit-scrollbar-thumb:hover {
     background-color: #777;
 }
+
+/* 应用主容器 */
+.app-container {
+    display: flex;
+    height: calc(100vh - 32px);
+}
+
+/* 侧边栏 */
+.sidebar {
+    background-color: #252526;
+    height: 100%;
+    overflow-y: auto;
+    padding: 5px 0;
+    user-select: none; /* 禁止选择文本 */
+}
+
+/* 编辑器容器 */
+.editor-container {
+    flex-grow: 1;
+    height: 100%;
+}
+#editor { height: 100%; }
+
+/* 文件树根节点 */
+.file-tree-root { padding: 0 10px; }
+
+/* 单个树节点 (文件或文件夹) */
+.tree-node {
+    font-size: 14px;
+}
+
+/* 节点内容 (可点击部分) */
+.node-content {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.node-content:hover { background-color: #2a2d2e; }
+
+/* 小三角图标 */
+.caret {
+    margin-right: 6px;
+    font-size: 10px;
+    transition: transform 0.1s linear;
+}
+.caret-open { transform: rotate(90deg); }
+
+/* 文件/文件夹图标 */
+.icon {
+    margin-right: 6px;
+    display: flex; /* 让 SVG 垂直居中 */
+    align-items: center;
+}
+
+/* 子节点容器 (实现缩进) */
+.node-children {
+    padding-left: 20px;
+}
+
+/* --- 侧边栏宽度调整器 --- */
+.resizer {
+    width: 5px;
+    cursor: col-resize;
+    background-color: #333;
+    height: 100%;
+}
+.resizer:hover { background-color: #007acc; }

@@ -1,0 +1,24 @@
+import React from 'react';
+import TreeNode from './TreeNode'; // 我们即将创建这个新组件
+
+export interface FileNode {
+    name: string;
+    path: string;
+    children?: FileNode[];
+}
+
+interface FileTreeProps {
+    treeData: FileNode; // 我们现在只接收根节点
+    onFileSelect: (filePath: string) => void;
+}
+
+const FileTree: React.FC<FileTreeProps> = ({ treeData, onFileSelect }) => {
+    return (
+        <div className="file-tree-root">
+            {/* 从根节点开始渲染 */}
+            <TreeNode node={treeData} onFileSelect={onFileSelect} />
+        </div>
+    );
+};
+
+export default FileTree;

@@ -1,0 +1,9 @@
+/* src/renderer/components/Editor/Editor.css */
+#editor {
+    height: 100%;
+    width: 100%;
+}
+
+.cm-editor {
+    height: 100%;
+}

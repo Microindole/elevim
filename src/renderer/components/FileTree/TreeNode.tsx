@@ -1,0 +1,61 @@
+import React, { useState } from 'react';
+import { FileNode } from './FileTree'; // 从 FileTree 导入类型
+
+// 定义一些简单的 SVG 图标
+const FolderIcon = () => (
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 6h6l2 2h8v10H4V6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+);
+
+const FileIcon = () => (
+    <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 2v6h6M10 22h4c5 0 7-2 7-7V9c0-5-2-7-7-7H7C2 2 0 4 0 9v6c0 5 2 7 7 7z" stroke="currentColor" strokeWidth="1.5" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+);
+
+interface TreeNodeProps {
+    node: FileNode;
+    onFileSelect: (filePath: string) => void;
+}
+
+const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect }) => {
+    // 1. 使用 useState 来追踪每个文件夹自己的展开/折叠状态
+    const [isOpen, setIsOpen] = useState(false);
+
+    const isDirectory = !!node.children;
+
+    // 2. 点击时切换状态的函数
+    const handleToggle = () => {
+        if (isDirectory) {
+            setIsOpen(!isOpen);
+        } else {
+            onFileSelect(node.path);
+        }
+    };
+
+    return (
+        <div className="tree-node">
+            <div className="node-content" onClick={handleToggle}>
+                {isDirectory && (
+                    // 这是一个小三角，根据 isOpen 状态旋转
+                    <span className={`caret ${isOpen ? 'caret-open' : ''}`}>▶</span>
+                )}
+                <span className="icon">
+                    {isDirectory ? <FolderIcon /> : <FileIcon />}
+                </span>
+                <span className="node-name">{node.name}</span>
+            </div>
+            {/* 3. 如果是展开状态并且有子节点，则递归渲染子节点 */}
+            {isOpen && isDirectory && (
+                <div className="node-children">
+                    {node.children?.map(childNode => (
+                        <TreeNode key={childNode.path} node={childNode} onFileSelect={onFileSelect} />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default TreeNode;
