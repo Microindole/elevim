@@ -8,19 +8,19 @@ const MAX_FONT_SIZE = 40;
 
 interface EditorProps {
     content: string;
+    filename: string;
     onDocChange: (doc: string) => void;
     onSave: () => void;
-    // --- 核心修复 #4: 在 props 接口中添加 ref 类型 ---
     programmaticChangeRef: React.MutableRefObject<boolean>;
+    onCursorChange: (line: number, col: number) => void;
 }
 
-export default function Editor({ content, onDocChange, onSave, programmaticChangeRef }: EditorProps) {
-    const { editorRef, view } = useCodeMirror({ content, onDocChange, onSave });
+export default function Editor({ content, filename, onDocChange, onSave, programmaticChangeRef, onCursorChange }: EditorProps) {
+    const { editorRef, view } = useCodeMirror({ content, filename, onDocChange, onSave, onCursorChange });
     const [fontSize, setFontSize] = useState(15);
 
     useEffect(() => {
         if (view && content !== view.state.doc.toString()) {
-            // --- 核心修复 #5: 在 dispatch 之前，设置标志位 ---
             programmaticChangeRef.current = true;
 
             view.dispatch({
@@ -43,7 +43,7 @@ export default function Editor({ content, onDocChange, onSave, programmaticChang
         window.electronAPI.setSetting('fontSize', fontSize);
     }, [fontSize, view]);
 
-    // 滚轮缩放事件 (保持不变)
+    // 滚轮缩放事件
     useEffect(() => {
         const editorDom = editorRef.current;
         if (!editorDom) return;

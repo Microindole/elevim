@@ -1,0 +1,15 @@
+/* src/renderer/components/StatusBar/StatusBar.css */
+.status-bar-container {
+    display: flex;
+    align-items: center;
+    background-color: #007acc; /* VS Code 风格的蓝色状态栏 */
+    color: white;
+    height: 22px;
+    padding: 0 15px;
+    font-size: 12px;
+    flex-shrink: 0; /* 防止容器被压缩 */
+}
+
+.status-item {
+    margin-right: 20px;
+}

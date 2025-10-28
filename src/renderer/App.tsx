@@ -4,6 +4,7 @@ import TitleBar from './components/TitleBar/TitleBar';
 import Editor from './components/Editor/Editor';
 import FileTree, { FileNode } from './components/FileTree/FileTree';
 import Tabs, { OpenFile } from './components/Tabs/Tabs';
+import StatusBar from './components/StatusBar/StatusBar';
 
 import './components/App/App.css';
 
@@ -22,6 +23,8 @@ export default function App() {
     const [sidebarWidth, setSidebarWidth] = useState(250);
     const isResizing = useRef(false);
     const programmaticChangeRef = useRef(false);
+    const [cursorLine, setCursorLine] = useState(1);
+    const [cursorCol, setCursorCol] = useState(1);
 
     // --- 核心修复 #1: 使用 ref 来跟踪所有需要在稳定回调中访问的状态 ---
     const appStateRef = useRef({ openFiles, activeIndex });
@@ -164,6 +167,11 @@ export default function App() {
         });
     }, []); // 依赖为空，绝对稳定
 
+    const handleCursorChange = useCallback((line: number, col: number) => {
+        setCursorLine(line);
+        setCursorCol(col);
+    }, []);
+
     // --- IPC 事件监听 ---
     // 因为所有回调现在都绝对稳定了，这个 useEffect 只会在组件挂载时运行一次
     useEffect(() => {
@@ -227,12 +235,20 @@ export default function App() {
                 )}
                 <div className="editor-container">
                     {activeFile ? (
-                        <Editor content={activeFile.content} onDocChange={onEditorContentChange} onSave={handleSave} programmaticChangeRef={programmaticChangeRef} />
+                        <Editor
+                            content={activeFile.content}
+                            filename={activeFile.name}
+                            onDocChange={onEditorContentChange}
+                            onSave={handleSave}
+                            programmaticChangeRef={programmaticChangeRef}
+                            onCursorChange={handleCursorChange}
+                        />
                     ) : (
                         <div className="welcome-placeholder">Open a file or folder to start</div>
                     )}
                 </div>
             </div>
+            <StatusBar cursorLine={cursorLine} cursorCol={cursorCol} />
         </div>
     );
 }
