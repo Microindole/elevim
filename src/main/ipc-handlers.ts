@@ -7,11 +7,13 @@ import { readSettings, writeSettings } from './lib/settings';
 import { readDirectory } from './lib/file-system';
 import * as pty from 'node-pty';
 import * as os from 'os';
+import { getGitStatus } from './lib/git-service';
 
 // --- 终端设置 ---
 // 根据不同操作系统选择合适的 shell
 const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
 
+let currentFolderPath: string | null = null;
 // 使用一个模块级变量来跟踪当前文件路径
 let currentFilePath: string | null = null;
 
@@ -181,11 +183,17 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
             properties: ['openDirectory'],
         });
-        if (canceled || filePaths.length === 0) return null;
+        if (canceled || filePaths.length === 0) {
+            currentFolderPath = null; // 清空文件夹路径
+            return null;
+        }
 
         const folderPath = filePaths[0];
+        currentFolderPath = folderPath; // --- 记录当前文件夹路径 ---
         try {
             const fileTree = await readDirectory(folderPath);
+            // 可以在这里主动获取一次 Git 状态，但不强制
+            // getGitStatus(currentFolderPath);
             return {
                 name: path.basename(folderPath),
                 path: folderPath,
@@ -193,6 +201,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             };
         } catch (error) {
             console.error('Failed to read directory:', error);
+            currentFolderPath = null; // 出错时也清空
             return null;
         }
     });
@@ -210,6 +219,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             console.error(`Failed to read file: ${filePath}`, error);
             return null;
         }
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GET_GIT_STATUS, async () => {
+        if (!currentFolderPath) {
+            return {}; // 没有打开文件夹，返回空状态
+        }
+        return await getGitStatus(currentFolderPath);
     });
 
 

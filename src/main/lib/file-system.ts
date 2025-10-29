@@ -22,3 +22,4 @@ export async function readDirectory(dirPath: string): Promise<any[]> {
     );
     return files.filter(file => !file.name.startsWith('.'));
 }
+

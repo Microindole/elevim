@@ -8,6 +8,45 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { search, searchKeymap } from '@codemirror/search';
 import { defaultKeymap } from '@codemirror/commands';
 import { getLanguage } from '../../main/lib/language-map';
+import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
+
+const simpleLinter = (view: EditorView): readonly Diagnostic[] => {
+    const diagnostics: Diagnostic[] = [];
+    // 这是一个非常简单的示例：查找 'console.log' 并标记为信息
+    try {
+        const docText = view.state.doc.toString();
+        const lines = docText.split('\n');
+        let from = 0;
+        lines.forEach((line, i) => {
+            let col = 0;
+            while (col < line.length) {
+                const match = line.substring(col).match(/console\.log/);
+                if (!match || typeof match.index === 'undefined') break; // 没找到或 index 为 undefined
+
+                const matchStart = col + match.index;
+                const matchEnd = matchStart + match[0].length;
+
+                diagnostics.push({
+                    from: from + matchStart,
+                    to: from + matchEnd,
+                    severity: "info", // 可以是 "info", "warning", "error"
+                    message: "示例 Lint: 找到 console.log",
+                    // 可选：添加修复建议
+                    // actions: [{
+                    //     name: "移除",
+                    //     apply(view, from, to) { view.dispatch({changes: {from, to}}) }
+                    // }]
+                });
+                col = matchEnd; // 从匹配结束后继续查找
+            }
+            from += line.length + 1; // 加上换行符长度
+        });
+    } catch (e) {
+        console.error("Linter error:", e); // 添加错误处理
+    }
+    return diagnostics;
+};
 
 interface UseCodeMirrorProps {
     content: string;
@@ -63,14 +102,20 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
                     top: true, // 让搜索框出现在顶部
                 }),
                 keymap.of([
-                    ...customKeymap,       // 我们的自定义快捷键
+                    ...customKeymap,       // 自定义快捷键
                     ...searchKeymap,       // 搜索功能的快捷键 (Ctrl-F, F3, etc.)
                     ...defaultKeymap,      // CodeMirror 的默认快捷键 (缩进、撤销等)
+                    ...completionKeymap,    // 补全快捷键
+                    ...closeBracketsKeymap, // 括号快捷键
                 ]),
                 fontThemeCompartment.of(EditorView.theme({
                     '.cm-content, .cm-gutters': { fontSize: `15px` }
                 })),
                 updateListener,
+                autocompletion(), // 自动补全
+                closeBrackets(),  // 括号自动闭合
+                linter(simpleLinter), // 示例 linter
+                lintGutter(),         // 在行号旁边显示标记
                 languageCompartment.of(initialLanguage ? [initialLanguage] : []),
             ],
         });

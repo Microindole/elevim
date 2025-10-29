@@ -23,6 +23,7 @@ export interface IElectronAPI {
     terminalWrite: (data: string) => void;
     terminalResize: (size: { cols: number, rows: number }) => void;
     onTerminalData: (callback: (data: string) => void) => () => void;
+    getGitStatus: () => Promise<Record<string, string>>;
 }
 
 declare global {
