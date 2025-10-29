@@ -19,6 +19,10 @@ export interface IElectronAPI {
     openFile: (filePath: string) => Promise<string | null>;
     getSetting: (key: string) => Promise<any>;
     setSetting: (key: string, value: any) => void;
+    terminalInit: () => void;
+    terminalWrite: (data: string) => void;
+    terminalResize: (size: { cols: number, rows: number }) => void;
+    onTerminalData: (callback: (data: string) => void) => () => void;
 }
 
 declare global {

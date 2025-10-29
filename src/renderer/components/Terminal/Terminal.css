@@ -1,0 +1,13 @@
+/* src/renderer/components/Terminal/Terminal.css */
+
+.terminal-container {
+    width: 100%;
+    height: 100%; /* 高度将由可拖动面板控制 */
+    background-color: #1e1e1e;
+}
+
+/* xterm.js 会在这里创建它的 DOM 结构 */
+.terminal-wrapper {
+    width: 100%;
+    height: 100%;
+}
