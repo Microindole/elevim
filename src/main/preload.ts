@@ -50,5 +50,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         };
     },
     getSetting: (key: string): Promise<any> => ipcRenderer.invoke(IPC_CHANNELS.GET_SETTING, key),
-    setSetting: (key: string, value: any) => ipcRenderer.send(IPC_CHANNELS.SET_SETTING, key, value)
+    setSetting: (key: string, value: any) => ipcRenderer.send(IPC_CHANNELS.SET_SETTING, key, value),
+    terminalInit: () => ipcRenderer.send(IPC_CHANNELS.TERMINAL_INIT),
+    terminalWrite: (data: string) => ipcRenderer.send(IPC_CHANNELS.TERMINAL_IN, data),
+    terminalResize: (size: { cols: number, rows: number }) => ipcRenderer.send(IPC_CHANNELS.TERMINAL_RESIZE, size),
+    onTerminalData: (callback: (data: string) => void) => {
+        const handler = (_event: IpcRendererEvent, data: string) => callback(data);
+        ipcRenderer.on(IPC_CHANNELS.TERMINAL_OUT, handler);
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_OUT, handler);
+        };
+    },
 });

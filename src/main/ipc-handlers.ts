@@ -1,16 +1,117 @@
 // src/main/ipc-handlers.ts
-import { BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import { IPC_CHANNELS } from '../shared/constants';
 import { readSettings, writeSettings } from './lib/settings';
 import { readDirectory } from './lib/file-system';
+import * as pty from 'node-pty';
+import * as os from 'os';
+
+// --- 终端设置 ---
+// 根据不同操作系统选择合适的 shell
+const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
 
 // 使用一个模块级变量来跟踪当前文件路径
 let currentFilePath: string | null = null;
 
 export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
+    let localPtyProcess: pty.IPty | null = null;
+    let isPtyStarting = false;
+
+    // --- 终端处理 ---
+
+    ipcMain.on(IPC_CHANNELS.TERMINAL_INIT, () => {
+        // *** Ignore request if a pty is already running or currently starting ***
+        if (localPtyProcess || isPtyStarting) {
+            console.warn('[Main] Ignoring redundant TERMINAL_INIT request.');
+            return; // <<< Simply exit if already initialized or starting
+        }
+
+        isPtyStarting = true; // Set flag: we are now attempting to start
+        console.log('[Main] Received TERMINAL_INIT - attempting to spawn.');
+
+        // Kill logic (should ideally not be needed with the check above, but safe fallback)
+        if (localPtyProcess) {
+            console.log('[Main] Killing existing pty process (unexpected)');
+            try { localPtyProcess.kill(); } catch (e) { console.error('[Main] Error killing existing pty:', e); }
+            localPtyProcess = null;
+        }
+
+        try {
+            console.log(`[Main] Spawning shell: ${shell} in ${app.getPath('home')}`);
+            const newPty = pty.spawn(shell, [], { // Create in temporary variable
+                name: 'xterm-color',
+                cols: 80, rows: 30,
+                cwd: app.getPath('home'),
+                env: process.env
+            });
+
+            // Set up listeners *before* assigning to localPtyProcess
+            newPty.onData((data: string) => {
+                if (!mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send(IPC_CHANNELS.TERMINAL_OUT, data);
+                }
+            });
+
+            newPty.onExit(({ exitCode, signal }) => {
+                console.log(`[Main] Pty process exited with code: ${exitCode}, signal: ${signal}`);
+                // Only nullify if this *is* the pty we think is active
+                if (localPtyProcess === newPty) {
+                    localPtyProcess = null;
+                    isPtyStarting = false; // Allow starting again
+                } else {
+                    console.log("[Main] An older/orphaned pty process instance exited.");
+                }
+            });
+
+            // Assign to main variable *after* setup
+            localPtyProcess = newPty;
+            isPtyStarting = false; // Clear flag: starting is complete
+            console.log('[Main] Pty process spawned successfully');
+
+        } catch (e) {
+            console.error('[Main] Failed to spawn pty process:', e);
+            localPtyProcess = null;
+            isPtyStarting = false; // Clear flag: starting failed
+            if (!mainWindow.isDestroyed()) {
+                // Notify renderer of failure if desired
+            }
+        }
+    });
+
+    // TERMINAL_IN handler: Now correctly checks localPtyProcess which should be stable
+    ipcMain.on(IPC_CHANNELS.TERMINAL_IN, (_event, data: string) => {
+        if (localPtyProcess) {
+            localPtyProcess.write(data);
+        } else {
+            console.warn('[Main] Attempted to write to non-existent pty process');
+        }
+    });
+
+    // TERMINAL_RESIZE handler (no changes needed from previous version)
+    ipcMain.on(IPC_CHANNELS.TERMINAL_RESIZE, (_event, size: { cols: number, rows: number }) => {
+        if (localPtyProcess && size && typeof size.cols === 'number' && typeof size.rows === 'number' && size.cols > 0 && size.rows > 0) {
+            try {
+                localPtyProcess.resize(size.cols, size.rows);
+            } catch (e) {
+                console.error('[Main] Failed to resize pty:', e);
+            }
+        } else {
+            console.warn('[Main] Invalid resize parameters received or pty not running:', size);
+        }
+    });
+
+    // Window close handler (no changes needed from previous version)
+    mainWindow.on('close', () => {
+        console.log('[Main] Main window is closing, killing pty process...');
+        if (localPtyProcess) {
+            try { localPtyProcess.kill(); } catch(e) { console.error('[Main] Error killing pty on window close:', e); }
+            localPtyProcess = null;
+            isPtyStarting = false;
+        }
+    });
     // --- 文件操作 ---
 
     ipcMain.on(IPC_CHANNELS.SHOW_OPEN_DIALOG, async () => {

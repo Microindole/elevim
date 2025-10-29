@@ -8,6 +8,13 @@
     background-color: #1e1e1e;
 }
 
+.main-content-area {
+    display: flex;
+    flex-direction: column; /* 垂直排列 */
+    flex-grow: 1; /* 占据剩余空间 */
+    overflow: hidden; /* 防止溢出 */
+}
+
 .app-container {
     display: flex;
     flex-grow: 1;
@@ -45,4 +52,23 @@
     align-items: center;
     color: #666;
     font-size: 1.2em;
+}
+
+/* 终端面板的拖动条 */
+.terminal-resizer {
+    height: 5px;
+    cursor: row-resize; /* 垂直拖动 */
+    background-color: #333;
+    flex-shrink: 0; /* 防止被压缩 */
+}
+.terminal-resizer:hover {
+    background-color: #007acc;
+}
+
+/* 终端面板容器 */
+.terminal-panel {
+    width: 100%;
+    flex-shrink: 0; /* 防止被压缩 */
+    overflow: hidden; /* 面板自己管理溢出 */
+    display: flex; /* 让 TerminalComponent 占满空间 */
 }

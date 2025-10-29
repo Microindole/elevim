@@ -1,10 +1,12 @@
 // src/renderer/App.tsx
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import TitleBar from './components/TitleBar/TitleBar';
 import Editor from './components/Editor/Editor';
 import FileTree, { FileNode } from './components/FileTree/FileTree';
 import Tabs, { OpenFile } from './components/Tabs/Tabs';
 import StatusBar from './components/StatusBar/StatusBar';
+import CommandPalette, { Command } from './components/CommandPalette/CommandPalette';
+import TerminalComponent from './components/Terminal/Terminal';
 
 import './components/App/App.css';
 
@@ -16,6 +18,10 @@ const welcomeFile: OpenFile = {
 };
 
 export default function App() {
+
+    // === 命令行面板的可见性 ===
+    const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+
     // --- 状态 ---
     const [openFiles, setOpenFiles] = useState<OpenFile[]>([welcomeFile]);
     const [activeIndex, setActiveIndex] = useState<number>(0);
@@ -25,8 +31,9 @@ export default function App() {
     const programmaticChangeRef = useRef(false);
     const [cursorLine, setCursorLine] = useState(1);
     const [cursorCol, setCursorCol] = useState(1);
-
-    // --- 核心修复 #1: 使用 ref 来跟踪所有需要在稳定回调中访问的状态 ---
+    const [terminalHeight, setTerminalHeight] = useState(200); // 终端面板的初始高度
+    const [isTerminalVisible, setIsTerminalVisible] = useState(false); // 终端默认隐藏
+    const isResizingTerminal = useRef(false);
     const appStateRef = useRef({ openFiles, activeIndex });
     useEffect(() => {
         appStateRef.current = { openFiles, activeIndex };
@@ -203,6 +210,50 @@ export default function App() {
         if (isResizing.current) setSidebarWidth(e.clientX);
     }, []);
 
+    const commands = useMemo<Command[]>(() => [
+        { id: 'file.new', name: 'File: New File', action: handleMenuNewFile },
+        { id: 'file.open', name: 'File: Open File...', action: handleMenuOpenFile },
+        { id: 'file.openFolder', name: 'File: Open Folder...', action: handleMenuOpenFolder },
+        { id: 'file.save', name: 'File: Save', action: handleSave },
+        { id: 'file.saveAs', name: 'File: Save As...', action: handleMenuSaveAsFile },
+        { id: 'app.quit', name: 'Application: Quit', action: handleMenuCloseWindow },
+        // 未来可以添加更多命令，如 "Theme: Switch to Light Mode"
+    ], [handleMenuNewFile, handleMenuOpenFile, handleMenuOpenFolder, handleSave, handleMenuSaveAsFile, handleMenuCloseWindow]);
+
+
+    const startTerminalResize = useCallback(() => { isResizingTerminal.current = true; }, []);
+    const stopTerminalResize = useCallback(() => { isResizingTerminal.current = false; }, []);
+
+    const resizeTerminal = useCallback((e: MouseEvent) => {
+        if (isResizingTerminal.current) {
+            // 高度 = 窗口高度 - 鼠标Y坐标
+            const newHeight = window.innerHeight - e.clientY;
+            setTerminalHeight(Math.max(30, newHeight)); // 最小高度 30px
+        }
+    }, []);
+
+    useEffect(() => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            // 检查是否按下了 Ctrl + Shift + P
+            if (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) {
+                e.preventDefault(); // 阻止浏览器默认行为
+                setIsPaletteOpen(prev => !prev); // 切换命令面板的可见性
+            }
+
+            if (e.ctrlKey && e.key === '`') {
+                e.preventDefault();
+                setIsTerminalVisible(prev => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleGlobalKeyDown);
+
+        // 组件卸载时移除监听器，以防内存泄漏
+        return () => {
+            window.removeEventListener('keydown', handleGlobalKeyDown);
+        };
+    }, [openFile, handleSave, handleNewFile]);
+
     useEffect(() => {
         window.addEventListener("mousemove", resize);
         window.addEventListener("mouseup", stopResizing);
@@ -212,8 +263,26 @@ export default function App() {
         };
     }, [resize, stopResizing]);
 
+    useEffect(() => {
+        // 注意：这里需要把事件监听器加在 window 上
+        const handleMove = (e: MouseEvent) => resizeTerminal(e);
+        const handleUp = () => stopTerminalResize();
+
+        window.addEventListener("mousemove", handleMove);
+        window.addEventListener("mouseup", handleUp);
+        return () => {
+            window.removeEventListener("mousemove", handleMove);
+            window.removeEventListener("mouseup", handleUp);
+        };
+    }, [resizeTerminal, stopTerminalResize]); // 依赖稳定函数
+
     return (
         <div className="main-layout">
+            <CommandPalette
+                isOpen={isPaletteOpen}
+                onClose={() => setIsPaletteOpen(false)}
+                commands={commands}
+            />
             <TitleBar
                 isDirty={activeFile?.isDirty ?? false}
                 currentFileName={activeFile?.name ?? "Elevim"}
@@ -223,32 +292,49 @@ export default function App() {
                 onSaveFile={handleSave}
                 onSaveAsFile={handleMenuSaveAsFile}
                 onCloseWindow={handleMenuCloseWindow}
-            /><Tabs files={openFiles} activeIndex={activeIndex} onTabClick={setActiveIndex} onTabClose={handleCloseTab} />
-            <div className="app-container">
-                {fileTree && (
+            />
+            <Tabs
+                files={openFiles}
+                activeIndex={activeIndex}
+                onTabClick={setActiveIndex}
+                onTabClose={handleCloseTab}
+            />
+            <div className="main-content-area">
+                <div className="app-container">
+                    {fileTree && (
+                        <>
+                            <div className="sidebar" style={{width: sidebarWidth}}>
+                                <FileTree treeData={fileTree} onFileSelect={handleFileTreeSelect}/>
+                            </div>
+                            <div className="resizer" onMouseDown={startResizing}/>
+                        </>
+                    )}
+                    <div className="editor-container">
+                        {activeFile ? (
+                            <Editor
+                                content={activeFile.content}
+                                filename={activeFile.name}
+                                onDocChange={onEditorContentChange}
+                                onSave={handleSave}
+                                programmaticChangeRef={programmaticChangeRef}
+                                onCursorChange={handleCursorChange}
+                            />
+                        ) : (
+                            <div className="welcome-placeholder">Open a file or folder to start</div>
+                        )}
+                    </div>
+                </div>
+                {/* --- 终端面板 --- */}
+                {isTerminalVisible && (
                     <>
-                        <div className="sidebar" style={{ width: sidebarWidth }}>
-                            <FileTree treeData={fileTree} onFileSelect={handleFileTreeSelect} />
+                        <div className="terminal-resizer" onMouseDown={startTerminalResize}/>
+                        <div className="terminal-panel" style={{height: terminalHeight}}>
+                            <TerminalComponent/>
                         </div>
-                        <div className="resizer" onMouseDown={startResizing} />
                     </>
                 )}
-                <div className="editor-container">
-                    {activeFile ? (
-                        <Editor
-                            content={activeFile.content}
-                            filename={activeFile.name}
-                            onDocChange={onEditorContentChange}
-                            onSave={handleSave}
-                            programmaticChangeRef={programmaticChangeRef}
-                            onCursorChange={handleCursorChange}
-                        />
-                    ) : (
-                        <div className="welcome-placeholder">Open a file or folder to start</div>
-                    )}
-                </div>
             </div>
-            <StatusBar cursorLine={cursorLine} cursorCol={cursorCol} />
+            <StatusBar cursorLine={cursorLine} cursorCol={cursorCol}/>
         </div>
     );
 }

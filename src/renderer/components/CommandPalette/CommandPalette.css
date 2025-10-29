@@ -1,0 +1,60 @@
+/* src/renderer/components/CommandPalette/CommandPalette.css */
+.palette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    padding-top: 15vh; /* 将面板从顶部向下推一些 */
+}
+
+.palette-container {
+    width: 600px;
+    max-height: 500px;
+    background-color: #252526;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.palette-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: none;
+    background-color: #3e3e42;
+    color: #cccccc;
+    font-size: 16px;
+    outline: none;
+    box-sizing: border-box;
+    border-bottom: 1px solid #454545;
+}
+
+.palette-list {
+    list-style: none;
+    margin: 0;
+    padding: 5px;
+    overflow-y: auto;
+}
+
+.palette-item, .palette-item-empty {
+    padding: 10px 15px;
+    color: #cccccc;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.palette-item.active {
+    background-color: #094771;
+    color: white;
+}
+
+.palette-item-empty {
+    color: #888888;
+    cursor: default;
+}
