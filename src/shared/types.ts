@@ -24,6 +24,7 @@ export interface IElectronAPI {
     terminalResize: (size: { cols: number, rows: number }) => void;
     onTerminalData: (callback: (data: string) => void) => () => void;
     getGitStatus: () => Promise<Record<string, string>>;
+    readDirectory: (folderPath: string) => Promise<any | null>;
 }
 
 declare global {

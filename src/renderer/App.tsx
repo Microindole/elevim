@@ -7,6 +7,7 @@ import Tabs, { OpenFile } from './components/Tabs/Tabs';
 import StatusBar from './components/StatusBar/StatusBar';
 import CommandPalette, { Command } from './components/CommandPalette/CommandPalette';
 import TerminalComponent from './components/Terminal/Terminal';
+import { GitStatusMap} from "../main/lib/git-service";
 
 import './components/App/App.css';
 
@@ -16,9 +17,6 @@ const welcomeFile: OpenFile = {
     content: "// Welcome to Elevim!\n// Use File > Open File... to open a file or folder.",
     isDirty: false
 };
-
-// --- 定义 Git 状态类型 ---
-type GitStatusMap = Record<string, 'added' | 'modified' | 'deleted' | 'untracked' | string>;
 
 export default function App() {
 
@@ -208,7 +206,7 @@ export default function App() {
             setFileTree(tree);
             currentOpenFolderPath.current = tree.path; // 记录文件夹路径
             // 打开文件夹后立即获取 Git 状态
-            fetchGitStatus();
+            await fetchGitStatus();
             // --- (可选) 设置定时器定期刷新 Git 状态 ---
             if (gitStatusIntervalRef.current) clearInterval(gitStatusIntervalRef.current);
             gitStatusIntervalRef.current = setInterval(fetchGitStatus, 5000); // 每 5 秒刷新一次
@@ -225,19 +223,30 @@ export default function App() {
     const handleFileTreeSelect = useCallback((filePath: string) => safeAction(() => window.electronAPI.openFile(filePath)), [safeAction]);
 
     const fetchGitStatus = useCallback(async () => {
+        const currentFolder = currentOpenFolderPath.current;
         // 仅在确实打开了文件夹时才请求
         if (currentOpenFolderPath.current) {
+
             try {
                 // console.log("Requesting git status...");
                 const status = await window.electronAPI.getGitStatus();
                 // console.log("Received git status:", status);
                 setGitStatus(status);
+
+                const updatedTree = await window.electronAPI.readDirectory(currentFolder);
+                if (updatedTree) {
+                    console.log("Directory structure updated."); // 添加日志
+                    setFileTree(updatedTree); // <<< 更新 fileTree state
+                } else {
+                    console.warn("Failed to refresh directory structure."); // 添加日志
+                }
             } catch (error) {
-                console.error("Failed to fetch git status:", error);
                 setGitStatus({}); // 出错时清空
+
             }
         } else {
             setGitStatus({}); // 没有文件夹，确保状态为空
+            setFileTree(null);
         }
     }, []);
     // --- 组件卸载时清除定时器 ---

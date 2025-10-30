@@ -1,30 +1,34 @@
 // src/main/lib/git-service.ts
-import * as fs from 'node:fs';
+import * as fs from 'node:fs/promises'; // 修改: 使用 promises 版本的 fs
 import * as path from 'path';
-import git from 'isomorphic-git';
-import http from 'isomorphic-git/http/node';
+// import git from 'isomorphic-git'; // 不再需要 statusMatrix
+// import http from 'isomorphic-git/http/node'; // 不再需要 http
+import { execFile } from 'child_process'; // <<< 引入 execFile
+import { promisify } from 'util'; // <<< 引入 promisify 将回调转为 Promise
 
-// --- 定义更细致的 Git 状态类型 ---
+const execFileAsync = promisify(execFile); // <<< 创建 execFile 的 Promise 版本
+
+// --- GitStatus 和 GitStatusMap 类型定义保持不变 ---
 export type GitStatus =
-    | 'unmodified' // (通常我们不显式标记这个)
-    | 'added'      // Staged Added (Index Added)
-    | 'modified'   // Staged Modified (Index Modified)
-    | 'deleted'    // Staged Deleted (Index Deleted)
-    | 'renamed'    // Staged Renamed (Index Renamed) - 较复杂，暂简化
-    | 'typechange' // Staged Typechange (Index Typechange) - 较复杂，暂简化
-    | 'untracked'  // Untracked (Working directory new)
-    | 'wd-modified'// Unstaged Modified (Working directory modified)
-    | 'wd-deleted' // Unstaged Deleted (Working directory deleted)
-    | 'wd-renamed' // Unstaged Renamed - 较复杂，暂简化
-    | 'wd-typechange' // Unstaged Typechange - 较复杂，暂简化
-    | 'conflicted'; // Unmerged / Conflicted
-
+    | 'unmodified'
+    | 'added'
+    | 'modified'
+    | 'deleted'
+    | 'renamed'
+    | 'typechange'
+    | 'untracked'
+    | 'wd-modified'
+    | 'wd-deleted'
+    | 'wd-renamed'
+    | 'wd-typechange'
+    | 'conflicted';
 export type GitStatusMap = Record<string, GitStatus>;
 
+// --- 缓存逻辑保持不变 ---
 let lastFolderPath: string | null = null;
 let lastStatusMap: GitStatusMap = {};
 let lastReadTime = 0;
-const CACHE_DURATION = 1500; // 缓存时间可以稍短一点
+const CACHE_DURATION = 1500;
 
 export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
     const now = Date.now();
@@ -33,9 +37,10 @@ export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
     }
 
     try {
+        // --- 检查 .git 目录逻辑保持不变 ---
         const gitDir = path.join(folderPath, '.git');
         try {
-            await fs.promises.access(gitDir);
+            await fs.access(gitDir);
         } catch {
             lastFolderPath = folderPath;
             lastStatusMap = {};
@@ -43,76 +48,90 @@ export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
             return {};
         }
 
-        // console.log(`Reading git status for: ${folderPath}`);
-        const statusMatrix = await git.statusMatrix({ fs, dir: folderPath, http });
-        const statusMap: GitStatusMap = {};
+        // --- 使用原生 git 命令获取状态 ---
+        console.log(`[DEBUG] Executing git status for: ${folderPath}`);
+        // - `git status --porcelain=v1`: 提供易于机器解析的输出格式
+        // - `-uall`: 显示所有未跟踪的文件（包括目录内的）
+        const { stdout, stderr } = await execFileAsync('git', ['status', '--porcelain=v1', '-uall'], { cwd: folderPath });
 
-        /*
-         * statusMatrix [filepath, head, workdir, stage]
-         * Status codes:
-         * 0: absent
-         * 1: unchanged
-         * 2: modified / added
-         * 3: deleted? intent-to-add? (isomorphic-git docs are a bit unclear here, might need testing)
-         *
-         * Common Mappings (based on git status --porcelain v1):
-         * Index Workdir Path
-         * ??                0     2       0     -> untracked
-         * ' M' (staged M)   1     1       2     -> modified
-         * 'MM' (staged+wd)  1     2       2     -> modified + wd-modified (优先显示 staged)
-         * ' M' (wd M)       1     2       1     -> wd-modified
-         * ' A' (staged A)   0     1       2     -> added
-         * 'AM' (stagedA+wdM)0     2       2     -> added + wd-modified (优先显示 staged)
-         * ' D' (staged D)   1     0       0     -> deleted
-         * ' D' (wd D)       1     0       1     -> wd-deleted
-         * TODO: Handle Renamed (R), Copied (C), Conflicted (U) more specifically if needed.
-         */
-        statusMatrix.forEach(([filepath, head, workdir, stage]) => {
+        if (stderr) {
+            console.error(`[Main] git status stderr: ${stderr}`);
+            // 可以选择在这里返回空状态或抛出错误
+        }
+
+        const statusMap: GitStatusMap = {};
+        const lines = stdout.trim().split('\n');
+
+        lines.forEach(line => {
+            if (!line.trim()) return; // 跳过空行
+
+            console.log(`[DEBUG] Processing line: "${line}"`);
+
+            const statusChars = line.substring(0, 2); // 获取前两个状态字符
+            const filepath = line.substring(3); // 获取文件名（相对路径）
             const fullPath = path.join(folderPath, filepath);
             let fileStatus: GitStatus | null = null;
 
-            // --- 暂存区状态优先 ---
-            if (stage === 2) { // Index has changes (modified or added)
-                if (head === 0) {
-                    fileStatus = 'added'; // Staged Added (' A')
-                } else if (head === 1) {
-                    fileStatus = 'modified'; // Staged Modified (' M')
-                }
-                // Note: If workdir is also 2 ('AM', 'MM'), we still show 'added' or 'modified'
-                // We could potentially create combined statuses like 'staged-modified-wd-modified' if needed
-            } else if (stage === 0 && head === 1 && workdir === 0) {
-                fileStatus = 'deleted'; // Staged Deleted (' D') - workdir absent, was present in head
+            const indexStatus = statusChars[0]; // 暂存区状态
+            const workdirStatus = statusChars[1]; // 工作区状态
+
+            // 解析状态 (参考 git status --porcelain 文档)
+            if (indexStatus === 'A') fileStatus = 'added'; // A  或 AM
+            else if (indexStatus === 'M') fileStatus = 'modified'; // M  或 MM
+            else if (indexStatus === 'D') fileStatus = 'deleted'; // D
+            else if (indexStatus === 'R') fileStatus = 'renamed'; // R (暂未细分)
+            else if (indexStatus === 'C') fileStatus = 'typechange'; // C (暂未细分，copy 算不算 typechange?)
+            else if (indexStatus === 'U') fileStatus = 'conflicted'; // UU, AU, UA, DU, UD, AA, DD
+            // 如果暂存区没有标记，检查工作区
+            else if (indexStatus === ' ' || indexStatus === '?') {
+                if (workdirStatus === 'M') fileStatus = 'wd-modified'; // ' M'
+                else if (workdirStatus === 'D') fileStatus = 'wd-deleted'; // ' D'
+                else if (workdirStatus === 'A') fileStatus = 'added'; // ' A' (isomorphic-git 好像没这种情况，但原生 git add 后 reset 可能有)
+                else if (workdirStatus === 'R') fileStatus = 'wd-renamed'; // ' R' (暂未细分)
+                else if (workdirStatus === 'C') fileStatus = 'wd-typechange';// ' C' (暂未细分)
+                else if (workdirStatus === 'U') fileStatus = 'conflicted'; // 同上
             }
-            // --- 如果暂存区无变化，检查工作区 ---
-            else if (stage !== 2) { // Only check workdir if stage is clean (0 or 1)
-                if (workdir === 2) {
-                    if (head === 0 && stage === 0) { // Was absent, now exists in workdir, not staged
-                        fileStatus = 'untracked'; // Untracked ('??')
-                    } else if (head === 1 && (stage === 1 || stage === 0 /* stage can be 0 if reset */)) {
-                        fileStatus = 'wd-modified'; // Working dir Modified (' M')
-                    }
-                } else if (workdir === 0 && head === 1 && (stage === 1 || stage === 0)) {
-                    fileStatus = 'wd-deleted'; // Working dir Deleted (' D')
-                }
+            // 特殊处理未跟踪文件
+            if (statusChars === '??') {
+                fileStatus = 'untracked';
             }
 
-            // TODO: Add more specific handling for conflicts (UU, AA, DD, AU, UA, DU, UD)
-            // Example: if (stage === ? && workdir === ?) fileStatus = 'conflicted';
+            if (filepath.includes('package.json')) {
+                console.log(`[DEBUG] Found package.json: line="${line}", statusChars="${statusChars}", parsedFilepath="${filepath}", determinedStatus="${fileStatus}"`);
+            }
 
-            if (fileStatus && filepath !== '.gitignore') { // 忽略 .gitignore 本身
+            // 添加到 Map 中
+            if (fileStatus) { // 忽略 .gitignore 本身
+                // 注意：如果文件路径包含空格且没有被引号包围（porcelain v1 默认不包围），需要处理
+                // 但通常 execFile 的输出已经处理好了
                 statusMap[fullPath] = fileStatus;
+
+                // <<< 确认 package.json 是否被添加 >>>
+                if (filepath.includes('package.json')) {
+                    console.log(`[DEBUG] Added package.json to statusMap with status: ${fileStatus}`);
+                }
+            }else if (filepath.includes('package.json')) { // <<< 如果没添加，看看原因 >>>
+                console.log(`[DEBUG] Skipped adding package.json, fileStatus was null.`);
             }
         });
+        console.log("[DEBUG] Final parsed statusMap:", statusMap);
+
+        // console.log("[DEBUG] Parsed statusMap:", statusMap);
 
         lastFolderPath = folderPath;
         lastStatusMap = statusMap;
         lastReadTime = now;
-        // console.log("Git status updated:", statusMap);
         return statusMap;
-    } catch (error) {
-        // console.error('Failed to get git status:', error); // 调试时可以取消注释
-        lastFolderPath = folderPath;
-        lastStatusMap = {};
+
+    } catch (error: any) {
+        console.error('[Main] Failed to get git status via command:', error.message); // 打印错误信息
+        // 检查是否是 "git command not found" 之类的错误
+        if (error.code === 'ENOENT') {
+            console.error('[Main] Git command not found. Make sure Git is installed and in PATH.');
+            // 可以在这里通知渲染进程 Git 不可用
+        }
+        lastFolderPath = folderPath; // 即使出错也更新路径，避免连续尝试
+        lastStatusMap = {}; // 返回空状态
         lastReadTime = now;
         return {};
     }

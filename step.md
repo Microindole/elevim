@@ -84,3 +84,13 @@
 
 
 后续可以继续优化 Linting (集成 ESLint/TSLint)，增强 Autocomplete (集成 LSP)
+
+* TODO: Handle Renamed (R), Copied (C), Conflicted (U) more specifically if needed.
+
+// TODO: Add more specific handling for conflicts (UU, AA, DD, AU, UA, DU, UD)
+// Example: if (stage === ? && workdir === ?) fileStatus = 'conflicted';
+
+
+```markdown
+这是我用electron写的一个编辑器项目，我是想写一个类似vscode的项目出来，你先熟悉代码
+```

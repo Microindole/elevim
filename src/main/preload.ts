@@ -62,4 +62,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         };
     },
     getGitStatus: (): Promise<Record<string, string>> => ipcRenderer.invoke(IPC_CHANNELS.GET_GIT_STATUS),
+
+    readDirectory: (folderPath: string): Promise<any | null> =>
+        ipcRenderer.invoke(IPC_CHANNELS.READ_DIRECTORY, folderPath),
 });

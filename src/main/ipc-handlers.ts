@@ -221,6 +221,22 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         }
     });
 
+    ipcMain.handle(IPC_CHANNELS.READ_DIRECTORY, async (_event, folderPath: string): Promise<any | null> => {
+        if (!folderPath) return null; // 需要提供路径
+        try {
+            const fileTree = await readDirectory(folderPath); // 调用已有的函数
+            // 注意：这里返回的是子节点数组，需要包装一下符合 FileNode 结构
+            return {
+                name: path.basename(folderPath),
+                path: folderPath,
+                children: fileTree
+            };
+        } catch (error) {
+            console.error(`Failed to re-read directory: ${folderPath}`, error);
+            return null; // 出错返回 null
+        }
+    });
+
     ipcMain.handle(IPC_CHANNELS.GET_GIT_STATUS, async () => {
         if (!currentFolderPath) {
             return {}; // 没有打开文件夹，返回空状态
