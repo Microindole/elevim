@@ -80,3 +80,17 @@
     1.  **后端库**：在主进程中使用像 `isomorphic-git` 这样的库，它可以用纯 JavaScript 来执行 Git 命令（`git status`, `git diff` 等），而无需用户安装 Git。
     2.  **IPC 通信**：主进程定期或在特定操作后运行 `git status`，然后将结果通过 IPC 发送给渲染进程。
     3.  **UI 显示**：渲染进程根据收到的 Git 状态，在文件树的项旁边显示不同的颜色或图标。
+
+
+
+后续可以继续优化 Linting (集成 ESLint/TSLint)，增强 Autocomplete (集成 LSP)
+
+* TODO: Handle Renamed (R), Copied (C), Conflicted (U) more specifically if needed.
+
+// TODO: Add more specific handling for conflicts (UU, AA, DD, AU, UA, DU, UD)
+// Example: if (stage === ? && workdir === ?) fileStatus = 'conflicted';
+
+
+```markdown
+这是我用electron写的一个编辑器项目，我是想写一个类似vscode的项目出来，你先熟悉代码
+```

@@ -7,6 +7,7 @@ import Tabs, { OpenFile } from './components/Tabs/Tabs';
 import StatusBar from './components/StatusBar/StatusBar';
 import CommandPalette, { Command } from './components/CommandPalette/CommandPalette';
 import TerminalComponent from './components/Terminal/Terminal';
+import { GitStatusMap} from "../main/lib/git-service";
 
 import './components/App/App.css';
 
@@ -34,6 +35,10 @@ export default function App() {
     const [terminalHeight, setTerminalHeight] = useState(200); // 终端面板的初始高度
     const [isTerminalVisible, setIsTerminalVisible] = useState(false); // 终端默认隐藏
     const isResizingTerminal = useRef(false);
+
+    const [gitStatus, setGitStatus] = useState<GitStatusMap>({});
+    const gitStatusIntervalRef = useRef<NodeJS.Timeout | null>(null); // 用于定时刷新
+    const currentOpenFolderPath = useRef<string | null>(null); // 记录当前打开的文件夹
     const appStateRef = useRef({ openFiles, activeIndex });
     useEffect(() => {
         appStateRef.current = { openFiles, activeIndex };
@@ -196,13 +201,63 @@ export default function App() {
     const handleMenuNewFile = useCallback(() => safeAction(handleNewFile), [safeAction, handleNewFile]);
     const handleMenuOpenFile = useCallback(() => safeAction(() => window.electronAPI.showOpenDialog()), [safeAction]);
     const handleMenuOpenFolder = useCallback(async () => {
-        // 打开文件夹通常被认为是安全操作，可以不检查当前文件
         const tree = await window.electronAPI.openFolder();
-        if (tree) setFileTree(tree);
+        if (tree) {
+            setFileTree(tree);
+            currentOpenFolderPath.current = tree.path; // 记录文件夹路径
+            // 打开文件夹后立即获取 Git 状态
+            await fetchGitStatus();
+            // --- (可选) 设置定时器定期刷新 Git 状态 ---
+            if (gitStatusIntervalRef.current) clearInterval(gitStatusIntervalRef.current);
+            gitStatusIntervalRef.current = setInterval(fetchGitStatus, 5000); // 每 5 秒刷新一次
+        } else {
+            // 如果取消或失败，清除状态和定时器
+            currentOpenFolderPath.current = null;
+            setGitStatus({});
+            if (gitStatusIntervalRef.current) clearInterval(gitStatusIntervalRef.current);
+            gitStatusIntervalRef.current = null;
+        }
     }, []);
     const handleMenuSaveAsFile = useCallback(() => window.electronAPI.triggerSaveAsFile(), []);
     const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.closeWindow()), [safeAction]);
     const handleFileTreeSelect = useCallback((filePath: string) => safeAction(() => window.electronAPI.openFile(filePath)), [safeAction]);
+
+    const fetchGitStatus = useCallback(async () => {
+        const currentFolder = currentOpenFolderPath.current;
+        // 仅在确实打开了文件夹时才请求
+        if (currentOpenFolderPath.current) {
+
+            try {
+                // console.log("Requesting git status...");
+                const status = await window.electronAPI.getGitStatus();
+                // console.log("Received git status:", status);
+                setGitStatus(status);
+
+                const updatedTree = await window.electronAPI.readDirectory(currentFolder);
+                if (updatedTree) {
+                    console.log("Directory structure updated."); // 添加日志
+                    setFileTree(updatedTree); // <<< 更新 fileTree state
+                } else {
+                    console.warn("Failed to refresh directory structure."); // 添加日志
+                }
+            } catch (error) {
+                setGitStatus({}); // 出错时清空
+
+            }
+        } else {
+            setGitStatus({}); // 没有文件夹，确保状态为空
+            setFileTree(null);
+        }
+    }, []);
+    // --- 组件卸载时清除定时器 ---
+    useEffect(() => {
+        return () => {
+            if (gitStatusIntervalRef.current) {
+                clearInterval(gitStatusIntervalRef.current);
+            }
+        };
+    }, []);
+
     // 侧边栏拖动逻辑 (保持不变)
     const startResizing = useCallback(() => { isResizing.current = true; }, []);
     const stopResizing = useCallback(() => { isResizing.current = false; }, []);
@@ -304,7 +359,11 @@ export default function App() {
                     {fileTree && (
                         <>
                             <div className="sidebar" style={{width: sidebarWidth}}>
-                                <FileTree treeData={fileTree} onFileSelect={handleFileTreeSelect}/>
+                                <FileTree
+                                    treeData={fileTree}
+                                    onFileSelect={handleFileTreeSelect}
+                                    gitStatus={gitStatus}
+                                />
                             </div>
                             <div className="resizer" onMouseDown={startResizing}/>
                         </>

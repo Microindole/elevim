@@ -2,12 +2,48 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { EditorState, Compartment } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
-import { basicSetup } from "codemirror";
+import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from "@codemirror/view";
+import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, foldKeymap, indentUnit } from "@codemirror/language";
 import { oneDark } from '@codemirror/theme-one-dark';
 import { search, searchKeymap } from '@codemirror/search';
-import { defaultKeymap } from '@codemirror/commands';
+import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { getLanguage } from '../../main/lib/language-map';
+import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
+import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
+
+// 导入缩进对齐线扩展
+import { indentationMarkers } from '@replit/codemirror-indentation-markers';
+
+const simpleLinter = (view: EditorView): readonly Diagnostic[] => {
+    const diagnostics: Diagnostic[] = [];
+    try {
+        const docText = view.state.doc.toString();
+        const lines = docText.split('\n');
+        let from = 0;
+        lines.forEach((line, i) => {
+            let col = 0;
+            while (col < line.length) {
+                const match = line.substring(col).match(/console\.log/);
+                if (!match || typeof match.index === 'undefined') break;
+
+                const matchStart = col + match.index;
+                const matchEnd = matchStart + match[0].length;
+
+                diagnostics.push({
+                    from: from + matchStart,
+                    to: from + matchEnd,
+                    severity: "info",
+                    message: "示例 Lint: 找到 console.log",
+                });
+                col = matchEnd;
+            }
+            from += line.length + 1;
+        });
+    } catch (e) {
+        console.error("Linter error:", e);
+    }
+    return diagnostics;
+};
 
 interface UseCodeMirrorProps {
     content: string;
@@ -20,8 +56,17 @@ interface UseCodeMirrorProps {
 const fontThemeCompartment = new Compartment();
 const languageCompartment = new Compartment();
 
+// 自定义缩进线的样式主题
+const indentationMarkersTheme = EditorView.baseTheme({
+    ".cm-indent-markers .cm-indent-marker": {
+        borderLeft: "1px solid rgba(255, 255, 255, 0.15)", // 浅色对齐线
+    },
+    ".cm-indent-markers .cm-indent-marker-active": {
+        borderLeft: "1px solid rgba(255, 255, 255, 0.35)", // 高亮当前作用域的对齐线
+    },
+});
+
 export function useCodeMirror(props: UseCodeMirrorProps) {
-    // 解构时也使用新名字
     const { content, filename, onDocChange, onSave, onCursorChange } = props;
     const editorRef = useRef<HTMLDivElement>(null);
     const [view, setView] = useState<EditorView | null>(null);
@@ -30,11 +75,9 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
         if (!editorRef.current) return;
 
         const updateListener = EditorView.updateListener.of((update) => {
-            // 如果文档内容改变，调用 onDocChange
             if (update.docChanged) {
                 onDocChange(update.state.doc.toString());
             }
-            // 如果选区 (光标) 改变，计算行列号并调用 onCursorChange
             if (update.selectionSet) {
                 const pos = update.state.selection.main.head;
                 const line = update.state.doc.lineAt(pos);
@@ -47,32 +90,57 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
                 key: "Mod-s",
                 run: () => { onSave(); return true; }
             },
-            // 你可以在这里添加更多自定义快捷键
         ];
 
         const initialLanguage = getLanguage(filename);
 
+        const setup = [
+            lineNumbers(),
+            highlightActiveLineGutter(),
+            highlightSpecialChars(),
+            history(),
+            foldGutter(),
+            drawSelection(),
+            dropCursor(),
+            EditorState.allowMultipleSelections.of(true),
+            indentOnInput(),
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            bracketMatching(),
+            closeBrackets(),
+            autocompletion(),
+            rectangularSelection(),
+            crosshairCursor(),
+            highlightActiveLine(),
+            search({ top: true }),
+            keymap.of([
+                ...closeBracketsKeymap,
+                ...defaultKeymap,
+                ...searchKeymap,
+                ...historyKeymap,
+                ...foldKeymap,
+                ...completionKeymap,
+                ...customKeymap,
+            ]),
+            oneDark,
+            updateListener,
+            fontThemeCompartment.of(EditorView.theme({
+                '.cm-content, .cm-gutters': { fontSize: `15px` }
+            })),
+            linter(simpleLinter),
+            lintGutter(),
+            languageCompartment.of(initialLanguage ? [initialLanguage] : []),
+            // 添加缩进对齐线扩展
+            indentUnit.of("    "), // 设置缩进单位（可选，默认为2个空格）
+            indentationMarkers({
+                highlightActiveBlock: true, // 高亮当前光标所在的代码块
+                thickness: 1, // 线条粗细
+            }),
+            indentationMarkersTheme, // 应用自定义样式
+        ];
+
         const startState = EditorState.create({
-            // 这里使用 content 作为初始文档
             doc: content,
-            extensions: [
-                basicSetup,
-                oneDark,
-                updateListener,
-                search({
-                    top: true, // 让搜索框出现在顶部
-                }),
-                keymap.of([
-                    ...customKeymap,       // 我们的自定义快捷键
-                    ...searchKeymap,       // 搜索功能的快捷键 (Ctrl-F, F3, etc.)
-                    ...defaultKeymap,      // CodeMirror 的默认快捷键 (缩进、撤销等)
-                ]),
-                fontThemeCompartment.of(EditorView.theme({
-                    '.cm-content, .cm-gutters': { fontSize: `15px` }
-                })),
-                updateListener,
-                languageCompartment.of(initialLanguage ? [initialLanguage] : []),
-            ],
+            extensions: setup
         });
 
         const newView = new EditorView({
@@ -81,15 +149,12 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
         });
 
         setView(newView);
-
         onCursorChange(1, 1);
 
         return () => {
             newView.destroy();
             setView(null);
         };
-        // 关键：依赖数组中【没有】content。
-        // 这确保了编辑器实例只被创建一次。
     }, []);
 
     useEffect(() => {
@@ -99,11 +164,10 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
                 effects: languageCompartment.reconfigure(newLanguage ? [newLanguage] : [])
             });
         }
-    }, [filename, view]); // 当文件名或 view 实例变化时触发
+    }, [filename, view]);
 
     return { editorRef, view };
 }
-
 
 export function updateEditorFontSize(view: EditorView | null, fontSize: number) {
     if (view) {

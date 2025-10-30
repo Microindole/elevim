@@ -50,3 +50,44 @@
 .node-children {
     padding-left: 20px; /* 子节点向右缩进 20px */
 }
+
+/* Staged changes (usually more prominent) */
+.node-name.git-modified { /* Staged Modified */
+    color: #E2C08D; /* VS Code 风格 - 修改 (黄色) */
+}
+.node-name.git-modified::after { content: " M"; font-size: 0.9em; opacity: 0.8; }
+
+.node-name.git-added { /* Staged Added */
+    color: #81b88b; /* VS Code 风格 - 新增 (绿色) */
+}
+.node-name.git-added::after { content: " A"; font-size: 0.9em; opacity: 0.8; }
+
+.node-name.git-deleted { /* Staged Deleted */
+    color: #c74e39; /* VS Code 风格 - 删除 (红色)，并加删除线 */
+    text-decoration: line-through;
+}
+.node-name.git-deleted::after { content: " D"; font-size: 0.9em; opacity: 0.8; }
+
+/* Working directory changes (maybe less prominent or different color) */
+.node-name.git-wd-modified { /* Unstaged Modified */
+    color: #E2C08D; /* 可以用不同的颜色，比如浅绿？ */
+}
+.node-name.git-wd-modified::after { content: " M"; font-size: 0.9em; opacity: 0.7; color: #73c991; } /* 标记颜色也改一下 */
+
+.node-name.git-wd-deleted { /* Unstaged Deleted */
+    color: #f17c67; /* 浅红？ */
+    text-decoration: line-through;
+}
+.node-name.git-wd-deleted::after { content: " D"; font-size: 0.9em; opacity: 0.7; color: #f17c67; }
+
+/* Untracked */
+.node-name.git-untracked {
+    color: #81b88b; /* 和 Staged Added 一样用绿色 */
+}
+.node-name.git-untracked::after { content: " U"; font-size: 0.9em; opacity: 0.8; }
+
+/* Conflicted (if you implement it later) */
+.node-name.git-conflicted {
+    color: #e47c74; /* 冲突用显眼的红色 */
+}
+.node-name.git-conflicted::after { content: " C"; font-size: 0.9em; opacity: 0.8; }

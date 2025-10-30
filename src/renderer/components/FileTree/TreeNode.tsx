@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { FileNode } from './FileTree'; // 从 FileTree 导入类型
+import { FileNode } from './FileTree';
+import { GitStatusMap } from '../../../main/lib/git-service';
 
 // 定义一些简单的 SVG 图标
 const FolderIcon = () => (
@@ -17,9 +18,10 @@ const FileIcon = () => (
 interface TreeNodeProps {
     node: FileNode;
     onFileSelect: (filePath: string) => void;
+    gitStatus: GitStatusMap;
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, gitStatus }) => {
     // 1. 使用 useState 来追踪每个文件夹自己的展开/折叠状态
     const [isOpen, setIsOpen] = useState(false);
 
@@ -34,6 +36,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect }) => {
         }
     };
 
+    // --- 获取当前文件的 Git 状态 ---
+    const currentGitStatus = gitStatus[node.path] || ''; // 获取状态，没有则为空字符串
+    // --- 根据状态生成 CSS 类名 ---
+    const gitStatusClassName = currentGitStatus ? `git-${currentGitStatus}` : ''; // 例如 "git-modified"
+
     return (
         <div className="tree-node">
             <div className="node-content" onClick={handleToggle}>
@@ -44,13 +51,18 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect }) => {
                 <span className="icon">
                     {isDirectory ? <FolderIcon /> : <FileIcon />}
                 </span>
-                <span className="node-name">{node.name}</span>
+                <span className={`node-name ${gitStatusClassName}`}>{node.name}</span>
             </div>
             {/* 3. 如果是展开状态并且有子节点，则递归渲染子节点 */}
             {isOpen && isDirectory && (
                 <div className="node-children">
                     {node.children?.map(childNode => (
-                        <TreeNode key={childNode.path} node={childNode} onFileSelect={onFileSelect} />
+                        <TreeNode
+                            key={childNode.path}
+                            node={childNode}
+                            onFileSelect={onFileSelect}
+                            gitStatus={gitStatus} // <--- 传递给子节点
+                        />
                     ))}
                 </div>
             )}
