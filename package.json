@@ -23,9 +23,15 @@
   "devDependencies": {
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
     "electron": "^30.0.0",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.11",
+    "eslint": "^9.38.0",
+    "eslint-linter-browserify": "^9.38.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
     "typescript": "^5.9.3"
   },
   "dependencies": {

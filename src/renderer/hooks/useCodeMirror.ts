@@ -10,40 +10,41 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { getLanguage } from '../../main/lib/language-map';
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
+import { eslintLinter } from '../extensions/eslintLinter';
 
 // 导入缩进对齐线扩展
 import { indentationMarkers } from '@replit/codemirror-indentation-markers';
 
-const simpleLinter = (view: EditorView): readonly Diagnostic[] => {
-    const diagnostics: Diagnostic[] = [];
-    try {
-        const docText = view.state.doc.toString();
-        const lines = docText.split('\n');
-        let from = 0;
-        lines.forEach((line, i) => {
-            let col = 0;
-            while (col < line.length) {
-                const match = line.substring(col).match(/console\.log/);
-                if (!match || typeof match.index === 'undefined') break;
-
-                const matchStart = col + match.index;
-                const matchEnd = matchStart + match[0].length;
-
-                diagnostics.push({
-                    from: from + matchStart,
-                    to: from + matchEnd,
-                    severity: "info",
-                    message: "示例 Lint: 找到 console.log",
-                });
-                col = matchEnd;
-            }
-            from += line.length + 1;
-        });
-    } catch (e) {
-        console.error("Linter error:", e);
-    }
-    return diagnostics;
-};
+// const simpleLinter = (view: EditorView): readonly Diagnostic[] => {
+//     const diagnostics: Diagnostic[] = [];
+//     try {
+//         const docText = view.state.doc.toString();
+//         const lines = docText.split('\n');
+//         let from = 0;
+//         lines.forEach((line, i) => {
+//             let col = 0;
+//             while (col < line.length) {
+//                 const match = line.substring(col).match(/console\.log/);
+//                 if (!match || typeof match.index === 'undefined') break;
+//
+//                 const matchStart = col + match.index;
+//                 const matchEnd = matchStart + match[0].length;
+//
+//                 diagnostics.push({
+//                     from: from + matchStart,
+//                     to: from + matchEnd,
+//                     severity: "info",
+//                     message: "示例 Lint: 找到 console.log",
+//                 });
+//                 col = matchEnd;
+//             }
+//             from += line.length + 1;
+//         });
+//     } catch (e) {
+//         console.error("Linter error:", e);
+//     }
+//     return diagnostics;
+// };
 
 interface UseCodeMirrorProps {
     content: string;
@@ -126,14 +127,13 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             fontThemeCompartment.of(EditorView.theme({
                 '.cm-content, .cm-gutters': { fontSize: `15px` }
             })),
-            linter(simpleLinter),
-            lintGutter(),
+            eslintLinter(),
             languageCompartment.of(initialLanguage ? [initialLanguage] : []),
             // 添加缩进对齐线扩展
             indentUnit.of("    "), // 设置缩进单位（可选，默认为2个空格）
             indentationMarkers({
                 highlightActiveBlock: true, // 高亮当前光标所在的代码块
-                thickness: 1, // 线条粗细
+                thickness: 1.5, // 线条粗细
             }),
             indentationMarkersTheme, // 应用自定义样式
         ];
