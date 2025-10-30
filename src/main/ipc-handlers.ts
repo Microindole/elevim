@@ -7,7 +7,7 @@ import { readSettings, writeSettings } from './lib/settings';
 import { readDirectory } from './lib/file-system';
 import * as pty from 'node-pty';
 import * as os from 'os';
-import {getGitStatus, onGitStatusChange, startGitWatcher, stopGitWatcher} from './lib/git-service';
+import * as gitService from './lib/git-service';
 
 // --- 终端设置 ---
 // 根据不同操作系统选择合适的 shell
@@ -241,7 +241,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         if (!currentFolderPath) {
             return {}; // 没有打开文件夹，返回空状态
         }
-        return await getGitStatus(currentFolderPath);
+        return await gitService.getGitStatus(currentFolderPath);
     });
 
 
@@ -296,18 +296,105 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
     // ✅ 启动 Git 监听器
     ipcMain.handle(IPC_CHANNELS.START_GIT_WATCHER, async (_event, folderPath: string) => {
-        await startGitWatcher(folderPath);
+        await gitService.startGitWatcher(folderPath);
     });
 
     // ✅ 停止 Git 监听器
     ipcMain.handle(IPC_CHANNELS.STOP_GIT_WATCHER, async () => {
-        await stopGitWatcher();
+        await gitService.stopGitWatcher();
     });
 
     // ✅ Git 状态变化时通知渲染进程
-    onGitStatusChange((statusMap) => {
+    gitService.onGitStatusChange((statusMap) => {
         if (!mainWindow.isDestroyed()) {
             mainWindow.webContents.send(IPC_CHANNELS.GIT_STATUS_CHANGE, statusMap);
         }
+    });
+
+    // Git 详细变更列表
+    ipcMain.handle(IPC_CHANNELS.GIT_GET_CHANGES, async () => {
+        if (!currentFolderPath) return [];
+        return await gitService.getGitChanges(currentFolderPath);
+    });
+
+    // Git 暂存文件
+    ipcMain.handle(IPC_CHANNELS.GIT_STAGE_FILE, async (_event, filePath: string) => {
+        if (!currentFolderPath) return false;
+        const result = await gitService.stageFile(currentFolderPath, filePath);
+        if (result) {
+            // 刷新状态
+            const status = await gitService.getGitStatus(currentFolderPath);
+            gitService.notifyStatusChange(status);
+        }
+        return result;
+    });
+
+    // Git 取消暂存
+    ipcMain.handle(IPC_CHANNELS.GIT_UNSTAGE_FILE, async (_event, filePath: string) => {
+        if (!currentFolderPath) return false;
+        const result = await gitService.unstageFile(currentFolderPath, filePath);
+        if (result) {
+            const status = await gitService.getGitStatus(currentFolderPath);
+            gitService.notifyStatusChange(status);
+        }
+        return result;
+    });
+
+    // Git 丢弃修改
+    ipcMain.handle(IPC_CHANNELS.GIT_DISCARD_CHANGES, async (_event, filePath: string) => {
+        if (!currentFolderPath) return false;
+        const result = await gitService.discardChanges(currentFolderPath, filePath);
+        if (result) {
+            const status = await gitService.getGitStatus(currentFolderPath);
+            gitService.notifyStatusChange(status);
+        }
+        return result;
+    });
+
+    // Git 提交
+    ipcMain.handle(IPC_CHANNELS.GIT_COMMIT, async (_event, message: string) => {
+        if (!currentFolderPath) return false;
+        const result = await gitService.commit(currentFolderPath, message);
+        if (result) {
+            const status = await gitService.getGitStatus(currentFolderPath);
+            gitService.notifyStatusChange(status);
+        }
+        return result;
+    });
+
+    // Git 获取分支列表
+    ipcMain.handle(IPC_CHANNELS.GIT_GET_BRANCHES, async () => {
+        if (!currentFolderPath) return [];
+        return await gitService.getBranches(currentFolderPath);
+    });
+
+    // Git 切换分支
+    ipcMain.handle(IPC_CHANNELS.GIT_CHECKOUT_BRANCH, async (_event, branchName: string) => {
+        if (!currentFolderPath) return false;
+        return await gitService.checkoutBranch(currentFolderPath, branchName);
+    });
+
+    // Git 创建分支
+    ipcMain.handle(IPC_CHANNELS.GIT_CREATE_BRANCH, async (_event, branchName: string) => {
+        if (!currentFolderPath) return false;
+        return await gitService.createBranch(currentFolderPath, branchName);
+    });
+
+    // Git 获取提交历史
+    ipcMain.handle(IPC_CHANNELS.GIT_GET_COMMITS, async (_event, limit: number = 20) => {
+        if (!currentFolderPath) return [];
+        return await gitService.getCommitHistory(currentFolderPath, limit);
+    });
+
+    // Git 获取文件差异
+    ipcMain.handle(IPC_CHANNELS.GIT_GET_DIFF, async (_event, filePath: string, staged: boolean) => {
+        if (!currentFolderPath) return null;
+        return await gitService.getFileDiff(currentFolderPath, filePath, staged);
+    });
+
+    // Git 获取当前分支
+    ipcMain.handle(IPC_CHANNELS.GIT_GET_CURRENT_BRANCH, async () => {
+        if (!currentFolderPath) return null;
+        return await gitService.getCurrentBranch(currentFolderPath);
     });
 }

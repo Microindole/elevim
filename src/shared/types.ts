@@ -1,7 +1,7 @@
 // src/shared/types.ts
 
 // IElectronAPI 接口保持原样，我们将在 Window 接口中直接定义类型
-import {GitStatusMap} from "../main/lib/git-service";
+import { GitStatusMap, GitFileChange, GitBranch, GitCommit, GitDiff } from "../main/lib/git-service";
 
 export interface IElectronAPI {
     onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => () => void;
@@ -30,7 +30,17 @@ export interface IElectronAPI {
     startGitWatcher: (folderPath: string) => void;
     stopGitWatcher: () => void;
     onGitStatusChange: (callback: (status: GitStatusMap) => void) => () => void;
-
+    gitGetChanges: () => Promise<GitFileChange[]>;
+    gitStageFile: (filePath: string) => Promise<boolean>;
+    gitUnstageFile: (filePath: string) => Promise<boolean>;
+    gitDiscardChanges: (filePath: string) => Promise<boolean>;
+    gitCommit: (message: string) => Promise<boolean>;
+    gitGetBranches: () => Promise<GitBranch[]>;
+    gitCheckoutBranch: (branchName: string) => Promise<boolean>;
+    gitCreateBranch: (branchName: string) => Promise<boolean>;
+    gitGetCommits: (limit?: number) => Promise<GitCommit[]>;
+    gitGetDiff: (filePath: string, staged: boolean) => Promise<GitDiff | null>;
+    gitGetCurrentBranch: () => Promise<string | null>;
 }
 
 declare global {

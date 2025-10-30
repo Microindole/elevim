@@ -74,4 +74,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.on(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
         return () => ipcRenderer.removeListener(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
     },
+    gitGetChanges: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_CHANGES),
+    gitStageFile: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE_FILE, filePath),
+    gitUnstageFile: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE_FILE, filePath),
+    gitDiscardChanges: (filePath: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_DISCARD_CHANGES, filePath),
+    gitCommit: (message: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, message),
+    gitGetBranches: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCHES),
+    gitCheckoutBranch: (branchName: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_CHECKOUT_BRANCH, branchName),
+    gitCreateBranch: (branchName: string) => ipcRenderer.invoke(IPC_CHANNELS.GIT_CREATE_BRANCH, branchName),
+    gitGetCommits: (limit?: number) => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_COMMITS, limit),
+    gitGetDiff: (filePath: string, staged: boolean) => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_DIFF, filePath, staged),
+    gitGetCurrentBranch: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_CURRENT_BRANCH),
 });

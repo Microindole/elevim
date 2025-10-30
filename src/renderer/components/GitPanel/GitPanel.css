@@ -1,0 +1,351 @@
+/* src/renderer/components/GitPanel/GitPanel.css */
+
+.git-panel {
+    position: fixed;
+    right: 0;
+    top: 67px; /* 标题栏 + 标签页高度 */
+    bottom: 22px; /* 状态栏高度 */
+    width: 350px;
+    background-color: #252526;
+    border-left: 1px solid #3e3e42;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    color: #cccccc;
+}
+
+.git-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: #2d2d2d;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.git-panel-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.git-close-btn {
+    background: none;
+    border: none;
+    color: #cccccc;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 8px;
+    line-height: 1;
+}
+
+.git-close-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+/* Tabs */
+.git-tabs {
+    display: flex;
+    background-color: #2d2d2d;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.git-tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    color: #9e9e9e;
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.git-tab:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #cccccc;
+}
+
+.git-tab.active {
+    color: #ffffff;
+    border-bottom-color: #007acc;
+}
+
+/* Content Area */
+.git-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.git-empty {
+    padding: 20px;
+    text-align: center;
+    color: #6a6a6a;
+    font-size: 13px;
+}
+
+/* Changes Tab */
+.git-changes {
+    padding: 8px 0;
+}
+
+.git-commit-box {
+    padding: 8px 12px;
+    border-bottom: 1px solid #3e3e42;
+    margin-bottom: 8px;
+}
+
+.git-commit-input {
+    width: 100%;
+    padding: 8px;
+    background-color: #3c3c3c;
+    border: 1px solid #555555;
+    color: #cccccc;
+    font-size: 13px;
+    border-radius: 3px;
+    margin-bottom: 6px;
+}
+
+.git-commit-input:focus {
+    outline: none;
+    border-color: #007acc;
+}
+
+.git-commit-btn {
+    width: 100%;
+    padding: 6px;
+    background-color: #0e639c;
+    border: none;
+    color: white;
+    font-size: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.git-commit-btn:hover:not(:disabled) {
+    background-color: #1177bb;
+}
+
+.git-commit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.git-section {
+    margin-bottom: 12px;
+}
+
+.git-section-header {
+    padding: 6px 12px;
+    background-color: #2d2d2d;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #9e9e9e;
+    letter-spacing: 0.5px;
+}
+
+.git-file-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 13px;
+    transition: background-color 0.15s;
+}
+
+.git-file-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.git-file-status {
+    flex-shrink: 0;
+    width: 20px;
+    font-weight: bold;
+    color: #4ec9b0;
+}
+
+.git-file-path {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.git-file-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.git-file-item:hover .git-file-actions {
+    opacity: 1;
+}
+
+.git-action-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    border-radius: 3px;
+    color: #cccccc;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.git-action-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+}
+
+.git-action-btn.danger:hover {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}
+
+/* Branches Tab */
+.git-branches {
+    padding: 12px;
+}
+
+.git-branch-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.git-branch-header span {
+    font-size: 13px;
+}
+
+.git-branch-header strong {
+    color: #4ec9b0;
+}
+
+.git-new-branch-btn {
+    padding: 4px 12px;
+    background-color: #0e639c;
+    border: none;
+    color: white;
+    font-size: 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.git-new-branch-btn:hover {
+    background-color: #1177bb;
+}
+
+.git-branch-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.git-branch-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.git-branch-item:not(.current):hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.git-branch-item.current {
+    background-color: rgba(78, 201, 176, 0.15);
+    cursor: default;
+}
+
+.git-branch-icon {
+    margin-right: 8px;
+    color: #4ec9b0;
+    font-size: 14px;
+}
+
+.git-branch-name {
+    font-size: 13px;
+}
+
+.git-branch-item.current .git-branch-name {
+    font-weight: 600;
+    color: #4ec9b0;
+}
+
+/* History Tab */
+.git-history {
+    padding: 8px;
+}
+
+.git-commit-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    background-color: #2d2d2d;
+    border-radius: 4px;
+    border-left: 3px solid #007acc;
+    transition: background-color 0.15s;
+}
+
+.git-commit-item:hover {
+    background-color: #323233;
+}
+
+.git-commit-message {
+    font-size: 13px;
+    color: #ffffff;
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.git-commit-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #9e9e9e;
+    margin-bottom: 4px;
+}
+
+.git-commit-author {
+    color: #4ec9b0;
+}
+
+.git-commit-hash {
+    font-size: 11px;
+    color: #6a6a6a;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* Scrollbar */
+.git-content::-webkit-scrollbar {
+    width: 10px;
+}
+
+.git-content::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+.git-content::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 5px;
+}
+
+.git-content::-webkit-scrollbar-thumb:hover {
+    background: #4e4e4e;
+}

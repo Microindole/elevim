@@ -7,7 +7,8 @@ import Tabs, { OpenFile } from './components/Tabs/Tabs';
 import StatusBar from './components/StatusBar/StatusBar';
 import CommandPalette, { Command } from './components/CommandPalette/CommandPalette';
 import TerminalComponent from './components/Terminal/Terminal';
-import { GitStatusMap} from "../main/lib/git-service";
+import { GitStatusMap } from "../main/lib/git-service";
+import GitPanel from './components/GitPanel/GitPanel';
 
 import './components/App/App.css';
 
@@ -40,9 +41,10 @@ export default function App() {
     const gitStatusIntervalRef = useRef<NodeJS.Timeout | null>(null); // 用于定时刷新
     const currentOpenFolderPath = useRef<string | null>(null); // 记录当前打开的文件夹
     const appStateRef = useRef({ openFiles, activeIndex });
-    useEffect(() => {
-        appStateRef.current = { openFiles, activeIndex };
-    }, [openFiles, activeIndex]);
+
+    const [isGitPanelOpen, setIsGitPanelOpen] = useState(false);
+
+    
 
     // --- 派生状态 ---
     const activeFile = openFiles[activeIndex];
@@ -184,6 +186,10 @@ export default function App() {
         setCursorCol(col);
     }, []);
 
+    useEffect(() => {
+        appStateRef.current = { openFiles, activeIndex };
+    }, [openFiles, activeIndex]);
+
     // --- IPC 事件监听 ---
     // 因为所有回调现在都绝对稳定了，这个 useEffect 只会在组件挂载时运行一次
     useEffect(() => {
@@ -283,6 +289,7 @@ export default function App() {
         { id: 'file.save', name: 'File: Save', action: handleSave },
         { id: 'file.saveAs', name: 'File: Save As...', action: handleMenuSaveAsFile },
         { id: 'app.quit', name: 'Application: Quit', action: handleMenuCloseWindow },
+        { id: 'git.toggle', name: 'Git: Toggle Source Control', action: () => setIsGitPanelOpen(prev => !prev) },
         // 未来可以添加更多命令，如 "Theme: Switch to Light Mode"
     ], [handleMenuNewFile, handleMenuOpenFile, handleMenuOpenFolder, handleSave, handleMenuSaveAsFile, handleMenuCloseWindow]);
 
@@ -309,6 +316,12 @@ export default function App() {
             if (e.ctrlKey && e.key === '`') {
                 e.preventDefault();
                 setIsTerminalVisible(prev => !prev);
+            }
+
+            // Ctrl + Shift + G - Git 面板
+            if (e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
+                e.preventDefault();
+                setIsGitPanelOpen(prev => !prev);
             }
         };
 
@@ -394,6 +407,11 @@ export default function App() {
                         )}
                     </div>
                 </div>
+                {/* Git 面板 */}
+            <GitPanel 
+                isVisible={isGitPanelOpen} 
+                onClose={() => setIsGitPanelOpen(false)} 
+            />
                 {/* --- 终端面板 --- */}
                 {isTerminalVisible && (
                     <>
