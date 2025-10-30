@@ -65,4 +65,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     readDirectory: (folderPath: string): Promise<any | null> =>
         ipcRenderer.invoke(IPC_CHANNELS.READ_DIRECTORY, folderPath),
+
+    eslintLint: (code: string, filename: string): Promise<{
+        success: boolean;
+        diagnostics?: Array<{
+            line: number;
+            column: number;
+            endLine?: number;
+            endColumn?: number;
+            severity: 'warning' | 'error';
+            message: string;
+            ruleId: string | null;
+        }>;
+        error?: string;
+    }> => ipcRenderer.invoke(IPC_CHANNELS.ESLINT_LINT, code, filename),
 });

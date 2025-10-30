@@ -9,42 +9,8 @@ import { search, searchKeymap } from '@codemirror/search';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { getLanguage } from '../../main/lib/language-map';
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
-import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
-import { eslintLinter } from '../extensions/eslintLinter';
-
-// 导入缩进对齐线扩展
+import { eslintLinter, setLinterFilename } from '../extensions/eslintLinter';
 import { indentationMarkers } from '@replit/codemirror-indentation-markers';
-
-// const simpleLinter = (view: EditorView): readonly Diagnostic[] => {
-//     const diagnostics: Diagnostic[] = [];
-//     try {
-//         const docText = view.state.doc.toString();
-//         const lines = docText.split('\n');
-//         let from = 0;
-//         lines.forEach((line, i) => {
-//             let col = 0;
-//             while (col < line.length) {
-//                 const match = line.substring(col).match(/console\.log/);
-//                 if (!match || typeof match.index === 'undefined') break;
-//
-//                 const matchStart = col + match.index;
-//                 const matchEnd = matchStart + match[0].length;
-//
-//                 diagnostics.push({
-//                     from: from + matchStart,
-//                     to: from + matchEnd,
-//                     severity: "info",
-//                     message: "示例 Lint: 找到 console.log",
-//                 });
-//                 col = matchEnd;
-//             }
-//             from += line.length + 1;
-//         });
-//     } catch (e) {
-//         console.error("Linter error:", e);
-//     }
-//     return diagnostics;
-// };
 
 interface UseCodeMirrorProps {
     content: string;
@@ -60,10 +26,10 @@ const languageCompartment = new Compartment();
 // 自定义缩进线的样式主题
 const indentationMarkersTheme = EditorView.baseTheme({
     ".cm-indent-markers .cm-indent-marker": {
-        borderLeft: "1px solid rgba(255, 255, 255, 0.15)", // 浅色对齐线
+        borderLeft: "1px solid rgba(255, 255, 255, 0.15)",
     },
     ".cm-indent-markers .cm-indent-marker-active": {
-        borderLeft: "1px solid rgba(255, 255, 255, 0.35)", // 高亮当前作用域的对齐线
+        borderLeft: "1px solid rgba(255, 255, 255, 0.35)",
     },
 });
 
@@ -74,6 +40,9 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
 
     useEffect(() => {
         if (!editorRef.current) return;
+
+        // 设置当前文件名供 ESLint linter 使用
+        setLinterFilename(filename);
 
         const updateListener = EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -127,15 +96,15 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             fontThemeCompartment.of(EditorView.theme({
                 '.cm-content, .cm-gutters': { fontSize: `15px` }
             })),
+            // 使用主进程的 ESLint linter
             eslintLinter(),
             languageCompartment.of(initialLanguage ? [initialLanguage] : []),
-            // 添加缩进对齐线扩展
-            indentUnit.of("    "), // 设置缩进单位（可选，默认为2个空格）
+            indentUnit.of("    "),
             indentationMarkers({
-                highlightActiveBlock: true, // 高亮当前光标所在的代码块
-                thickness: 1.5, // 线条粗细
+                highlightActiveBlock: true,
+                thickness: 1.5,
             }),
-            indentationMarkersTheme, // 应用自定义样式
+            indentationMarkersTheme,
         ];
 
         const startState = EditorState.create({
@@ -159,10 +128,14 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
 
     useEffect(() => {
         if (view) {
+            // 更新语言支持
             const newLanguage = getLanguage(filename);
             view.dispatch({
                 effects: languageCompartment.reconfigure(newLanguage ? [newLanguage] : [])
             });
+
+            // 更新 ESLint linter 的文件名
+            setLinterFilename(filename);
         }
     }, [filename, view]);
 

@@ -8,6 +8,7 @@ import { readDirectory } from './lib/file-system';
 import * as pty from 'node-pty';
 import * as os from 'os';
 import { getGitStatus } from './lib/git-service';
+import { lintCode } from './services/eslintService';
 
 // --- 终端设置 ---
 // 根据不同操作系统选择合适的 shell
@@ -292,5 +293,19 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     // --- 其他 ---
     ipcMain.on(IPC_CHANNELS.SET_TITLE, (_event, title: string) => {
         // 虽然渲染进程可以自己改标题，但保留这个可以用于主进程主动修改
+    });
+
+    ipcMain.handle(IPC_CHANNELS.ESLINT_LINT, async (_event, code: string, filename: string) => {
+        try {
+            const diagnostics = await lintCode(code, filename);
+            return { success: true, diagnostics };
+        } catch (error) {
+            console.error('[IPC] ESLint error:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : String(error),
+                diagnostics: []
+            };
+        }
     });
 }

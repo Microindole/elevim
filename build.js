@@ -9,7 +9,17 @@ async function build() {
             outdir: 'dist/main',
             bundle: true,
             platform: 'node',
-            external: ['electron', 'node-pty'],
+            external: [
+                'electron',
+                'node-pty',
+                // 将 ESLint 相关的包标记为 external
+                'eslint',
+                '@typescript-eslint/parser',
+                '@typescript-eslint/eslint-plugin',
+                'eslint-plugin-react',
+                'eslint-plugin-react-hooks',
+                // ESLint 的依赖
+                'jiti',],
         });
         console.log('✅ Main process built successfully!');
 

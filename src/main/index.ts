@@ -2,6 +2,12 @@
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import { registerIpcHandlers } from './ipc-handlers';
+import { initializeESLint } from './services/eslintService';
+import { destroyESLint } from './services/eslintService';
+
+app.on('before-quit', () => {
+  destroyESLint();
+});
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -28,7 +34,12 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+
+  // 初始化 ESLint
+  console.log('[Main] Initializing ESLint...');
+  await initializeESLint();
+
   createWindow();
 
   app.on('activate', () => {

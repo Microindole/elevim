@@ -25,6 +25,20 @@ export interface IElectronAPI {
     onTerminalData: (callback: (data: string) => void) => () => void;
     getGitStatus: () => Promise<Record<string, string>>;
     readDirectory: (folderPath: string) => Promise<any | null>;
+
+    eslintLint: (code: string, filename: string) => Promise<{
+        success: boolean;
+        diagnostics?: Array<{
+            line: number;
+            column: number;
+            endLine?: number;
+            endColumn?: number;
+            severity: 'warning' | 'error';
+            message: string;
+            ruleId: string | null;
+        }>;
+        error?: string;
+    }>;
 }
 
 declare global {
