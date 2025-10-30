@@ -20,4 +20,7 @@ export const IPC_CHANNELS = {
     TERMINAL_RESIZE: 'terminal-resize',  // 渲 -> 主：通知调整 pty 大小
     GET_GIT_STATUS: 'get-git-status',    // 渲 -> 主：请求 Git 状态
     READ_DIRECTORY: 'read-directory',
+    START_GIT_WATCHER: 'start-git-watcher',
+    STOP_GIT_WATCHER: 'stop-git-watcher',
+    GIT_STATUS_CHANGE: 'git-status-change',
 };

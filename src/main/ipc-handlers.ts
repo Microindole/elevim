@@ -7,7 +7,7 @@ import { readSettings, writeSettings } from './lib/settings';
 import { readDirectory } from './lib/file-system';
 import * as pty from 'node-pty';
 import * as os from 'os';
-import { getGitStatus } from './lib/git-service';
+import {getGitStatus, onGitStatusChange, startGitWatcher, stopGitWatcher} from './lib/git-service';
 
 // --- 终端设置 ---
 // 根据不同操作系统选择合适的 shell
@@ -292,5 +292,22 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     // --- 其他 ---
     ipcMain.on(IPC_CHANNELS.SET_TITLE, (_event, title: string) => {
         // 虽然渲染进程可以自己改标题，但保留这个可以用于主进程主动修改
+    });
+
+    // ✅ 启动 Git 监听器
+    ipcMain.handle(IPC_CHANNELS.START_GIT_WATCHER, async (_event, folderPath: string) => {
+        await startGitWatcher(folderPath);
+    });
+
+    // ✅ 停止 Git 监听器
+    ipcMain.handle(IPC_CHANNELS.STOP_GIT_WATCHER, async () => {
+        await stopGitWatcher();
+    });
+
+    // ✅ Git 状态变化时通知渲染进程
+    onGitStatusChange((statusMap) => {
+        if (!mainWindow.isDestroyed()) {
+            mainWindow.webContents.send(IPC_CHANNELS.GIT_STATUS_CHANGE, statusMap);
+        }
     });
 }

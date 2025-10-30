@@ -204,18 +204,14 @@ export default function App() {
         const tree = await window.electronAPI.openFolder();
         if (tree) {
             setFileTree(tree);
-            currentOpenFolderPath.current = tree.path; // 记录文件夹路径
-            // 打开文件夹后立即获取 Git 状态
-            await fetchGitStatus();
-            // --- (可选) 设置定时器定期刷新 Git 状态 ---
-            if (gitStatusIntervalRef.current) clearInterval(gitStatusIntervalRef.current);
-            gitStatusIntervalRef.current = setInterval(fetchGitStatus, 5000); // 每 5 秒刷新一次
+            currentOpenFolderPath.current = tree.path;
+
+            // ✅ 使用文件监听器替代轮询
+            await window.electronAPI.startGitWatcher(tree.path);
         } else {
-            // 如果取消或失败，清除状态和定时器
             currentOpenFolderPath.current = null;
             setGitStatus({});
-            if (gitStatusIntervalRef.current) clearInterval(gitStatusIntervalRef.current);
-            gitStatusIntervalRef.current = null;
+            await window.electronAPI.stopGitWatcher();
         }
     }, []);
     const handleMenuSaveAsFile = useCallback(() => window.electronAPI.triggerSaveAsFile(), []);
@@ -255,6 +251,21 @@ export default function App() {
             if (gitStatusIntervalRef.current) {
                 clearInterval(gitStatusIntervalRef.current);
             }
+        };
+    }, []);
+
+    useEffect(() => {
+        const unsubscribe = window.electronAPI.onGitStatusChange((status: GitStatusMap) => {
+            console.log('[Renderer] Git status updated');
+            setGitStatus(status);
+
+            // 可选：只刷新文件树而不重新读取目录
+            // 这样更高效
+        });
+
+        return () => {
+            unsubscribe();
+            window.electronAPI.stopGitWatcher();
         };
     }, []);
 

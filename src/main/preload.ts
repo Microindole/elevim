@@ -1,6 +1,7 @@
 // src/main/preload.ts
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants';
+import {GitStatusMap} from "./lib/git-service";
 
 contextBridge.exposeInMainWorld('electronAPI', {
     onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => {
@@ -65,4 +66,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     readDirectory: (folderPath: string): Promise<any | null> =>
         ipcRenderer.invoke(IPC_CHANNELS.READ_DIRECTORY, folderPath),
+
+    startGitWatcher: (folderPath: string) => ipcRenderer.invoke(IPC_CHANNELS.START_GIT_WATCHER, folderPath),
+    stopGitWatcher: () => ipcRenderer.invoke(IPC_CHANNELS.STOP_GIT_WATCHER),
+    onGitStatusChange: (callback: (status: GitStatusMap) => void) => {
+        const subscription = (_event: any, status: GitStatusMap) => callback(status);
+        ipcRenderer.on(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
+        return () => ipcRenderer.removeListener(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
+    },
 });

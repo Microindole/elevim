@@ -91,6 +91,19 @@
 // Example: if (stage === ? && workdir === ?) fileStatus = 'conflicted';
 
 
+```ts
+/*
+ * TODO 进一步增强 Git 功能
+ *  如果你想让 Git 功能更强大，可以添加：
+ *  Git 面板：显示暂存区、工作区变更
+ *  快速操作：右键菜单添加 Stage/Unstage/Discard
+ *  分支管理：切换分支、创建分支
+ *  提交历史：查看 commit log
+ *  差异对比：显示文件修改内容
+ */
+```
+
+
 ```markdown
 这是我用electron写的一个编辑器项目，我是想写一个类似vscode的项目出来，你先熟悉代码
 ```

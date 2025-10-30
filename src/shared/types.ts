@@ -1,6 +1,8 @@
 // src/shared/types.ts
 
 // IElectronAPI 接口保持原样，我们将在 Window 接口中直接定义类型
+import {GitStatusMap} from "../main/lib/git-service";
+
 export interface IElectronAPI {
     onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => () => void;
     saveFile: (content: string) => Promise<string | null>;
@@ -25,6 +27,10 @@ export interface IElectronAPI {
     onTerminalData: (callback: (data: string) => void) => () => void;
     getGitStatus: () => Promise<Record<string, string>>;
     readDirectory: (folderPath: string) => Promise<any | null>;
+    startGitWatcher: (folderPath: string) => void;
+    stopGitWatcher: () => void;
+    onGitStatusChange: (callback: (status: GitStatusMap) => void) => () => void;
+
 }
 
 declare global {
