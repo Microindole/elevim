@@ -2,6 +2,23 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants';
 
+// 定义类型
+interface LintDiagnostic {
+    line: number;
+    column: number;
+    endLine?: number;
+    endColumn?: number;
+    severity: 'warning' | 'error';
+    message: string;
+    ruleId: string | null;
+}
+
+interface LintResult {
+    success: boolean;
+    diagnostics: LintDiagnostic[];
+    error?: string;
+}
+
 contextBridge.exposeInMainWorld('electronAPI', {
     onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => {
         // 创建一个包装函数，以便我们可以保留对它的引用
@@ -66,17 +83,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     readDirectory: (folderPath: string): Promise<any | null> =>
         ipcRenderer.invoke(IPC_CHANNELS.READ_DIRECTORY, folderPath),
 
-    eslintLint: (code: string, filename: string): Promise<{
-        success: boolean;
-        diagnostics?: Array<{
-            line: number;
-            column: number;
-            endLine?: number;
-            endColumn?: number;
-            severity: 'warning' | 'error';
-            message: string;
-            ruleId: string | null;
-        }>;
-        error?: string;
-    }> => ipcRenderer.invoke(IPC_CHANNELS.ESLINT_LINT, code, filename),
+    // ESLint
+    eslintLint: (code: string, filename: string): Promise<LintResult> =>
+        ipcRenderer.invoke(IPC_CHANNELS.ESLINT_LINT, code, filename),
+
 });

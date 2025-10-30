@@ -1,13 +1,7 @@
 // src/main/index.ts
 import { app, BrowserWindow } from 'electron';
 import * as path from 'path';
-import { registerIpcHandlers } from './ipc-handlers';
-import { initializeESLint } from './services/eslintService';
-import { destroyESLint } from './services/eslintService';
-
-app.on('before-quit', () => {
-  destroyESLint();
-});
+import { registerIpcHandlers, initializeServices } from './ipc-handlers';
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -35,10 +29,9 @@ function createWindow() {
 }
 
 app.whenReady().then(async () => {
-
-  // 初始化 ESLint
-  console.log('[Main] Initializing ESLint...');
-  await initializeESLint();
+  // 初始化所有语言的 Linters (包括 JavaScript, TypeScript, Python, JSON, CSS, HTML)
+  console.log('[Main] Initializing multi-language linters...');
+  await initializeServices();
 
   createWindow();
 
@@ -49,6 +42,7 @@ app.whenReady().then(async () => {
   });
 });
 
+// 不需要特殊的清理代码，linters 会自动销毁
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();

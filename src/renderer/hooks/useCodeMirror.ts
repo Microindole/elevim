@@ -9,7 +9,7 @@ import { search, searchKeymap } from '@codemirror/search';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { getLanguage } from '../../main/lib/language-map';
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
-import { eslintLinter, setLinterFilename } from '../extensions/eslintLinter';
+import { universalLinter, setLinterFilename } from '../extensions/universalLinter';
 import { indentationMarkers } from '@replit/codemirror-indentation-markers';
 
 interface UseCodeMirrorProps {
@@ -41,7 +41,7 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
     useEffect(() => {
         if (!editorRef.current) return;
 
-        // 设置当前文件名供 ESLint linter 使用
+        // 设置当前文件名供通用 linter 使用
         setLinterFilename(filename);
 
         const updateListener = EditorView.updateListener.of((update) => {
@@ -96,8 +96,8 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             fontThemeCompartment.of(EditorView.theme({
                 '.cm-content, .cm-gutters': { fontSize: `15px` }
             })),
-            // 使用主进程的 ESLint linter
-            eslintLinter(),
+            // 使用通用的多语言 linter (支持 JS/TS/Python/JSON/CSS/HTML 等)
+            universalLinter(),
             languageCompartment.of(initialLanguage ? [initialLanguage] : []),
             indentUnit.of("    "),
             indentationMarkers({
@@ -134,7 +134,7 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
                 effects: languageCompartment.reconfigure(newLanguage ? [newLanguage] : [])
             });
 
-            // 更新 ESLint linter 的文件名
+            // 更新通用 linter 的文件名
             setLinterFilename(filename);
         }
     }, [filename, view]);

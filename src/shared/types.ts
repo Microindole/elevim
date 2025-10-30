@@ -26,19 +26,25 @@ export interface IElectronAPI {
     getGitStatus: () => Promise<Record<string, string>>;
     readDirectory: (folderPath: string) => Promise<any | null>;
 
-    eslintLint: (code: string, filename: string) => Promise<{
-        success: boolean;
-        diagnostics?: Array<{
-            line: number;
-            column: number;
-            endLine?: number;
-            endColumn?: number;
-            severity: 'warning' | 'error';
-            message: string;
-            ruleId: string | null;
-        }>;
-        error?: string;
-    }>;
+    eslintLint: (code: string, filename: string) => Promise<LintResult>;
+}
+
+// ESLint 诊断信息类型
+export interface LintDiagnostic {
+    line: number;
+    column: number;
+    endLine?: number;
+    endColumn?: number;
+    severity: 'warning' | 'error';
+    message: string;
+    ruleId: string | null;
+}
+
+// ESLint 结果类型
+export interface LintResult {
+    success: boolean;
+    diagnostics?: LintDiagnostic[];
+    error?: string;
 }
 
 declare global {

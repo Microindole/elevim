@@ -1,7 +1,5 @@
 // src/main/services/eslintService.ts
-import { ESLint } from 'eslint';
-import path from 'path';
-import { app } from 'electron';
+import { Linter } from 'eslint';
 
 // 类型定义
 export interface LintDiagnostic {
@@ -14,98 +12,187 @@ export interface LintDiagnostic {
     ruleId: string | null;
 }
 
-let eslintInstance: ESLint | null = null;
-let projectRoot: string = '';
+// 使用 Linter 而不是 ESLint (更轻量,不需要文件系统)
+let linter: Linter | null = null;
 
 /**
- * 初始化 ESLint 实例（使用内联配置，不依赖配置文件）
+ * 初始化 Linter
  */
-export async function initializeESLint() {
+export function initializeESLint() {
     try {
-        projectRoot = app.isPackaged
-            ? path.join(process.resourcesPath, '..')
-            : path.join(__dirname, '../../..');
-
-        console.log('[ESLint] Project root:', projectRoot);
-
-        // 使用内联配置，完全不依赖配置文件
-        eslintInstance = new ESLint({
-            cwd: projectRoot,
-            overrideConfig: {
-                env: {
-                    browser: true,
-                    es2021: true,
-                },
-                parserOptions: {
-                    ecmaVersion: 'latest',
-                    sourceType: 'module',
-                    ecmaFeatures: {
-                        jsx: true,
-                    },
-                },
-                rules: {
-                    // 基础规则
-                    'semi': ['warn', 'always'],
-                    'no-unused-vars': 'warn',
-                    'no-console': 'off',
-                    'no-debugger': 'error',
-                    'eqeqeq': 'warn',
-                    'no-undef': 'error',
-                    'no-const-assign': 'error',
-                    'no-dupe-keys': 'error',
-                    'no-duplicate-case': 'error',
-                    'no-empty': 'warn',
-                    'no-unreachable': 'warn',
-                    'valid-typeof': 'error',
-                },
-            },
-        });
-
-        console.log('[ESLint] Initialized successfully with inline config');
+        linter = new Linter();
+        console.log('[ESLint] Linter initialized successfully');
         return true;
     } catch (error) {
-        console.error('[ESLint] Failed to initialize:', error);
+        console.error('[ESLint] Failed to initialize linter:', error);
         return false;
     }
 }
 
 /**
+ * 获取文件扩展名
+ */
+function getFileExtension(filename: string): string {
+    const match = filename.match(/\.([^.]+)$/);
+    return match ? match[1].toLowerCase() : '';
+}
+
+/**
+ * 判断是否应该 lint 该文件
+ */
+function shouldLint(filename: string): boolean {
+    const ext = getFileExtension(filename);
+    return ['js', 'jsx', 'mjs', 'cjs'].includes(ext);
+}
+
+/**
+ * 获取针对文件类型的配置
+ */
+function getConfigForFile(filename: string) {
+    const ext = getFileExtension(filename);
+
+    // 基础配置
+    const baseConfig = {
+        env: {
+            browser: true,
+            es2021: true,
+            node: true,
+        },
+        parserOptions: {
+            ecmaVersion: 2021,
+            sourceType: 'module' as const,
+        },
+        rules: {
+            'semi': ['warn', 'always'],
+            'no-unused-vars': 'warn',
+            'no-console': 'off',
+            'no-debugger': 'error',
+            'eqeqeq': ['warn', 'always'],
+            'no-undef': 'error',
+            'no-const-assign': 'error',
+            'no-dupe-keys': 'error',
+            'no-duplicate-case': 'error',
+            'no-empty': 'warn',
+            'no-unreachable': 'warn',
+            'valid-typeof': 'error',
+            'no-redeclare': 'error',
+            'curly': ['warn', 'all'],
+            'no-var': 'warn',
+            'prefer-const': 'warn',
+        },
+        globals: {
+            console: 'readonly',
+            window: 'readonly',
+            document: 'readonly',
+            navigator: 'readonly',
+            alert: 'readonly',
+            confirm: 'readonly',
+            prompt: 'readonly',
+            localStorage: 'readonly',
+            sessionStorage: 'readonly',
+            fetch: 'readonly',
+            setTimeout: 'readonly',
+            setInterval: 'readonly',
+            clearTimeout: 'readonly',
+            clearInterval: 'readonly',
+            process: 'readonly',
+            __dirname: 'readonly',
+            __filename: 'readonly',
+            module: 'readonly',
+            require: 'readonly',
+            exports: 'readonly',
+            global: 'readonly',
+            Buffer: 'readonly',
+        },
+    };
+
+    // JSX 文件的额外配置
+    if (ext === 'jsx' || ext === 'tsx') {
+        return {
+            ...baseConfig,
+            parserOptions: {
+                ...baseConfig.parserOptions,
+                ecmaFeatures: {
+                    jsx: true,
+                },
+            },
+            globals: {
+                ...baseConfig.globals,
+                React: 'readonly',
+                JSX: 'readonly',
+                Record: 'readonly',
+                Partial: 'readonly',
+                Required: 'readonly',
+                Pick: 'readonly',
+                Omit: 'readonly',
+                Exclude: 'readonly',
+                Extract: 'readonly',
+                NonNullable: 'readonly',
+                ReturnType: 'readonly',
+                InstanceType: 'readonly',
+                Promise: 'readonly',
+                Array: 'readonly',
+                Map: 'readonly',
+                Set: 'readonly',
+                WeakMap: 'readonly',
+                WeakSet: 'readonly',
+            },
+        };
+    }
+
+    return baseConfig;
+}
+
+/**
  * 对代码进行 lint 检查
  */
-export async function lintCode(
+export function lintCode(
     code: string,
     filename: string
-): Promise<LintDiagnostic[]> {
-    if (!eslintInstance) {
-        console.warn('[ESLint] Not initialized, attempting to initialize...');
-        const success = await initializeESLint();
-        if (!success || !eslintInstance) {
+): LintDiagnostic[] {
+    // 初始化检查
+    if (!linter) {
+        console.warn('[ESLint] Linter not initialized, initializing now...');
+        const success = initializeESLint();
+        if (!success || !linter) {
+            console.error('[ESLint] Failed to initialize linter');
             return [];
         }
     }
 
+    // 文件类型检查
+    if (!shouldLint(filename)) {
+        return [];
+    }
+
+    // 空代码检查
+    if (!code || !code.trim()) {
+        return [];
+    }
+
     try {
-        // 使用 lintText 进行检查
-        const results = await eslintInstance.lintText(code, {
-            filePath: filename,
+        const config = getConfigForFile(filename);
+
+        console.log(`[ESLint] Linting ${filename} (${code.length} chars)`);
+
+        // 执行 lint
+        const messages = linter.verify(code, config, {
+            filename: filename,
         });
 
-        if (results.length === 0) return [];
+        console.log(`[ESLint] Found ${messages.length} issues`);
 
-        const messages = results[0].messages;
-
-        // 转换为我们需要的格式
-        const diagnostics = messages.map(msg => ({
+        // 转换格式
+        const diagnostics: LintDiagnostic[] = messages.map(msg => ({
             line: msg.line,
             column: msg.column,
             endLine: msg.endLine,
             endColumn: msg.endColumn,
-            severity: (msg.severity === 2 ? 'error' : 'warning') as 'warning' | 'error',
+            severity: msg.severity === 2 ? 'error' : 'warning',
             message: msg.message,
             ruleId: msg.ruleId,
         }));
 
-        console.log(`[ESLint] Found ${diagnostics.length} issues in ${filename}`);
         return diagnostics;
 
     } catch (error) {
@@ -115,9 +202,9 @@ export async function lintCode(
 }
 
 /**
- * 销毁 ESLint 实例
+ * 销毁 Linter 实例
  */
 export function destroyESLint() {
-    eslintInstance = null;
-    console.log('[ESLint] Instance destroyed');
+    linter = null;
+    console.log('[ESLint] Linter destroyed');
 }

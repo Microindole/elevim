@@ -8,7 +8,8 @@ import { readDirectory } from './lib/file-system';
 import * as pty from 'node-pty';
 import * as os from 'os';
 import { getGitStatus } from './lib/git-service';
-import { lintCode } from './services/eslintService';
+// ✅ 使用新的多语言 linter 服务
+import { lintCode, initializeLinters } from './services/linterService';
 
 // --- 终端设置 ---
 // 根据不同操作系统选择合适的 shell
@@ -193,8 +194,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         currentFolderPath = folderPath; // --- 记录当前文件夹路径 ---
         try {
             const fileTree = await readDirectory(folderPath);
-            // 可以在这里主动获取一次 Git 状态，但不强制
-            // getGitStatus(currentFolderPath);
             return {
                 name: path.basename(folderPath),
                 path: folderPath,
@@ -226,7 +225,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         if (!folderPath) return null; // 需要提供路径
         try {
             const fileTree = await readDirectory(folderPath); // 调用已有的函数
-            // 注意：这里返回的是子节点数组，需要包装一下符合 FileNode 结构
             return {
                 name: path.basename(folderPath),
                 path: folderPath,
@@ -295,17 +293,42 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         // 虽然渲染进程可以自己改标题，但保留这个可以用于主进程主动修改
     });
 
-    ipcMain.handle(IPC_CHANNELS.ESLINT_LINT, async (_event, code: string, filename: string) => {
-        try {
-            const diagnostics = await lintCode(code, filename);
-            return { success: true, diagnostics };
-        } catch (error) {
-            console.error('[IPC] ESLint error:', error);
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                diagnostics: []
-            };
+    // ✅ 多语言 Linting Handler
+    ipcMain.handle(
+        IPC_CHANNELS.ESLINT_LINT, // 保持兼容，但实际支持多语言
+        async (_event, code: string, filename: string) => {
+            console.log(`[IPC] Lint request: ${filename}, code length: ${code.length}`);
+
+            try {
+                // 使用新的多语言 lintCode 函数
+                const diagnostics = await lintCode(code, filename);
+
+                console.log(`[IPC] Lint result: ${diagnostics.length} issues found`);
+
+                return {
+                    success: true,
+                    diagnostics: diagnostics,
+                };
+            } catch (error) {
+                console.error('[IPC] Lint error:', error);
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : String(error),
+                    diagnostics: [],
+                };
+            }
         }
-    });
+    );
+}
+
+/**
+ * 初始化所有服务
+ */
+export async function initializeServices() {
+    console.log('[Main] Initializing services...');
+
+    // 初始化多语言 linters
+    await initializeLinters();
+
+    console.log('[Main] All services initialized');
 }
