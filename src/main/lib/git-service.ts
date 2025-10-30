@@ -48,15 +48,12 @@ export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
             return {};
         }
 
-        // --- 使用原生 git 命令获取状态 ---
-        console.log(`[DEBUG] Executing git status for: ${folderPath}`);
         // - `git status --porcelain=v1`: 提供易于机器解析的输出格式
         // - `-uall`: 显示所有未跟踪的文件（包括目录内的）
         const { stdout, stderr } = await execFileAsync('git', ['status', '--porcelain=v1', '-uall'], { cwd: folderPath });
 
         if (stderr) {
             console.error(`[Main] git status stderr: ${stderr}`);
-            // 可以选择在这里返回空状态或抛出错误
         }
 
         const statusMap: GitStatusMap = {};
@@ -64,8 +61,6 @@ export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
 
         lines.forEach(line => {
             if (!line.trim()) return; // 跳过空行
-
-            console.log(`[DEBUG] Processing line: "${line}"`);
 
             const statusChars = line.substring(0, 2); // 获取前两个状态字符
             const filepath = line.substring(3); // 获取文件名（相对路径）
@@ -80,7 +75,7 @@ export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
             else if (indexStatus === 'M') fileStatus = 'modified'; // M  或 MM
             else if (indexStatus === 'D') fileStatus = 'deleted'; // D
             else if (indexStatus === 'R') fileStatus = 'renamed'; // R (暂未细分)
-            else if (indexStatus === 'C') fileStatus = 'typechange'; // C (暂未细分，copy 算不算 typechange?)
+            else if (indexStatus === 'C') fileStatus = 'typechange'; // C (暂未细分，copy 算不算 type change?)
             else if (indexStatus === 'U') fileStatus = 'conflicted'; // UU, AU, UA, DU, UD, AA, DD
             // 如果暂存区没有标记，检查工作区
             else if (indexStatus === ' ' || indexStatus === '?') {
@@ -96,25 +91,13 @@ export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
                 fileStatus = 'untracked';
             }
 
-            if (filepath.includes('package.json')) {
-                console.log(`[DEBUG] Found package.json: line="${line}", statusChars="${statusChars}", parsedFilepath="${filepath}", determinedStatus="${fileStatus}"`);
-            }
-
             // 添加到 Map 中
             if (fileStatus) { // 忽略 .gitignore 本身
                 // 注意：如果文件路径包含空格且没有被引号包围（porcelain v1 默认不包围），需要处理
                 // 但通常 execFile 的输出已经处理好了
                 statusMap[fullPath] = fileStatus;
-
-                // <<< 确认 package.json 是否被添加 >>>
-                if (filepath.includes('package.json')) {
-                    console.log(`[DEBUG] Added package.json to statusMap with status: ${fileStatus}`);
-                }
-            }else if (filepath.includes('package.json')) { // <<< 如果没添加，看看原因 >>>
-                console.log(`[DEBUG] Skipped adding package.json, fileStatus was null.`);
             }
         });
-        console.log("[DEBUG] Final parsed statusMap:", statusMap);
 
         // console.log("[DEBUG] Parsed statusMap:", statusMap);
 
