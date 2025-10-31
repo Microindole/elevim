@@ -18,7 +18,8 @@ function createWindow() {
   });
 
   mainWindow.loadFile('index.html');
-  mainWindow.webContents.openDevTools();
+  // 关闭默认打开 chrome 开发者调试工具窗口, 可使用 Ctrl + Shift + I 开启
+  // mainWindow.webContents.openDevTools();
 
   // 将 mainWindow 实例传递给 IPC 处理器注册函数
   registerIpcHandlers(mainWindow);
