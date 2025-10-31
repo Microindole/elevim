@@ -41,6 +41,8 @@ export interface IElectronAPI {
     gitGetCommits: (limit?: number) => Promise<GitCommit[]>;
     gitGetDiff: (filePath: string, staged: boolean) => Promise<GitDiff | null>;
     gitGetCurrentBranch: () => Promise<string | null>;
+    gitStash: () => Promise<boolean>;
+    gitStashPop: () => Promise<boolean>;
 }
 
 declare global {

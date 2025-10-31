@@ -212,14 +212,27 @@ export default function App() {
             setFileTree(tree);
             currentOpenFolderPath.current = tree.path;
 
-            // ✅ 使用文件监听器替代轮询
+            // 停止旧的 Git 监听
+            await window.electronAPI.stopGitWatcher();
+
+            // 启动新的 Git 监听
             await window.electronAPI.startGitWatcher(tree.path);
+
+            // 触发 Git 面板刷新
+            window.dispatchEvent(new Event('folder-changed'));
+
+            // 如果 Git 面板打开，刷新它
+            if (isGitPanelOpen) {
+                setIsGitPanelOpen(false);
+                setTimeout(() => setIsGitPanelOpen(true), 100);
+            }
         } else {
             currentOpenFolderPath.current = null;
             setGitStatus({});
             await window.electronAPI.stopGitWatcher();
+            setIsGitPanelOpen(false);
         }
-    }, []);
+    }, [isGitPanelOpen]);
     const handleMenuSaveAsFile = useCallback(() => window.electronAPI.triggerSaveAsFile(), []);
     const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.closeWindow()), [safeAction]);
     const handleFileTreeSelect = useCallback((filePath: string) => safeAction(() => window.electronAPI.openFile(filePath)), [safeAction]);
@@ -274,6 +287,39 @@ export default function App() {
             window.electronAPI.stopGitWatcher();
         };
     }, []);
+
+    useEffect(() => {
+        // 监听分支切换事件
+        const handleBranchChange = async () => {
+            if (currentOpenFolderPath.current) {
+                // 重新读取文件树
+                const updatedTree = await window.electronAPI.readDirectory(
+                    currentOpenFolderPath.current
+                );
+                if (updatedTree) {
+                    setFileTree(updatedTree);
+                }
+
+                // 刷新 Git 状态
+                const newStatus = await window.electronAPI.getGitStatus();
+                setGitStatus(newStatus);
+
+                // 可选：重新加载当前打开的文件
+                const currentFile = openFiles[activeIndex];
+                if (currentFile?.path) {
+                    const content = await window.electronAPI.openFile(currentFile.path);
+                    if (content !== null) {
+                        setOpenFiles(prev => prev.map((f, i) =>
+                            i === activeIndex ? { ...f, content, isDirty: false } : f
+                        ));
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('git-branch-changed', handleBranchChange);
+        return () => window.removeEventListener('git-branch-changed', handleBranchChange);
+    }, [openFiles, activeIndex]);
 
     // 侧边栏拖动逻辑 (保持不变)
     const startResizing = useCallback(() => { isResizing.current = true; }, []);

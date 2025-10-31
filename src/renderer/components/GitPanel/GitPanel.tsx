@@ -2,30 +2,43 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GitFileChange, GitBranch, GitCommit } from '../../../main/lib/git-service';
 import './GitPanel.css';
+import DiffViewer from './DiffViewer';
+import ContextMenu from "./ContextMenu";
+
+const GIT_PANEL_TABS = {
+    CHANGES: 'changes',
+    BRANCHES: 'branches',
+    HISTORY: 'history',
+} as const;
+
+const APP_EVENTS = {
+    FOLDER_CHANGED: 'folder-changed',
+    GIT_BRANCH_CHANGED: 'git-branch-changed',
+} as const;
 
 interface GitPanelProps {
     isVisible: boolean;
     onClose: () => void;
 }
 
-type TabType = 'changes' | 'branches' | 'history';
+type TabType = typeof GIT_PANEL_TABS[keyof typeof GIT_PANEL_TABS];
 
 export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
-    const [activeTab, setActiveTab] = useState<TabType>('changes');
+    const [activeTab, setActiveTab] = useState<TabType>(GIT_PANEL_TABS.CHANGES);
     const [changes, setChanges] = useState<GitFileChange[]>([]);
     const [branches, setBranches] = useState<GitBranch[]>([]);
     const [commits, setCommits] = useState<GitCommit[]>([]);
     const [currentBranch, setCurrentBranch] = useState<string | null>(null);
     const [commitMessage, setCommitMessage] = useState('');
     const [selectedFile, setSelectedFile] = useState<string | null>(null);
+    const [diffViewerFile, setDiffViewerFile] = useState<{path: string, staged: boolean} | null>(null);
+    const [contextMenu, setContextMenu] = useState<{x: number, y: number, file: GitFileChange} | null>(null);
 
-    // 加载变更列表
     const loadChanges = useCallback(async () => {
         const result = await window.electronAPI.gitGetChanges();
         setChanges(result);
     }, []);
 
-    // 加载分支列表
     const loadBranches = useCallback(async () => {
         const result = await window.electronAPI.gitGetBranches();
         setBranches(result);
@@ -33,13 +46,11 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
         setCurrentBranch(current);
     }, []);
 
-    // 加载提交历史
     const loadCommits = useCallback(async () => {
         const result = await window.electronAPI.gitGetCommits(50);
         setCommits(result);
     }, []);
 
-    // 初始加载
     useEffect(() => {
         if (isVisible) {
             loadChanges();
@@ -48,7 +59,6 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
         }
     }, [isVisible, loadChanges, loadBranches, loadCommits]);
 
-    // 监听 Git 状态变化
     useEffect(() => {
         const unsubscribe = window.electronAPI.onGitStatusChange(() => {
             if (isVisible) {
@@ -58,7 +68,19 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
         return unsubscribe;
     }, [isVisible, loadChanges]);
 
-    // 暂存文件
+    useEffect(() => {
+        const handleFolderChange = () => {
+            if (isVisible) {
+                loadChanges();
+                loadBranches();
+                loadCommits();
+            }
+        };
+
+        window.addEventListener(APP_EVENTS.FOLDER_CHANGED, handleFolderChange);
+        return () => window.removeEventListener(APP_EVENTS.FOLDER_CHANGED, handleFolderChange);
+    }, [isVisible, loadChanges, loadBranches, loadCommits]);
+
     const handleStage = async (filePath: string) => {
         const success = await window.electronAPI.gitStageFile(filePath);
         if (success) {
@@ -66,7 +88,6 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
         }
     };
 
-    // 取消暂存
     const handleUnstage = async (filePath: string) => {
         const success = await window.electronAPI.gitUnstageFile(filePath);
         if (success) {
@@ -74,7 +95,6 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
         }
     };
 
-    // 丢弃修改
     const handleDiscard = async (filePath: string) => {
         if (!confirm(`Are you sure you want to discard changes to ${filePath}?`)) {
             return;
@@ -85,34 +105,62 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
         }
     };
 
-    // 提交
     const handleCommit = async () => {
-        if (!commitMessage.trim()) {
+        const trimmedMessage = commitMessage.trim();
+
+        if (!trimmedMessage) {
             alert('Please enter a commit message');
             return;
         }
-        const success = await window.electronAPI.gitCommit(commitMessage);
+
+        if (trimmedMessage.length < 3) {
+            alert('Commit message must be at least 3 characters long');
+            return;
+        }
+
+        if (stagedChanges.length === 0) {
+            alert('No staged changes. Please stage files first.');
+            return;
+        }
+
+        const success = await window.electronAPI.gitCommit(trimmedMessage);
         if (success) {
             setCommitMessage('');
             await loadChanges();
             await loadCommits();
+            alert('Committed successfully!');
         } else {
-            alert('Failed to commit. Make sure you have staged changes.');
+            alert('Failed to commit. Check if Git user.name and user.email are configured.');
         }
     };
 
-    // 切换分支
     const handleCheckoutBranch = async (branchName: string) => {
+        const currentChanges = await window.electronAPI.gitGetChanges();
+        const hasModifications = currentChanges.filter(c =>
+            c.status !== 'untracked'
+        ).length > 0;
+
+        if (hasModifications) {
+            const userChoice = window.confirm(
+                `You have uncommitted changes that will prevent branch switching.\n\n` +
+                `Please commit or discard your changes first.\n\n` +
+                `Click OK to close this dialog.`
+            );
+            return;
+        }
+
         const success = await window.electronAPI.gitCheckoutBranch(branchName);
         if (success) {
             await loadBranches();
             await loadChanges();
+            await loadCommits();
+            alert(`Switched to branch: ${branchName}`);
+            window.dispatchEvent(new CustomEvent(APP_EVENTS.GIT_BRANCH_CHANGED));
         } else {
-            alert(`Failed to switch to branch ${branchName}`);
+            alert(`Failed to switch to branch: ${branchName}`);
         }
     };
 
-    // 创建分支
     const handleCreateBranch = async () => {
         const branchName = prompt('Enter new branch name:');
         if (!branchName) return;
@@ -125,7 +173,40 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
         }
     };
 
-    // 获取状态图标
+    const handleStash = async () => {
+        const hasChangesToStash = changes.some(c => c.status !== 'untracked');
+        if (!hasChangesToStash) {
+            alert("No local modifications to stash.");
+            return;
+        }
+
+        if (!confirm("Are you sure you want to stash your current changes?")) {
+            return;
+        }
+
+        const success = await window.electronAPI.gitStash();
+        if (success) {
+            await loadChanges();
+            alert("Changes stashed.");
+        } else {
+            alert("Failed to stash changes.");
+        }
+    };
+
+    const handleStashPop = async () => {
+        if (!confirm("Are you sure you want to apply the latest stash? This might cause conflicts.")) {
+            return;
+        }
+
+        const success = await window.electronAPI.gitStashPop();
+        if (success) {
+            await loadChanges();
+            alert("Stash applied.");
+        } else {
+            alert("Failed to apply stash. (Perhaps no stash exists, or there are conflicts).");
+        }
+    };
+
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'added': return '+ ';
@@ -142,6 +223,7 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
 
     const stagedChanges = changes.filter(c => c.staged);
     const unstagedChanges = changes.filter(c => !c.staged);
+    const hasChangesToStash = changes.some(c => c.status !== 'untracked');
 
     return (
         <div className="git-panel">
@@ -151,21 +233,21 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
             </div>
 
             <div className="git-tabs">
-                <button 
-                    className={`git-tab ${activeTab === 'changes' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('changes')}
+                <button
+                    className={`git-tab ${activeTab === GIT_PANEL_TABS.CHANGES ? 'active' : ''}`}
+                    onClick={() => setActiveTab(GIT_PANEL_TABS.CHANGES)}
                 >
                     Changes ({changes.length})
                 </button>
-                <button 
-                    className={`git-tab ${activeTab === 'branches' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('branches')}
+                <button
+                    className={`git-tab ${activeTab === GIT_PANEL_TABS.BRANCHES ? 'active' : ''}`}
+                    onClick={() => setActiveTab(GIT_PANEL_TABS.BRANCHES)}
                 >
                     Branches
                 </button>
-                <button 
-                    className={`git-tab ${activeTab === 'history' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('history')}
+                <button
+                    className={`git-tab ${activeTab === GIT_PANEL_TABS.HISTORY ? 'active' : ''}`}
+                    onClick={() => setActiveTab(GIT_PANEL_TABS.HISTORY)}
                 >
                     History
                 </button>
@@ -173,8 +255,26 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
 
             <div className="git-content">
                 {/* Changes Tab */}
-                {activeTab === 'changes' && (
+                {activeTab === GIT_PANEL_TABS.CHANGES && (
                     <div className="git-changes">
+                        <div className="git-actions-bar">
+                            <button
+                                className="git-action-btn secondary"
+                                onClick={handleStash}
+                                title="Stash current changes"
+                                disabled={!hasChangesToStash}
+                            >
+                                Stash
+                            </button>
+                            <button
+                                className="git-action-btn secondary"
+                                onClick={handleStashPop}
+                                title="Apply latest stash (Pop)"
+                            >
+                                Pop Stash
+                            </button>
+                        </div>
+
                         {/* Commit Input */}
                         {stagedChanges.length > 0 && (
                             <div className="git-commit-box">
@@ -190,7 +290,7 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
                                         }
                                     }}
                                 />
-                                <button 
+                                <button
                                     className="git-commit-btn"
                                     onClick={handleCommit}
                                     disabled={!commitMessage.trim()}
@@ -207,11 +307,40 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
                                     Staged Changes ({stagedChanges.length})
                                 </div>
                                 {stagedChanges.map((change) => (
-                                    <div key={change.path} className="git-file-item">
-                                        <span className="git-file-status">
+                                    <div
+                                        key={change.path}
+                                        className="git-file-item"
+                                        onContextMenu={(e) => {
+                                            e.preventDefault();
+                                            setContextMenu({
+                                                x: e.clientX,
+                                                y: e.clientY,
+                                                file: change
+                                            });
+                                        }}
+                                    >
+                                        <span
+                                            className="git-file-status"
+                                            onClick={() => setDiffViewerFile({
+                                                path: change.path,
+                                                staged: true
+                                            })}
+                                            style={{cursor: 'pointer'}}
+                                            title="Click to view diff"
+                                        >
                                             {getStatusIcon(change.status)}
                                         </span>
-                                        <span className="git-file-path">{change.path}</span>
+                                        <span
+                                            className="git-file-path"
+                                            onClick={() => setDiffViewerFile({
+                                                path: change.path,
+                                                staged: change.staged
+                                            })}
+                                            style={{cursor: 'pointer'}}
+                                            title="Click to view diff"
+                                        >
+                                            {change.path}
+                                        </span>
                                         <div className="git-file-actions">
                                             <button
                                                 className="git-action-btn"
@@ -233,11 +362,40 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
                                     Changes ({unstagedChanges.length})
                                 </div>
                                 {unstagedChanges.map((change) => (
-                                    <div key={change.path} className="git-file-item">
-                                        <span className="git-file-status">
+                                    <div
+                                        key={change.path}
+                                        className="git-file-item"
+                                        onContextMenu={(e) => {
+                                            e.preventDefault();
+                                            setContextMenu({
+                                                x: e.clientX,
+                                                y: e.clientY,
+                                                file: change
+                                            });
+                                        }}
+                                    >
+                                        <span
+                                            className="git-file-status"
+                                            onClick={() => setDiffViewerFile({
+                                                path: change.path,
+                                                staged: false
+                                            })}
+                                            style={{cursor: 'pointer'}}
+                                            title="Click to view diff"
+                                        >
                                             {getStatusIcon(change.status)}
                                         </span>
-                                        <span className="git-file-path">{change.path}</span>
+                                        <span
+                                            className="git-file-path"
+                                            onClick={() => setDiffViewerFile({
+                                                path: change.path,
+                                                staged: change.staged
+                                            })}
+                                            style={{cursor: 'pointer'}}
+                                            title="Click to view diff"
+                                        >
+                                            {change.path}
+                                        </span>
                                         <div className="git-file-actions">
                                             <button
                                                 className="git-action-btn"
@@ -270,7 +428,7 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
                 )}
 
                 {/* Branches Tab */}
-                {activeTab === 'branches' && (
+                {activeTab === GIT_PANEL_TABS.BRANCHES && (
                     <div className="git-branches">
                         <div className="git-branch-header">
                             <span>Current: <strong>{currentBranch || 'Unknown'}</strong></span>
@@ -282,8 +440,8 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
                             {branches
                                 .filter(b => !b.remote)
                                 .map((branch) => (
-                                    <div 
-                                        key={branch.name} 
+                                    <div
+                                        key={branch.name}
                                         className={`git-branch-item ${branch.current ? 'current' : ''}`}
                                         onClick={() => !branch.current && handleCheckoutBranch(branch.name)}
                                     >
@@ -298,7 +456,7 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
                 )}
 
                 {/* History Tab */}
-                {activeTab === 'history' && (
+                {activeTab === GIT_PANEL_TABS.HISTORY && (
                     <div className="git-history">
                         {commits.map((commit) => (
                             <div key={commit.hash} className="git-commit-item">
@@ -314,6 +472,43 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
                             <div className="git-empty">No commit history</div>
                         )}
                     </div>
+                )}
+
+                {diffViewerFile && (
+                    <DiffViewer
+                        filePath={diffViewerFile.path}
+                        staged={diffViewerFile.staged}
+                        onClose={() => setDiffViewerFile(null)}
+                    />
+                )}
+
+                {contextMenu && (
+                    <ContextMenu
+                        x={contextMenu.x}
+                        y={contextMenu.y}
+                        items={[
+                            {
+                                label: contextMenu.file.staged ? 'Unstage Changes' : 'Stage Changes',
+                                onClick: () => contextMenu.file.staged
+                                    ? handleUnstage(contextMenu.file.path)
+                                    : handleStage(contextMenu.file.path)
+                            },
+                            {
+                                label: 'View Diff',
+                                onClick: () => setDiffViewerFile({
+                                    path: contextMenu.file.path,
+                                    staged: contextMenu.file.staged
+                                })
+                            },
+                            {
+                                label: 'Discard Changes',
+                                onClick: () => handleDiscard(contextMenu.file.path),
+                                disabled: contextMenu.file.status === 'untracked',
+                                danger: true
+                            }
+                        ]}
+                        onClose={() => setContextMenu(null)}
+                    />
                 )}
             </div>
         </div>

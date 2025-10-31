@@ -1,0 +1,33 @@
+/* src/renderer/components/GitPanel/ContextMenu.css */
+.context-menu {
+    position: fixed;
+    background-color: #252526;
+    border: 1px solid #454545;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    min-width: 180px;
+    padding: 4px 0;
+    z-index: 1000;
+}
+
+.context-menu-item {
+    padding: 8px 16px;
+    color: #cccccc;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.context-menu-item:hover:not(.disabled) {
+    background-color: #094771;
+}
+
+.context-menu-item.disabled {
+    color: #6a6a6a;
+    cursor: not-allowed;
+}
+
+.context-menu-item.danger:hover:not(.disabled) {
+    background-color: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+}

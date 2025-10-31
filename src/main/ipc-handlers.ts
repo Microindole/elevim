@@ -397,4 +397,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         if (!currentFolderPath) return null;
         return await gitService.getCurrentBranch(currentFolderPath);
     });
+
+    ipcMain.handle(IPC_CHANNELS.GIT_STASH, async () => {
+        if (!currentFolderPath) return false;
+        return await gitService.stashChanges(currentFolderPath);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GIT_STASH_POP, async () => {
+        if (!currentFolderPath) return false;
+        return await gitService.popStash(currentFolderPath);
+    });
 }

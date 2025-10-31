@@ -85,4 +85,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     gitGetCommits: (limit?: number) => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_COMMITS, limit),
     gitGetDiff: (filePath: string, staged: boolean) => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_DIFF, filePath, staged),
     gitGetCurrentBranch: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_CURRENT_BRANCH),
+    gitStash: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_STASH),
+    gitStashPop: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_STASH_POP),
 });

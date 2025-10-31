@@ -349,3 +349,63 @@
 .git-content::-webkit-scrollbar-thumb:hover {
     background: #4e4e4e;
 }
+
+/* 新增：用于 Stash 按钮的容器 */
+.git-actions-bar {
+    display: flex;
+    gap: 8px;
+    padding: 8px;
+    border-bottom: 1px solid #5a5a5a;
+    margin-bottom: 8px;
+}
+
+/* 如果你没有定义 CSS 变量，可以先用这个代替 */
+.git-action-btn.secondary {
+    flex: 1;
+    padding: 5px 10px;
+    background-color: #4a4a4a; /* 次要按钮背景色 */
+    color: #d4d4d4;
+    border: 1px solid #5a5a5a;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.git-action-btn.secondary:hover {
+    background-color: #5a5a5a;
+}
+.git-action-btn.secondary:disabled {
+    background-color: #333;
+    color: #888;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* 按钮样式 */
+.git-actions-bar {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #3e3e42;
+}
+
+.git-action-btn.secondary {
+    flex: 1;
+    padding: 6px 12px;
+    background-color: #3c3c3c;
+    border: 1px solid #555555;
+    color: #cccccc;
+    font-size: 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.git-action-btn.secondary:hover:not(:disabled) {
+    background-color: #4e4e4e;
+    border-color: #6a6a6a;
+}
+
+.git-action-btn.secondary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

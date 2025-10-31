@@ -34,4 +34,6 @@ export const IPC_CHANNELS = {
     GIT_GET_COMMITS: 'git-get-commits',
     GIT_GET_DIFF: 'git-get-diff',
     GIT_GET_CURRENT_BRANCH: 'git-get-current-branch',
+    GIT_STASH: 'git-stash',
+    GIT_STASH_POP: 'git-stash-pop',
 };
