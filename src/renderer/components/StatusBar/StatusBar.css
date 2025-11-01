@@ -2,12 +2,14 @@
 .status-bar-container {
     display: flex;
     align-items: center;
-    background-color: #007acc; /* VS Code 风格的蓝色状态栏 */
-    color: white;
+    background-color: var(--accent-color); /* 使用变量 */
+    color: var(--bg-color-highlight); /* 文字用暗色，对比更强 */
+    font-weight: 600;
     height: 22px;
     padding: 0 15px;
     font-size: 12px;
-    flex-shrink: 0; /* 防止容器被压缩 */
+    flex-shrink: 0;
+    border-top: 1px solid var(--border-color);
 }
 
 .status-item {

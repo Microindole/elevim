@@ -47,7 +47,6 @@ app.whenReady().then(() => {
 
       for (const iconPath of possiblePaths) {
         if (fs.existsSync(iconPath)) {
-          console.log('[Icon] Found:', iconPath);
           callback({ path: iconPath });
           return;
         }

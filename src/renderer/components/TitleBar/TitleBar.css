@@ -2,8 +2,8 @@
 #title-bar {
     -webkit-app-region: drag;
     height: 32px;
-    background-color: #2d2d2d;
-    color: #cccccc;
+    background-color: var(--bg-titlebar); /* 使用变量 #2d2d2d */
+    color: var(--text-color);
     display: flex;
     align-items: center;
 }
@@ -20,32 +20,41 @@
     cursor: pointer;
     font-size: 14px;
 }
-.menu-item:hover { background-color: #3e3e42; }
+.menu-item:hover { background-color: var(--bg-hover); } /* 使用变量 #3e3e42 */
 
 .submenu {
     display: none;
     position: absolute;
     top: 100%;
     left: 0;
-    background-color: #252526;
-    border: 1px solid #454545;
+    /* --- 修复 1: 强制设置一个明确的、不透明的背景色 --- */
+    background-color: var(--bg-panel); /* 使用变量 #252526 */
+    /* --- 结束修复 --- */
+    border: 1px solid var(--border-color-light); /* 使用变量 #454545 */
     min-width: 200px;
     z-index: 1000;
     padding: 5px 0;
+    box-shadow: 0 4px 10px rgba(50, 50, 50, 0.3); /* 轻微添加一点阴影，使其浮动在编辑器之上 */
 }
 .menu-item:hover .submenu { display: block; }
 
 .submenu-item {
     padding: 8px 20px;
-    color: #cccccc;
+    color: var(--text-color);
     font-size: 14px;
 }
-.submenu-item:hover { background-color: #094771; }
+
+/* --- 修复 2: 更改悬停颜色为更亮的蓝色 --- */
+.submenu-item:hover {
+    background-color: var(--accent-color); /* 使用变量 #007acc */
+    color: var(--text-color-light); /* 悬停时文字变白，更清晰 */
+}
+/* --- 结束修复 --- */
 
 .submenu-separator {
     border: 0;
     height: 1px;
-    background-color: #454545;
+    background-color: var(--border-color-light); /* 使用变量 #454545 */
     margin: 5px 0;
 }
 
@@ -69,10 +78,13 @@
     height: 32px;
     border: none;
     background-color: transparent;
-    color: #cccccc;
+    color: var(--text-color);
     font-size: 16px;
     cursor: pointer;
     outline: none;
 }
-#title-bar-btns button:hover { background-color: rgba(255, 255, 255, 0.1); }
-#close-btn:hover { background-color: #e81123; color: white; }
+#title-bar-btns button:hover { background-color: var(--bg-hover); } /* 使用变量 #3e3e42 */
+#close-btn:hover {
+    background-color: var(--danger-color); /* 使用变量 #e81123 */
+    color: white;
+}
