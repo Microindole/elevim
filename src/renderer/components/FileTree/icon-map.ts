@@ -1,26 +1,51 @@
 // src/renderer/components/FileTree/icon-map.ts
-import { getIconForFile, getIconForFolder, getIconForOpenFolder } from 'vscode-icons-js';
+import { generateManifest } from 'material-icon-theme';
+
+// 生成图标映射配置
+const manifest = generateManifest({});
 
 /**
  * 根据文件名、是否为目录、是否展开来获取图标路径
  */
 export const getIcon = (name: string, isDirectory?: boolean, isOpen?: boolean) => {
-    let iconPath: string;
+    let iconName: string;
 
     if (isDirectory) {
-        // 文件夹：如果是展开的，获取展开图标，否则获取闭合图标
-        iconPath = isOpen ? getIconForOpenFolder(name) : getIconForFolder(name);
+        // 从 manifest 中查找文件夹图标
+        const folderNames = manifest.folderNames || {};
+        const folderNamesExpanded = manifest.folderNamesExpanded || {};
+
+        const lowerName = name.toLowerCase();
+
+        if (isOpen && folderNamesExpanded[lowerName]) {
+            iconName = folderNamesExpanded[lowerName];
+        } else if (folderNames[lowerName]) {
+            iconName = folderNames[lowerName];
+        } else if (isOpen && manifest.folderExpanded) {
+            iconName = manifest.folderExpanded;
+        } else {
+            iconName = manifest.folder || 'folder';
+        }
     } else {
-        // 文件：获取文件图标
-        iconPath = getIconForFile(name);
+        // 从 manifest 中查找文件图标
+        const fileExtensions = manifest.fileExtensions || {};
+        const fileNames = manifest.fileNames || {};
+
+        const lowerName = name.toLowerCase();
+
+        // 先检查完整文件名
+        if (fileNames[lowerName]) {
+            iconName = fileNames[lowerName];
+        } else {
+            // 再检查扩展名
+            const extension = lowerName.split('.').pop() || '';
+            iconName = fileExtensions[extension] || manifest.file || 'file';
+        }
     }
 
-    // iconPath 返回的是 "icons/file_type_js.svg" 这样的
-    // 我们需要让它成为相对于 index.html 的路径
-    // 由于 index.html 和 vscode-icons 文件夹都在根目录，
-    // 我们使用 "./" 来表示相对路径。
+    // 返回图标路径，使用自定义协议
     return {
-        iconPath: `./vscode-icons/${iconPath}`,
-        color: undefined // 我们不再需要颜色，因为 SVG 图标自带颜色
+        iconPath: `material-icon://${iconName}.svg`,
+        color: undefined
     };
 };
