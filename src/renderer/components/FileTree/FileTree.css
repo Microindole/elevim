@@ -31,20 +31,14 @@
 
 /* 展开/折叠的图标容器 */
 .caret {
-    /* 【移除】 字体大小，不再需要 */
-    /* font-size: 12px; */
-
     width: 16px; /* 容器宽度 */
-    height: 16px; /* 【新增】容器高度，确保垂直居中 */
+    height: 16px; /* 容器高度，确保垂直居中 */
     text-align: center;
     flex-shrink: 0;
 
     /* 为 ::before 伪元素定位 */
     position: relative;
     color: #c5c5c5; /* 箭头颜色 (VS Code 风格) */
-
-    /* 【移除】 这两个属性移到 ::before */
-    /* transition: transform 0.1s linear; */
 }
 
 /* 使用 ::before 绘制一个 > 形状的箭头 */
@@ -96,7 +90,7 @@
 .caret-placeholder {
     display: inline-block;
     width: 16px;
-    height: 16px; /* 【新增】确保高度一致 */
+    height: 16px;
     flex-shrink: 0;
 }
 
@@ -110,12 +104,12 @@
     align-items: center;
     justify-content: center;
     color: #cccccc;
-    width: 20px; /* 【新】给图标容器一个固定宽度 */
+    width: 20px; /* 给图标容器一个固定宽度 */
     flex-shrink: 0;
-    margin-right: 4px; /* 【新】图标和文字的间距 */
+    margin-right: 4px; /* 图标和文字的间距 */
 }
 
-/* 【新】设置 <img> 图标的大小 */
+/* 设置 <img> 图标的大小 */
 .icon .file-icon {
     width: 16px;
     height: 16px;
@@ -123,9 +117,43 @@
 }
 
 
-/* 子节点容器 (实现缩进的关键) */
+/* 子节点容器 (实现缩进和参考线的关键) */
 .node-children {
-    padding-left: 8px; /* 子节点向右缩进 20px */
+    padding-left: 8px;
+    position: relative; /* 为 ::before 伪元素定位 */
+}
+
+/* 缩进参考线 */
+.node-children::before {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: #444; /* 参考线颜色 */
+    opacity: 0;
+    transition: opacity 0.1s linear;
+}
+
+/*
+ * 行为 1: 鼠标离开时，仅显示 active 文件的层级参考线
+ * (JS 逻辑不变)
+ */
+.node-children.active-ancestor::before {
+    opacity: 1;
+}
+
+/*
+ * 行为 2: 鼠标悬停在整个文件树上时，显示所有参考线
+ */
+.file-tree-root:hover .node-children::before {
+    opacity: 1;
+}
+
+/* (可选) 悬停时，让 active 路径更高亮 */
+.file-tree-root:hover .node-children.active-ancestor::before {
+    background-color: #777; /* 更亮的颜色 */
 }
 
 /* Staged changes (usually more prominent) */

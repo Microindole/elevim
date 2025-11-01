@@ -15,7 +15,7 @@
 
 1.  克隆仓库：
     ```bash
-    git clone [https://github.com/Microindole/elevim.git](https://github.com/Microindole/elevim.git)
+    git clone https://github.com/Microindole/elevim.git
     cd elevim
     ```
 

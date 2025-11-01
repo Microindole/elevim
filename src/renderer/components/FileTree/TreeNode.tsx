@@ -8,11 +8,11 @@ interface TreeNodeProps {
     node: FileNode;
     onFileSelect: (filePath: string) => void;
     gitStatus: GitStatusMap;
+    activeFile: string | null;
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, gitStatus }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, gitStatus, activeFile }) => {
     const [isOpen, setIsOpen] = useState(false);
-
     const isDirectory = !!node.children;
 
     const handleToggle = () => {
@@ -25,9 +25,17 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, gitStatus }) =>
 
     const currentGitStatus = gitStatus[node.path] || '';
     const gitStatusClassName = currentGitStatus ? `git-${currentGitStatus}` : '';
-
-    // 获取图标路径
     const { iconPath } = getIcon(node.name, isDirectory, isOpen);
+    const isActive = activeFile === node.path;
+    const nodePathWithSlash = isDirectory ? `${node.path}/` : node.path;
+    const isAncestorOfActive = activeFile ? activeFile.startsWith(nodePathWithSlash) : false;
+
+    // 动态计算 .node-children 的 class
+    const childrenClass = [
+        'node-children',
+        (isAncestorOfActive || isActive) && 'active-ancestor'
+    ].filter(Boolean).join(' ');
+
 
     return (
         <div className="tree-node">
@@ -50,13 +58,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, gitStatus }) =>
                 <span className={`node-name ${gitStatusClassName}`}>{node.name}</span>
             </div>
             {isOpen && isDirectory && (
-                <div className="node-children">
+                <div className={childrenClass}>
                     {node.children?.map(childNode => (
                         <TreeNode
                             key={childNode.path}
                             node={childNode}
                             onFileSelect={onFileSelect}
                             gitStatus={gitStatus}
+                            activeFile={activeFile}
                         />
                     ))}
                 </div>
