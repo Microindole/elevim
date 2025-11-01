@@ -13,49 +13,38 @@ export default function TerminalComponent() {
 
     useEffect(() => {
         if (!terminalRef.current || terminalInstance.current) return;
+        const termContainer = terminalRef.current;
         console.log('[Renderer] TerminalComponent useEffect run');
 
-        // 1. 更新主题
         const term = new Terminal({
             cursorBlink: true,
             theme: {
-                background: '#282c34', // var(--bg-color)
-                foreground: '#abb2bf', // var(--text-color)
-                cursor: '#61afef',     // var(--accent-color)
-                selectionBackground: '#3a4049', // var(--bg-color-lightest)
+                background: '#1e1e1e',
+                foreground: '#d4d4d4',
+                cursor: '#007acc',
+                selectionBackground: '#3e3e42',
                 selectionForeground: '#ffffff'
             }
         });
 
-        // 2. Load FitAddon (as before)
         const addon = new FitAddon();
         term.loadAddon(addon);
-
-        // 3. Attach to DOM (as before)
         term.open(terminalRef.current);
-
-        // 4. Fit to container (as before)
-        addon.fit();
-
-        // Store refs
         terminalInstance.current = term;
         fitAddon.current = addon;
 
-        // 5. Only send IPC init if it hasn't been sent for this mount cycle
         if (!initIpcSent.current) {
             console.log('[Renderer] Calling terminalInit via IPC');
             window.electronAPI.terminalInit();
-            initIpcSent.current = true; // Mark as sent
+            initIpcSent.current = true;
         }
 
-        // 6. Handle user input (as before)
         term.onData((data) => {
             if (terminalInstance.current) {
                 window.electronAPI.terminalWrite(data);
             }
         });
 
-        // 7. Handle data from main process (as before)
         const unregisterOnData = window.electronAPI.onTerminalData((data) => {
             if (terminalInstance.current) {
                 terminalInstance.current?.write(data);
@@ -67,6 +56,8 @@ export default function TerminalComponent() {
             if (fitAddon.current && terminalInstance.current) {
                 try {
                     fitAddon.current?.fit();
+
+                    // 通知主进程的 PTY 终端尺寸变了
                     const { cols, rows } = terminalInstance.current;
                     if (cols > 0 && rows > 0) {
                         window.electronAPI.terminalResize({ cols, rows });
@@ -77,12 +68,23 @@ export default function TerminalComponent() {
             }
         };
 
+        // 监视 .terminal-wrapper 元素
+        const resizeObserver = new ResizeObserver(() => {
+            // 使用 setTimeout 避免 "ResizeObserver loop limit exceeded" 错误
+            setTimeout(() => handleResize(), 0);
+        });
+
+        // 开始观察
+        resizeObserver.observe(termContainer);
+
+        // 同时也监听窗口 resize
         window.addEventListener('resize', handleResize);
-        handleResize(); // Initial resize
+        handleResize();
 
         // 9. Cleanup (as before)
         return () => {
             console.log('[Renderer] TerminalComponent cleanup executing');
+            resizeObserver.unobserve(termContainer);
             unregisterOnData();
             window.removeEventListener('resize', handleResize);
 
