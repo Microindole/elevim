@@ -1,17 +1,12 @@
 /* src/renderer/components/GitPanel/GitPanel.css */
 
 .git-panel {
-    position: fixed;
-    right: 0;
-    top: 67px;
-    bottom: 22px;
-    width: 350px;
-    background-color: var(--bg-sidebar); /* <-- 修复: 使用 --bg-sidebar */
-    border-left: 1px solid var(--border-color-dark); /* <-- 修复: 使用 --border-color-dark */
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-sidebar);
     display: flex;
     flex-direction: column;
-    z-index: 100;
-    color: var(--text-color); /* 使用变量 */
+    color: var(--text-color);
 }
 
 .git-panel-header {

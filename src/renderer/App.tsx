@@ -8,7 +8,9 @@ import StatusBar from './components/StatusBar/StatusBar';
 import CommandPalette, { Command } from './components/CommandPalette/CommandPalette';
 import TerminalComponent from './components/Terminal/Terminal';
 import { GitStatusMap } from "../main/lib/git-service";
-import GitPanel from './components/GitPanel/GitPanel';
+import GitPanel from './components/GitPanel/GitPanel'
+import ActivityBar, { SidebarView } from './components/ActivityBar/ActivityBar';
+import SearchPanel from './components/SearchPanel/SearchPanel';
 
 import './components/App/App.css';
 
@@ -41,10 +43,7 @@ export default function App() {
     const gitStatusIntervalRef = useRef<NodeJS.Timeout | null>(null); // 用于定时刷新
     const currentOpenFolderPath = useRef<string | null>(null); // 记录当前打开的文件夹
     const appStateRef = useRef({ openFiles, activeIndex });
-
-    const [isGitPanelOpen, setIsGitPanelOpen] = useState(false);
-
-    
+    const [activeSidebarView, setActiveSidebarView] = useState<SidebarView>('explorer');
 
     // --- 派生状态 ---
     const activeFile = openFiles[activeIndex];
@@ -206,6 +205,12 @@ export default function App() {
     // --- 菜单栏和文件树处理器---
     const handleMenuNewFile = useCallback(() => safeAction(handleNewFile), [safeAction, handleNewFile]);
     const handleMenuOpenFile = useCallback(() => safeAction(() => window.electronAPI.showOpenDialog()), [safeAction]);
+
+    const handleViewChange = (view: SidebarView) => {
+        // 如果点击的是当前已激活的视图，则关闭侧边栏 (设为 null)
+        // 否则，打开新视图
+        setActiveSidebarView(prev => (prev === view ? null : view));
+    };
     const handleMenuOpenFolder = useCallback(async () => {
         const tree = await window.electronAPI.openFolder();
         if (tree) {
@@ -220,19 +225,14 @@ export default function App() {
 
             // 触发 Git 面板刷新
             window.dispatchEvent(new Event('folder-changed'));
+            setActiveSidebarView('explorer');
 
-            // 如果 Git 面板打开，刷新它
-            if (isGitPanelOpen) {
-                setIsGitPanelOpen(false);
-                setTimeout(() => setIsGitPanelOpen(true), 100);
-            }
         } else {
             currentOpenFolderPath.current = null;
             setGitStatus({});
             await window.electronAPI.stopGitWatcher();
-            setIsGitPanelOpen(false);
         }
-    }, [isGitPanelOpen]);
+    }, []);
     const handleMenuSaveAsFile = useCallback(() => window.electronAPI.triggerSaveAsFile(), []);
     const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.closeWindow()), [safeAction]);
     const handleFileTreeSelect = useCallback((filePath: string) => safeAction(() => window.electronAPI.openFile(filePath)), [safeAction]);
@@ -335,7 +335,8 @@ export default function App() {
         { id: 'file.save', name: 'File: Save', action: handleSave },
         { id: 'file.saveAs', name: 'File: Save As...', action: handleMenuSaveAsFile },
         { id: 'app.quit', name: 'Application: Quit', action: handleMenuCloseWindow },
-        { id: 'git.toggle', name: 'Git: Toggle Source Control', action: () => setIsGitPanelOpen(prev => !prev) },
+        { id: 'git.toggle', name: 'Git: Toggle Source Control', action: () => handleViewChange('git') },
+        { id: 'search.toggle', name: 'Search: Toggle Search', action: () => handleViewChange('search') },
         // 未来可以添加更多命令，如 "Theme: Switch to Light Mode"
     ], [handleMenuNewFile, handleMenuOpenFile, handleMenuOpenFolder, handleSave, handleMenuSaveAsFile, handleMenuCloseWindow]);
 
@@ -367,7 +368,7 @@ export default function App() {
             // Ctrl + Shift + G - Git 面板
             if (e.ctrlKey && e.shiftKey && (e.key === 'G' || e.key === 'g')) {
                 e.preventDefault();
-                setIsGitPanelOpen(prev => !prev);
+                handleViewChange('git');
             }
         };
 
@@ -426,14 +427,31 @@ export default function App() {
             />
             <div className="main-content-area">
                 <div className="app-container">
-                    {fileTree && (
+                    <ActivityBar
+                        activeView={activeSidebarView}
+                        onViewChange={handleViewChange}
+                    />
+                    {activeSidebarView && fileTree && (
                         <>
                             <div className="sidebar" style={{width: sidebarWidth}}>
-                                <FileTree
-                                    treeData={fileTree}
-                                    onFileSelect={handleFileTreeSelect}
-                                    gitStatus={gitStatus}
-                                />
+                                {activeSidebarView === 'explorer' && (
+                                    <FileTree
+                                        treeData={fileTree}
+                                        onFileSelect={handleFileTreeSelect}
+                                        gitStatus={gitStatus}
+                                    />
+                                )}
+                                {activeSidebarView === 'git' && (
+                                    <GitPanel
+                                        onClose={() => handleViewChange('git')}
+                                    />
+                                )}
+                                {activeSidebarView === 'search' && (
+                                    <SearchPanel />
+                                )}
+                                {activeSidebarView === 'settings' && (
+                                    <div style={{padding: 20}}>Settings View (Not Implemented)</div>
+                                )}
                             </div>
                             <div className="resizer" onMouseDown={startResizing}/>
                         </>
@@ -453,11 +471,6 @@ export default function App() {
                         )}
                     </div>
                 </div>
-                {/* Git 面板 */}
-            <GitPanel 
-                isVisible={isGitPanelOpen} 
-                onClose={() => setIsGitPanelOpen(false)} 
-            />
                 {/* --- 终端面板 --- */}
                 {isTerminalVisible && (
                     <>

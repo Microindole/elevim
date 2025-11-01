@@ -17,7 +17,6 @@ const APP_EVENTS = {
 } as const;
 
 interface GitPanelProps {
-    isVisible: boolean;
     onClose: () => void;
 }
 
@@ -218,8 +217,6 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
             default: return '? ';
         }
     };
-
-    if (!isVisible) return null;
 
     const stagedChanges = changes.filter(c => c.staged);
     const unstagedChanges = changes.filter(c => !c.staged);
