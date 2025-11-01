@@ -19,13 +19,14 @@
     border-radius: 4px;
     cursor: pointer;
     transition: background-color 0.1s ease-in-out;
+    white-space: nowrap;
 }
 .node-content:hover {
     background-color: #2a2d2e;
 }
 
 .node-name {
-    margin-left: 6px; /* 文件名和图标之间的间距 */
+    /* margin-left: 6px; */ /* 由 .icon 的 margin-right 替代 */
 }
 
 /* 展开/折叠的小三角图标 */
@@ -34,17 +35,38 @@
     width: 16px; /* 给它一个固定宽度以对齐 */
     text-align: center;
     transition: transform 0.1s linear;
+    flex-shrink: 0;
 }
 .caret-open {
     transform: rotate(90deg);
+}
+
+/* 【新】为文件添加的占位符，保持对齐 */
+.caret-placeholder {
+    display: inline-block;
+    width: 16px;
+    height: 1em;
+    flex-shrink: 0;
 }
 
 /* 文件/文件夹图标容器 */
 .icon {
     display: flex;
     align-items: center;
-    color: #cccccc; /* 统一图标颜色 */
+    justify-content: center;
+    color: #cccccc;
+    width: 20px; /* 【新】给图标容器一个固定宽度 */
+    flex-shrink: 0;
+    margin-right: 4px; /* 【新】图标和文字的间距 */
 }
+
+/* 【新】设置 <img> 图标的大小 */
+.icon .file-icon {
+    width: 16px;
+    height: 16px;
+    object-fit: contain;
+}
+
 
 /* 子节点容器 (实现缩进的关键) */
 .node-children {
@@ -70,24 +92,24 @@
 
 /* Working directory changes (maybe less prominent or different color) */
 .node-name.git-wd-modified { /* Unstaged Modified */
-    color: #E2C08D; /* 可以用不同的颜色，比如浅绿？ */
+    color: #E2C08D;
 }
-.node-name.git-wd-modified::after { content: " M"; font-size: 0.9em; opacity: 0.7; color: #73c991; } /* 标记颜色也改一下 */
+.node-name.git-wd-modified::after { content: " M"; font-size: 0.9em; opacity: 0.7; color: #73c991; }
 
 .node-name.git-wd-deleted { /* Unstaged Deleted */
-    color: #f17c67; /* 浅红？ */
+    color: #f17c67;
     text-decoration: line-through;
 }
 .node-name.git-wd-deleted::after { content: " D"; font-size: 0.9em; opacity: 0.7; color: #f17c67; }
 
 /* Untracked */
 .node-name.git-untracked {
-    color: #81b88b; /* 和 Staged Added 一样用绿色 */
+    color: #81b88b;
 }
 .node-name.git-untracked::after { content: " U"; font-size: 0.9em; opacity: 0.8; }
 
 /* Conflicted (if you implement it later) */
 .node-name.git-conflicted {
-    color: #e47c74; /* 冲突用显眼的红色 */
+    color: #e47c74;
 }
 .node-name.git-conflicted::after { content: " C"; font-size: 0.9em; opacity: 0.8; }
