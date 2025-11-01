@@ -33,9 +33,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, gitStatus }) =>
         <div className="tree-node">
             <div className="node-content" onClick={handleToggle}>
                 {isDirectory ? (
-                    <span className={`caret ${isOpen ? 'caret-open' : ''}`}>▶</span>
+                    <span className={`caret ${isOpen ? 'caret-open' : ''}`}></span>
                 ) : (
-                    // 使用 class 保证对齐
                     <span className="caret-placeholder"></span>
                 )}
                 <span className="icon">

@@ -29,24 +29,79 @@
     /* margin-left: 6px; */ /* 由 .icon 的 margin-right 替代 */
 }
 
-/* 展开/折叠的小三角图标 */
+/* 展开/折叠的图标容器 */
 .caret {
-    font-size: 12px; /* 稍微调整大小 */
-    width: 16px; /* 给它一个固定宽度以对齐 */
+    /* 【移除】 字体大小，不再需要 */
+    /* font-size: 12px; */
+
+    width: 16px; /* 容器宽度 */
+    height: 16px; /* 【新增】容器高度，确保垂直居中 */
     text-align: center;
-    transition: transform 0.1s linear;
     flex-shrink: 0;
-}
-.caret-open {
-    transform: rotate(90deg);
+
+    /* 为 ::before 伪元素定位 */
+    position: relative;
+    color: #c5c5c5; /* 箭头颜色 (VS Code 风格) */
+
+    /* 【移除】 这两个属性移到 ::before */
+    /* transition: transform 0.1s linear; */
 }
 
-/* 【新】为文件添加的占位符，保持对齐 */
+/* 使用 ::before 绘制一个 > 形状的箭头 */
+.caret::before {
+    content: '';
+    display: block;
+    box-sizing: border-box;
+
+    /* 箭头的大小 (6x6的区域) */
+    width: 6px;
+    height: 6px;
+
+    /* * 使用边框绘制 "L" 形。
+     * > 的粗细 2px
+     */
+    border-bottom: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+
+    /* * 1. 定位到父容器(16x16)的中心
+     * (16px - 6px) / 2 = 5px
+     */
+    position: absolute;
+    top: 5px;
+    left: 5px;
+
+    /* * 2. 将 "L" 形旋转 -45 度，它就变成了 ">"
+     */
+    transform: rotate(-45deg);
+
+    /* 3. 添加动画效果 */
+    transition: transform 0.1s linear;
+}
+
+/* 展开状态 */
+.caret.caret-open::before {
+    /* * 当展开时，我们把箭头旋转 90 度
+     * (-45deg + 90deg = 45deg)
+     * "L" 形旋转 45 度后，就变成了 "v"
+     */
+    transform: rotate(45deg);
+}
+
+/* 鼠标悬停时，让箭头更亮 */
+.node-content:hover .caret {
+    color: #ffffff;
+}
+
+/* 图标占位符 (用于文件，保持对齐) */
 .caret-placeholder {
     display: inline-block;
     width: 16px;
-    height: 1em;
+    height: 16px; /* 【新增】确保高度一致 */
     flex-shrink: 0;
+}
+
+.node-content:hover .caret {
+    color: #ffffff;
 }
 
 /* 文件/文件夹图标容器 */
@@ -70,7 +125,7 @@
 
 /* 子节点容器 (实现缩进的关键) */
 .node-children {
-    padding-left: 20px; /* 子节点向右缩进 20px */
+    padding-left: 8px; /* 子节点向右缩进 20px */
 }
 
 /* Staged changes (usually more prominent) */
