@@ -1,6 +1,7 @@
 // src/renderer/components/ActivityBar/ActivityBar.tsx
 import React from 'react';
 import './ActivityBar.css';
+import { VSCodeIcons } from './icons';
 
 // 我们可以先用 Emoji 或字符代替图标
 const ICONS = {
@@ -34,21 +35,21 @@ export default function ActivityBar({ activeView, onViewChange }: ActivityBarPro
                     title="Explorer"
                     onClick={() => handleClick('explorer')}
                 >
-                    {ICONS.explorer}
+                    {VSCodeIcons.explorer}
                 </button>
                 <button
                     className={`activity-btn ${activeView === 'search' ? 'active' : ''}`}
                     title="Search"
                     onClick={() => handleClick('search')}
                 >
-                    {ICONS.search}
+                    {VSCodeIcons.search}
                 </button>
                 <button
                     className={`activity-btn ${activeView === 'git' ? 'active' : ''}`}
                     title="Source Control"
                     onClick={() => handleClick('git')}
                 >
-                    {ICONS.git}
+                    {VSCodeIcons.git}
                 </button>
             </div>
             <div className="bottom-icons">
@@ -57,7 +58,7 @@ export default function ActivityBar({ activeView, onViewChange }: ActivityBarPro
                     title="Settings"
                     onClick={() => handleClick('settings')}
                 >
-                    {ICONS.settings}
+                    {VSCodeIcons.settings}
                 </button>
             </div>
         </div>

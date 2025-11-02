@@ -17,6 +17,7 @@ const APP_EVENTS = {
 } as const;
 
 interface GitPanelProps {
+    isVisible: boolean;
     onClose: () => void;
 }
 
