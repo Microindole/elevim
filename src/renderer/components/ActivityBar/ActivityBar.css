@@ -16,32 +16,43 @@
 .top-icons, .bottom-icons {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
+}
+
+/* 给底部图标组添加底部边距，避免与状态栏重叠 */
+.bottom-icons {
+    margin-bottom: 15px;
 }
 
 .activity-btn {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     background: none;
     border: none;
-    border-radius: 5px;
+    border-radius: 0; /* VSCode 没有圆角 */
     color: var(--text-color-subtle); /* #9e9e9e */
-    font-size: 24px; /* 增大图标/Emoji大小 */
-    line-height: 40px;
     cursor: pointer;
-    transition: all 0.2s;
-
-    /* 修复 Git 字符图标的样式 */
-    font-weight: bold;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, serif;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    /* 移除左边框效果 */
 }
 
+/* Hover 效果 - 只让图标变亮 */
 .activity-btn:hover {
     color: var(--text-color-light); /* #ffffff */
 }
 
+/* Active 状态 - 只让图标变亮 */
 .activity-btn.active {
     color: var(--text-color-light); /* #ffffff */
-    /* 使用边框来表示激活，而不是背景色 */
-    box-shadow: inset 2px 0 0 0 var(--accent-color); /* #007acc */
+}
+
+/* SVG 图标样式 */
+.activity-btn svg {
+    width: 24px;
+    height: 24px;
+    display: block;
 }

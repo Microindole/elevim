@@ -17,13 +17,12 @@ const APP_EVENTS = {
 } as const;
 
 interface GitPanelProps {
-    isVisible: boolean;
     onClose: () => void;
 }
 
 type TabType = typeof GIT_PANEL_TABS[keyof typeof GIT_PANEL_TABS];
 
-export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
+export default function GitPanel({ onClose }: GitPanelProps) {
     const [activeTab, setActiveTab] = useState<TabType>(GIT_PANEL_TABS.CHANGES);
     const [changes, setChanges] = useState<GitFileChange[]>([]);
     const [branches, setBranches] = useState<GitBranch[]>([]);
@@ -51,35 +50,32 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
         setCommits(result);
     }, []);
 
+    // 组件挂载时加载数据
     useEffect(() => {
-        if (isVisible) {
+        loadChanges();
+        loadBranches();
+        loadCommits();
+    }, [loadChanges, loadBranches, loadCommits]);
+
+    // Git 状态变化监听
+    useEffect(() => {
+        const unsubscribe = window.electronAPI.onGitStatusChange(() => {
+            loadChanges();
+        });
+        return unsubscribe;
+    }, [loadChanges]);
+
+    // 文件夹变化监听
+    useEffect(() => {
+        const handleFolderChange = () => {
             loadChanges();
             loadBranches();
             loadCommits();
-        }
-    }, [isVisible, loadChanges, loadBranches, loadCommits]);
-
-    useEffect(() => {
-        const unsubscribe = window.electronAPI.onGitStatusChange(() => {
-            if (isVisible) {
-                loadChanges();
-            }
-        });
-        return unsubscribe;
-    }, [isVisible, loadChanges]);
-
-    useEffect(() => {
-        const handleFolderChange = () => {
-            if (isVisible) {
-                loadChanges();
-                loadBranches();
-                loadCommits();
-            }
         };
 
         window.addEventListener(APP_EVENTS.FOLDER_CHANGED, handleFolderChange);
         return () => window.removeEventListener(APP_EVENTS.FOLDER_CHANGED, handleFolderChange);
-    }, [isVisible, loadChanges, loadBranches, loadCommits]);
+    }, [loadChanges, loadBranches, loadCommits]);
 
     const handleStage = async (filePath: string) => {
         const success = await window.electronAPI.gitStageFile(filePath);
@@ -141,7 +137,7 @@ export default function GitPanel({ isVisible, onClose }: GitPanelProps) {
         ).length > 0;
 
         if (hasModifications) {
-            const userChoice = window.confirm(
+            window.confirm(
                 `You have uncommitted changes that will prevent branch switching.\n\n` +
                 `Please commit or discard your changes first.\n\n` +
                 `Click OK to close this dialog.`
