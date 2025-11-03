@@ -2,7 +2,7 @@
 import React from 'react';
 import './TitleBar.css';
 
-const defaultTitle = "Elevim Editor";
+const defaultTitle = "Elevim";
 
 interface TitleBarProps {
     isDirty: boolean;

@@ -8,7 +8,7 @@ function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
-    icon: path.join(app.getAppPath(), 'resources/logo-me.png'),
+    icon: path.join(app.getAppPath(), 'resources/logo.png'),
     frame: false,
     titleBarStyle: 'hidden',
     webPreferences: {

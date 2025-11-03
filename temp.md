@@ -3,7 +3,7 @@ elevim/
 ├── .github/                  <-- (GitHub 模板配置)
 ├── dist/                     <-- (编译输出目录，.gitignore 排除)
 ├── resources/                <-- (应用打包时需要的图标、资源等)
-│   └── logo-me.png
+│   └── logo.png
 ├── src/                      <-- (项目源码)
 │   ├── main/                 <-- (主进程代码)
 │   │   ├── lib/              <-- (主进程的辅助工具模块)
