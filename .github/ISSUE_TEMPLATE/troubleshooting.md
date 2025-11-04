@@ -1,8 +1,10 @@
 ---
 name: 🚨 常见开发/编译问题 (故障排除)
-about: 记录一个已知问题及其解决方案，供开发者参考。 
-title: "[FIX] " labels: "documentation, troubleshooting"
-
+about: 记录一个已知问题及其解决方案，供开发者参考。
+title: "[FIX] "
+labels:
+  - documentation
+  - troubleshooting
 ---
 
 ## 🎯 问题概览
