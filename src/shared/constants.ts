@@ -39,4 +39,5 @@ export const IPC_CHANNELS = {
 
     OPEN_FOLDER_FROM_CLI: 'open-folder-from-cli',
     OPEN_FILE_FROM_CLI: 'open-file-from-cli',
+    OPEN_DIFF_FROM_CLI: 'open-diff-from-cli',
 };

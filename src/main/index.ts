@@ -5,71 +5,46 @@ import * as fs from 'fs';
 import { registerIpcHandlers } from './ipc-handlers';
 import { readDirectory } from './lib/file-system';
 import { IPC_CHANNELS } from '../shared/constants';
-import { handleCliArguments } from './cli-handler';
+import { parseCliArguments } from './cli/cli-handler';
+import { CliAction } from './cli/cli-action.types';
 
-const cliAction = handleCliArguments(process.argv);
+const cliAction: CliAction = parseCliArguments(process.argv);
 
-if (cliAction.type === 'print-message') {
-  console.log(cliAction.message);
-  app.quit();
+// --- 3. 如果是 "快速退出" 命令 (如 -v, -h 或 错误) ---
+if (cliAction.type === 'exit-fast') {
+  if (cliAction.isError) {
+    console.error(cliAction.message); // 打印错误
+  } else {
+    console.log(cliAction.message); // 打印版本或帮助
+  }
+  app.quit(); // 立即退出
 }
 
-function createWindow(pathToOpen: string | null = null) {
-  const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    icon: path.join(app.getAppPath(), 'resources/logo.png'),
-    frame: false,
-    titleBarStyle: 'hidden',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    }
-  });
-
+function createWindow(mainWindow: BrowserWindow) {
   mainWindow.loadFile('index.html');
-  // 关闭默认打开 chrome 开发者调试工具窗口, 可使用 Ctrl + Shift + I 开启
-  // mainWindow.webContents.openDevTools();
 
-  // 将 mainWindow 实例传递给 IPC 处理器注册函数
   registerIpcHandlers(mainWindow);
-
-  if (cliAction.type === 'open-window' && cliAction.path) {
-    mainWindow.webContents.on('did-finish-load', async () => {
-      try {
-        const resolvedPath = cliAction.path; // 路径在 handler 中已经 resolve
-
-        if (cliAction.isFile) {
-          // --- 新功能：打开文件 ---
-          const content = await fs.promises.readFile(resolvedPath, 'utf-8');
-          mainWindow.webContents.send(IPC_CHANNELS.OPEN_FILE_FROM_CLI, {
-            content: content,
-            filePath: resolvedPath
-          });
-        } else {
-          // --- 旧功能：打开文件夹 ---
-          const fileTree = await readDirectory(resolvedPath);
-          const tree = {
-            name: path.basename(resolvedPath),
-            path: resolvedPath,
-            children: fileTree
-          };
-          mainWindow.webContents.send(IPC_CHANNELS.OPEN_FOLDER_FROM_CLI, tree);
-        }
-      } catch (e) {
-        console.error('Failed to open path from CLI:', e);
-      }
-    });
-  }
 
   mainWindow.on('closed', () => {
     // 在这里我们不需要设置 mainWindow = null，因为闭包会处理好
   });
 }
 
-if (cliAction.type === 'open-window') {
+if (cliAction.type.startsWith('start-gui')) {
   app.whenReady().then(() => {
+
+    const mainWindow = new BrowserWindow({
+      width: 1200,
+      height: 800,
+      icon: path.join(app.getAppPath(), 'resources/logo.png'),
+      frame: false,
+      titleBarStyle: 'hidden',
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      }
+    });
 
     protocol.registerFileProtocol('material-icon', (request, callback) => {
       try {
@@ -100,12 +75,42 @@ if (cliAction.type === 'open-window') {
         callback({ error: -2 });
       }
     });
+    mainWindow.webContents.on('did-finish-load', async () => {
+      try {
+        switch(cliAction.type) {
+          case 'start-gui-open-folder':
+            const fileTree = await readDirectory(cliAction.folderPath);
+            mainWindow.webContents.send(IPC_CHANNELS.OPEN_FOLDER_FROM_CLI, {
+              name: path.basename(cliAction.folderPath),
+              path: cliAction.folderPath,
+              children: fileTree
+            });
+            break;
 
-    createWindow(); // 启动窗口
+          case 'start-gui-open-file':
+            const content = await fs.promises.readFile(cliAction.filePath, 'utf-8');
+            mainWindow.webContents.send(IPC_CHANNELS.OPEN_FILE_FROM_CLI, {
+              content: content,
+              filePath: cliAction.filePath
+            });
+            break;
+
+          case 'start-gui-open-diff':
+            mainWindow.webContents.send(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, cliAction.filePath);
+            break;
+
+            // 'start-gui' (无路径) 不需要做任何事
+        }
+      } catch (e) {
+        console.error('Failed to send CLI action to renderer:', e);
+      }
+    });
+
+    createWindow(mainWindow); // 启动窗口
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow();
+        createWindow(mainWindow);
       }
     });
   });

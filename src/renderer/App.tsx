@@ -236,6 +236,31 @@ export default function App() {
     }, [openFile]); // 依赖 'openFile'
 
     useEffect(() => {
+        const handleOpenDiffFromCli = (filePath: string) => {
+            console.log('CLI 请求打开 Diff: ', filePath);
+
+            // 1. 确保 Git 面板是打开的
+            setActiveSidebarView('git');
+
+            // 2. 触发 GitPanel 内部的 Diff 查看器
+            // (注意: 这依赖于 GitPanel 内部如何管理状态)
+            // (我们稍后可能需要重构 GitPanel 以便从外部触发 Diff)
+
+            // 临时方案：
+            // 我们可以使用一个自定义事件来通知 GitPanel
+            const event = new CustomEvent('open-diff', { detail: filePath });
+            window.dispatchEvent(event);
+
+            // 更好的方案 (如果你重构 GitPanel):
+            // setCliDiffRequest(filePath);
+            // <GitPanel cliDiffRequest={cliDiffRequest} />
+        };
+
+        const unregister = window.electronAPI.onOpenDiffFromCli(handleOpenDiffFromCli);
+        return () => unregister();
+    }, []);
+
+    useEffect(() => {
         appStateRef.current = { openFiles, activeIndex };
     }, [openFiles, activeIndex]);
 

@@ -102,4 +102,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.removeListener(IPC_CHANNELS.OPEN_FILE_FROM_CLI, handler);
         };
     },
+    onOpenDiffFromCli: (callback: (filePath: string) => void) => {
+        const handler = (_event: IpcRendererEvent, filePath: string) => callback(filePath);
+        ipcRenderer.on(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, handler);
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, handler);
+        };
+    },
 });

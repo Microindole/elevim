@@ -46,6 +46,7 @@ export interface IElectronAPI {
 
     onOpenFolderFromCli: (callback: (tree: any) => void) => () => void;
     onOpenFileFromCli: (callback: (data: { content: string; filePath: string }) => void) => () => void;
+    onOpenDiffFromCli: (callback: (filePath: string) => void) => () => void;
 }
 
 declare global {
