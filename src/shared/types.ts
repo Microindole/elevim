@@ -45,6 +45,7 @@ export interface IElectronAPI {
     gitStashPop: () => Promise<boolean>;
 
     onOpenFolderFromCli: (callback: (tree: any) => void) => () => void;
+    onOpenFileFromCli: (callback: (data: { content: string; filePath: string }) => void) => () => void;
 }
 
 declare global {

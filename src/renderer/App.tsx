@@ -67,7 +67,7 @@ export default function App() {
                 return [...prevFiles, newFile];
             }
         });
-    }, []); // 依赖为空，绝对稳定
+    }, []);
 
     const handleSave = useCallback(async () => {
         const { openFiles, activeIndex } = appStateRef.current;
@@ -212,7 +212,28 @@ export default function App() {
 
         const unregister = window.electronAPI.onOpenFolderFromCli(handleOpenFromCli);
         return () => unregister();
-    }, []); // 空依赖数组，只在挂载时运行一次
+    }, []);
+
+    useEffect(() => {
+        // 监听从CLI打开 *文件* 的事件
+        const handleOpenFileFromCli = (data: { content: string; filePath: string }) => {
+            // 隐藏欢迎页并打开文件
+            setOpenFiles(prev => {
+                if (prev.length === 1 && prev[0].name === "Welcome") {
+                    const newFile: OpenFile = { path: data.filePath, name: data.filePath.split(/[\\/]/).pop() ?? "Untitled", content: data.content, isDirty: false };
+                    setActiveIndex(0);
+                    return [newFile];
+                }
+                // 如果欢迎页已关闭，就调用现有的 openFile 逻辑
+                // openFile 会在稍后更新 state
+                openFile(data.filePath, data.content);
+                return prev;
+            });
+        };
+
+        const unregister = window.electronAPI.onOpenFileFromCli(handleOpenFileFromCli);
+        return () => unregister();
+    }, [openFile]); // 依赖 'openFile'
 
     useEffect(() => {
         appStateRef.current = { openFiles, activeIndex };

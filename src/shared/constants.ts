@@ -38,4 +38,5 @@ export const IPC_CHANNELS = {
     GIT_STASH_POP: 'git-stash-pop',
 
     OPEN_FOLDER_FROM_CLI: 'open-folder-from-cli',
+    OPEN_FILE_FROM_CLI: 'open-file-from-cli',
 };

@@ -77,6 +77,7 @@ export function getLanguage(filename: string) {
         case 'cs':
             return StreamLanguage.define(csharp);
         case 'xml':
+        case 'iml':
         case 'svg':
             return StreamLanguage.define(xml);
         case 'yml':
