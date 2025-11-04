@@ -36,4 +36,6 @@ export const IPC_CHANNELS = {
     GIT_GET_CURRENT_BRANCH: 'git-get-current-branch',
     GIT_STASH: 'git-stash',
     GIT_STASH_POP: 'git-stash-pop',
+
+    OPEN_FOLDER_FROM_CLI: 'open-folder-from-cli',
 };

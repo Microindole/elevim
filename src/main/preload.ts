@@ -87,4 +87,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     gitGetCurrentBranch: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_CURRENT_BRANCH),
     gitStash: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_STASH),
     gitStashPop: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_STASH_POP),
+
+    onOpenFolderFromCli: (callback: (tree: any) => void) => {
+        const handler = (_event: IpcRendererEvent, tree: any) => callback(tree);
+        ipcRenderer.on(IPC_CHANNELS.OPEN_FOLDER_FROM_CLI, handler);
+        return () => {
+            ipcRenderer.removeListener(IPC_CHANNELS.OPEN_FOLDER_FROM_CLI, handler);
+        };
+    },
 });

@@ -43,6 +43,8 @@ export interface IElectronAPI {
     gitGetCurrentBranch: () => Promise<string | null>;
     gitStash: () => Promise<boolean>;
     gitStashPop: () => Promise<boolean>;
+
+    onOpenFolderFromCli: (callback: (tree: any) => void) => () => void;
 }
 
 declare global {

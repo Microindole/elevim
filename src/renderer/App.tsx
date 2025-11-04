@@ -186,6 +186,35 @@ export default function App() {
     }, []);
 
     useEffect(() => {
+        const handleOpenFromCli = (tree: FileNode | null) => {
+            if (tree) {
+                // 这部分逻辑复用自你的 handleMenuOpenFolder
+                setFileTree(tree);
+                currentOpenFolderPath.current = tree.path;
+
+                window.electronAPI.stopGitWatcher().then(() => {
+                    window.electronAPI.startGitWatcher(tree.path);
+                });
+
+                window.dispatchEvent(new Event('folder-changed'));
+                setActiveSidebarView('explorer');
+
+                // 关闭可能存在的欢迎页
+                setOpenFiles(prev => {
+                    if (prev.length === 1 && prev[0].name === "Welcome") {
+                        setActiveIndex(0); // 确保索引重置
+                        return []; // 返回空数组，编辑器将显示 "Open a file..."
+                    }
+                    return prev; // 保持不动
+                });
+            }
+        };
+
+        const unregister = window.electronAPI.onOpenFolderFromCli(handleOpenFromCli);
+        return () => unregister();
+    }, []); // 空依赖数组，只在挂载时运行一次
+
+    useEffect(() => {
         appStateRef.current = { openFiles, activeIndex };
     }, [openFiles, activeIndex]);
 
