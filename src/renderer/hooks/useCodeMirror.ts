@@ -59,10 +59,10 @@ const languageCompartment = new Compartment();
 // 自定义缩进线的样式主题
 const indentationMarkersTheme = EditorView.baseTheme({
     ".cm-indent-markers .cm-indent-marker": {
-        borderLeft: "1px solid rgba(255, 255, 255, 0.15)", // 浅色对齐线
+        borderLeft: "1px solid rgba(255, 255, 255, 0.15)",
     },
     ".cm-indent-markers .cm-indent-marker-active": {
-        borderLeft: "1px solid rgba(255, 255, 255, 0.35)", // 高亮当前作用域的对齐线
+        borderLeft: "1px solid rgba(255, 255, 255, 0.35)",
     },
 });
 
@@ -124,18 +124,28 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             oneDark,
             updateListener,
             fontThemeCompartment.of(EditorView.theme({
-                '.cm-content, .cm-gutters': { fontSize: `15px` }
+                '&': {
+                    lineHeight: '1.8', // 增加行高，让代码更舒适
+                    fontFamily: "'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace"
+                },
+                '.cm-content, .cm-gutters': {
+                    fontSize: `15px`,
+                    fontFamily: "'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace"
+                },
+                '.cm-line': {
+                    lineHeight: '1.8',
+                    padding: '0' // 确保没有额外的内边距
+                }
             })),
             linter(simpleLinter),
             lintGutter(),
             languageCompartment.of(initialLanguage ? [initialLanguage] : []),
-            // 添加缩进对齐线扩展
-            indentUnit.of("    "), // 设置缩进单位（可选，默认为2个空格）
+            indentUnit.of("    "),
             indentationMarkers({
-                highlightActiveBlock: true, // 高亮当前光标所在的代码块
-                thickness: 1, // 线条粗细
+                highlightActiveBlock: true,
+                thickness: 1,
             }),
-            indentationMarkersTheme, // 应用自定义样式
+            indentationMarkersTheme,
         ];
 
         const startState = EditorState.create({
@@ -174,9 +184,39 @@ export function updateEditorFontSize(view: EditorView | null, fontSize: number) 
         view.dispatch({
             effects: fontThemeCompartment.reconfigure(
                 EditorView.theme({
-                    '.cm-content, .cm-gutters': { fontSize: `${fontSize}px` }
+                    '&': {
+                        lineHeight: '1.8', // 保持行高一致
+                        fontFamily: "'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace"
+                    },
+                    '.cm-content, .cm-gutters': {
+                        fontSize: `${fontSize}px`,
+                        fontFamily: "'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace"
+                    },
+                    '.cm-line': {
+                        lineHeight: '1.8',
+                        padding: '0'
+                    }
                 })
             )
         });
+    }
+}
+
+export function jumpToLine(view: EditorView | null, line: number) {
+    if (!view || line <= 0) return;
+
+    try {
+        const targetLine = Math.min(line, view.state.doc.lines);
+        const linePos = view.state.doc.line(targetLine).from;
+
+        view.dispatch({
+            selection: { anchor: linePos, head: linePos },
+            effects: EditorView.scrollIntoView(linePos, { y: "center" })
+        });
+
+        view.focus();
+
+    } catch (e) {
+        console.error(`[jumpToLine] 无法跳转到行 ${line}:`, e);
     }
 }

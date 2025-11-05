@@ -1,6 +1,6 @@
 // src/renderer/components/Editor/Editor.tsx
 import React, { useEffect, useState } from 'react';
-import { useCodeMirror, updateEditorFontSize } from '../../hooks/useCodeMirror';
+import { useCodeMirror, updateEditorFontSize, jumpToLine as cmJumpToLine } from '../../hooks/useCodeMirror';
 import './Editor.css';
 
 const MIN_FONT_SIZE = 8;
@@ -9,13 +9,26 @@ const MAX_FONT_SIZE = 40;
 interface EditorProps {
     content: string;
     filename: string;
+    filePath: string | null;
     onDocChange: (doc: string) => void;
     onSave: () => void;
     programmaticChangeRef: React.MutableRefObject<boolean>;
     onCursorChange: (line: number, col: number) => void;
+    jumpToLine: { path: string | null, line: number } | null;
+    onJumpComplete: () => void;
 }
 
-export default function Editor({ content, filename, onDocChange, onSave, programmaticChangeRef, onCursorChange }: EditorProps) {
+export default function Editor({
+   content,
+   filename,
+   filePath,
+   onDocChange,
+   onSave,
+   programmaticChangeRef,
+   onCursorChange,
+   jumpToLine,
+   onJumpComplete
+}: EditorProps) {
     const { editorRef, view } = useCodeMirror({ content, filename, onDocChange, onSave, onCursorChange });
     const [fontSize, setFontSize] = useState(15);
 
@@ -64,6 +77,21 @@ export default function Editor({ content, filename, onDocChange, onSave, program
         editorDom.addEventListener('wheel', handleWheel);
         return () => editorDom.removeEventListener('wheel', handleWheel);
     }, [editorRef]);
+
+    useEffect(() => {
+        // 检查：
+        // 1. CodeMirror view 是否已准备好
+        // 2. 是否有跳转请求
+        // 3. 跳转请求的路径(jumpToLine.path)是否与当前编辑器显示的路径(filePath)匹配
+        if (view && jumpToLine && jumpToLine.path === filePath) {
+
+            // 执行跳转！
+            cmJumpToLine(view, jumpToLine.line);
+
+            // 通知 App.tsx 跳转已完成，以便重置状态
+            onJumpComplete();
+        }
+    }, [view, jumpToLine, filePath, onJumpComplete]);
 
     return <div id="editor" ref={editorRef}></div>;
 }

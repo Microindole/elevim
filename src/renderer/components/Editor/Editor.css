@@ -7,3 +7,48 @@
 .cm-editor {
     height: 100%;
 }
+
+/* 强制统一行高和背景样式 */
+.cm-editor .cm-line {
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1.6 !important;
+}
+
+/* 活动行背景 - 使用 box-sizing 确保高度一致 */
+.cm-editor .cm-activeLine {
+    background-color: transparent !important;
+    box-sizing: border-box !important;
+    padding: 0 !important;
+}
+
+.cm-editor .cm-activeLineGutter {
+    background-color: transparent !important;
+    box-sizing: border-box !important;
+}
+
+/* 聚焦时的活动行样式 */
+.cm-editor.cm-focused .cm-activeLine {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    box-sizing: border-box !important;
+}
+
+.cm-editor.cm-focused .cm-activeLineGutter {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    box-sizing: border-box !important;
+}
+
+/* 确保内容区域没有额外的 padding */
+.cm-editor .cm-content {
+    padding: 0 !important;
+}
+
+/* 确保 gutters 与内容对齐 */
+.cm-editor .cm-gutters {
+    padding: 0 !important;
+}
+
+/* 防止选择导致的高度变化 */
+.cm-editor .cm-selectionBackground {
+    box-sizing: border-box !important;
+}

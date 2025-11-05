@@ -64,9 +64,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     getGitStatus: (): Promise<Record<string, string>> => ipcRenderer.invoke(IPC_CHANNELS.GET_GIT_STATUS),
 
-    readDirectory: (folderPath: string): Promise<any | null> =>
-        ipcRenderer.invoke(IPC_CHANNELS.READ_DIRECTORY, folderPath),
-
     startGitWatcher: (folderPath: string) => ipcRenderer.invoke(IPC_CHANNELS.START_GIT_WATCHER, folderPath),
     stopGitWatcher: () => ipcRenderer.invoke(IPC_CHANNELS.STOP_GIT_WATCHER),
     onGitStatusChange: (callback: (status: GitStatusMap) => void) => {
@@ -109,4 +106,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.removeListener(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, handler);
         };
     },
+
+    readDirectory: (folderPath: string): Promise<any | null> => ipcRenderer.invoke(IPC_CHANNELS.READ_DIRECTORY, folderPath),
+    globalSearch: (searchTerm: string) => ipcRenderer.invoke(IPC_CHANNELS.GLOBAL_SEARCH, searchTerm),
 });

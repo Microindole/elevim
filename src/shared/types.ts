@@ -1,7 +1,11 @@
 // src/shared/types.ts
-
-// IElectronAPI 接口保持原样，我们将在 Window 接口中直接定义类型
 import { GitStatusMap, GitFileChange, GitBranch, GitCommit, GitDiff } from "../main/lib/git-service";
+
+export interface SearchResult {
+    filePath: string;
+    line: number;
+    match: string;
+}
 
 export interface IElectronAPI {
     onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => () => void;
@@ -47,6 +51,8 @@ export interface IElectronAPI {
     onOpenFolderFromCli: (callback: (tree: any) => void) => () => void;
     onOpenFileFromCli: (callback: (data: { content: string; filePath: string }) => void) => () => void;
     onOpenDiffFromCli: (callback: (filePath: string) => void) => () => void;
+
+    globalSearch: (searchTerm: string) => Promise<SearchResult[]>;
 }
 
 declare global {

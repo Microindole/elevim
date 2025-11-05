@@ -15,6 +15,7 @@ export function useFileOperations() {
     const [cursorLine, setCursorLine] = useState(1);
     const [cursorCol, setCursorCol] = useState(1);
     const programmaticChangeRef = useRef(false);
+    const [jumpToLine, setJumpToLine] = useState<{ path: string | null, line: number } | null>(null);
     const appStateRef = useRef({ openFiles, activeIndex });
 
     const activeFile = openFiles[activeIndex];
@@ -24,7 +25,7 @@ export function useFileOperations() {
         appStateRef.current = { openFiles, activeIndex };
     }, [openFiles, activeIndex]);
 
-    const openFile = useCallback((filePath: string, fileContent: string) => {
+    const openFile = useCallback((filePath: string, fileContent: string, line?: number) => {
         setOpenFiles(prevFiles => {
             if (prevFiles.length === 1 && prevFiles[0].name === "Welcome") {
                 const newFile: OpenFile = {
@@ -39,6 +40,9 @@ export function useFileOperations() {
             const alreadyOpenIndex = prevFiles.findIndex(f => f.path === filePath);
             if (alreadyOpenIndex > -1) {
                 setActiveIndex(alreadyOpenIndex);
+                if (line) {
+                    setJumpToLine({ path: filePath, line: line });
+                }
                 return prevFiles;
             } else {
                 const newFile: OpenFile = {
@@ -48,6 +52,9 @@ export function useFileOperations() {
                     isDirty: false
                 };
                 setActiveIndex(prevFiles.length);
+                if (line) {
+                    setJumpToLine({ path: filePath, line: line });
+                }
                 return [...prevFiles, newFile];
             }
         });
@@ -178,6 +185,8 @@ export function useFileOperations() {
         handleNewFile,
         handleCloseTab,
         onEditorContentChange,
-        handleCursorChange
+        handleCursorChange,
+        jumpToLine,
+        setJumpToLine
     };
 }

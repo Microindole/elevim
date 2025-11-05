@@ -4,7 +4,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import { IPC_CHANNELS } from '../shared/constants';
 import { readSettings, writeSettings } from './lib/settings';
-import { readDirectory } from './lib/file-system';
+import { readDirectory, searchInDirectory } from './lib/file-system';
 import * as pty from 'node-pty';
 import * as os from 'os';
 import * as gitService from './lib/git-service';
@@ -294,17 +294,17 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         // 虽然渲染进程可以自己改标题，但保留这个可以用于主进程主动修改
     });
 
-    // ✅ 启动 Git 监听器
+    // 启动 Git 监听器
     ipcMain.handle(IPC_CHANNELS.START_GIT_WATCHER, async (_event, folderPath: string) => {
         await gitService.startGitWatcher(folderPath);
     });
 
-    // ✅ 停止 Git 监听器
+    // 停止 Git 监听器
     ipcMain.handle(IPC_CHANNELS.STOP_GIT_WATCHER, async () => {
         await gitService.stopGitWatcher();
     });
 
-    // ✅ Git 状态变化时通知渲染进程
+    // Git 状态变化时通知渲染进程
     gitService.onGitStatusChange((statusMap) => {
         if (!mainWindow.isDestroyed()) {
             mainWindow.webContents.send(IPC_CHANNELS.GIT_STATUS_CHANGE, statusMap);
@@ -406,5 +406,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     ipcMain.handle(IPC_CHANNELS.GIT_STASH_POP, async () => {
         if (!currentFolderPath) return false;
         return await gitService.popStash(currentFolderPath);
+    });
+
+    // 全局搜索处理器
+    ipcMain.handle(IPC_CHANNELS.GLOBAL_SEARCH, async (_event, searchTerm: string) => {
+        if (!currentFolderPath) {
+            return []; // 如果没有打开文件夹，返回空数组
+        }
+        return await searchInDirectory(currentFolderPath, searchTerm, []);
     });
 }

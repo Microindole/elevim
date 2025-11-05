@@ -44,7 +44,9 @@ export default function App() {
         handleNewFile,
         handleCloseTab,
         onEditorContentChange,
-        handleCursorChange
+        handleCursorChange,
+        jumpToLine,
+        setJumpToLine
     } = useFileOperations();
 
     // 文件树
@@ -82,6 +84,30 @@ export default function App() {
     const handleMenuSaveAsFile = useCallback(() => window.electronAPI.triggerSaveAsFile(), []);
     const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.closeWindow()), [safeAction]);
     const handleFileTreeSelectWrapper = useCallback((filePath: string) => handleFileTreeSelect(filePath, safeAction), [handleFileTreeSelect, safeAction]);
+
+    const handleSearchResultClick = (filePath: string, line: number) => {
+        const alreadyOpenIndex = openFiles.findIndex(f => f.path === filePath);
+
+        if (alreadyOpenIndex > -1) {
+            // 1. 文件已打开：切换 Tab 并设置跳转状态
+            setActiveIndex(alreadyOpenIndex);
+            setJumpToLine({ path: filePath, line: line });
+        } else {
+            // 2. 文件未打开：
+            //    我们必须模拟 handleFileTreeSelectWrapper 的行为，
+            //    但同时要传递行号。
+            safeAction(async () => {
+                const content = await window.electronAPI.openFile(filePath);
+                if (content !== null) {
+                    openFile(filePath, content, line);
+                }
+            });
+        }
+    };
+
+    const handleJumpComplete = useCallback(() => {
+        setJumpToLine(null);
+    }, []); // setJumpToLine 是稳定的，不需要加入依赖
 
     // CLI 处理器
     useCliHandlers({
@@ -153,10 +179,10 @@ export default function App() {
                         activeView={activeSidebarView}
                         onViewChange={handleViewChange}
                     />
-                    {activeSidebarView && fileTree && (
+                    {activeSidebarView && (
                         <>
                             <div className="sidebar" style={{ width: sidebarWidth }}>
-                                {activeSidebarView === 'explorer' && (
+                                {activeSidebarView === 'explorer' && fileTree && ( // fileTree 仅用于 explorer
                                     <FileTree
                                         treeData={fileTree}
                                         onFileSelect={handleFileTreeSelectWrapper}
@@ -167,7 +193,10 @@ export default function App() {
                                     <GitPanel onClose={() => handleViewChange('git')} />
                                 )}
                                 {activeSidebarView === 'search' && (
-                                    <SearchPanel />
+                                    <SearchPanel
+                                        folderPath={currentOpenFolderPath.current}
+                                        onResultClick={handleSearchResultClick}
+                                    />
                                 )}
                                 {activeSidebarView === 'settings' && (
                                     <div style={{ padding: 20 }}>Settings View (Not Implemented)</div>
@@ -181,10 +210,13 @@ export default function App() {
                             <Editor
                                 content={activeFile.content}
                                 filename={activeFile.name}
+                                filePath={activeFile.path}
                                 onDocChange={onEditorContentChange}
                                 onSave={handleSave}
                                 programmaticChangeRef={programmaticChangeRef}
                                 onCursorChange={handleCursorChange}
+                                jumpToLine={jumpToLine}
+                                onJumpComplete={handleJumpComplete}
                             />
                         ) : (
                             <div className="welcome-placeholder">Open a file or folder to start</div>

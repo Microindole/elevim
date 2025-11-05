@@ -2,6 +2,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { SidebarView } from '../components/ActivityBar/ActivityBar';
 
+const ACTIVITY_BAR_WIDTH = 50;
+
 export function useSidebar() {
     const [sidebarWidth, setSidebarWidth] = useState(250);
     const [activeSidebarView, setActiveSidebarView] = useState<SidebarView>('explorer');
@@ -21,7 +23,11 @@ export function useSidebar() {
 
     const resize = useCallback((e: MouseEvent) => {
         if (isResizing.current) {
-            setSidebarWidth(e.clientX);
+            const newWidth = e.clientX - ACTIVITY_BAR_WIDTH;
+
+            // if (newWidth > 0) {
+            setSidebarWidth(newWidth);
+            // }
         }
     }, []);
 
