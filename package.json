@@ -86,8 +86,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "include": "app/installer.nsh"
+      "createStartMenuShortcut": true
     },
     "publish": [
       {
