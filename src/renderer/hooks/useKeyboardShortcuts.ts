@@ -8,6 +8,12 @@ interface UseKeyboardShortcutsProps {
     setIsPaletteOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsTerminalVisible: React.Dispatch<React.SetStateAction<boolean>>;
     handleViewChange: (view: SidebarView) => void;
+    handleMenuNewFile: () => void;
+    handleMenuOpenFile: () => void;
+    handleMenuOpenFolder: () => void;
+    handleSave: () => void;
+    handleMenuSaveAsFile: () => void;
+    handleMenuCloseWindow: () => void;
 }
 
 function checkKey(e: KeyboardEvent, shortcut: string): boolean {
@@ -31,7 +37,13 @@ export function useKeyboardShortcuts({
     keymap,
     setIsPaletteOpen,
     setIsTerminalVisible,
-    handleViewChange
+    handleViewChange,
+    handleMenuNewFile,
+    handleMenuOpenFile,
+    handleMenuOpenFolder,
+    handleSave,
+    handleMenuSaveAsFile,
+    handleMenuCloseWindow
 }: UseKeyboardShortcutsProps) {
     useEffect(() => {
         if (!keymap) return;
@@ -52,13 +64,43 @@ export function useKeyboardShortcuts({
                 e.preventDefault();
                 handleViewChange('git');
             }
-
-            // (你也可以在这里添加 file.new, file.open 等...)
+            if (checkKey(e, keymap['view.toggleSearchPanel'])) {
+                e.preventDefault();
+                handleViewChange('search');
+            }
+            if (checkKey(e, keymap['file.new'])) {
+                e.preventDefault();
+                handleMenuNewFile();
+            }
+            if (checkKey(e, keymap['file.open'])) {
+                e.preventDefault();
+                handleMenuOpenFile();
+            }
+            if (checkKey(e, keymap['file.openFolder'])) {
+                e.preventDefault();
+                handleMenuOpenFolder();
+            }
+            if (checkKey(e, keymap['file.save'])) {
+                e.preventDefault();
+                handleSave();
+            }
+            if (checkKey(e, keymap['file.saveAs'])) {
+                e.preventDefault();
+                handleMenuSaveAsFile();
+            }
+            if (checkKey(e, keymap['app.quit'])) {
+                e.preventDefault();
+                handleMenuCloseWindow();
+            }
         };
 
         window.addEventListener('keydown', handleGlobalKeyDown);
         return () => {
             window.removeEventListener('keydown', handleGlobalKeyDown);
         };
-    }, [keymap, setIsPaletteOpen, setIsTerminalVisible, handleViewChange]); // <-- 依赖项改为 keymap
+    },[
+        keymap, setIsPaletteOpen, setIsTerminalVisible, handleViewChange,
+        handleMenuNewFile, handleMenuOpenFile, handleMenuOpenFolder,
+        handleSave, handleMenuSaveAsFile, handleMenuCloseWindow
+    ]);
 }

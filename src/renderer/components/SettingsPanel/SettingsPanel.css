@@ -63,7 +63,3 @@
     outline: none;
     border-color: var(--accent-color);
 }
-
-.settings-input.wide {
-    width: 200px;
-}

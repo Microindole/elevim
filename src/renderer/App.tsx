@@ -11,7 +11,7 @@ import GitPanel from './components/GitPanel/GitPanel';
 import ActivityBar from './components/ActivityBar/ActivityBar';
 import SearchPanel from './components/SearchPanel/SearchPanel';
 import SettingsPanel from './components/SettingsPanel/SettingsPanel';
-import { AppSettings, Keymap } from '../shared/types';
+import { AppSettings } from '../shared/types';
 
 // Hooks
 import { useFileOperations } from './hooks/useFileOperations';
@@ -187,7 +187,13 @@ export default function App() {
         keymap: settings?.keymap,
         setIsPaletteOpen,
         setIsTerminalVisible,
-        handleViewChange
+        handleViewChange,
+        handleMenuNewFile,
+        handleMenuOpenFile,
+        handleMenuOpenFolder,
+        handleSave,
+        handleMenuSaveAsFile,
+        handleMenuCloseWindow
     });
 
     // 命令面板命令

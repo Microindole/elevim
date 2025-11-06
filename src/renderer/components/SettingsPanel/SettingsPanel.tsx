@@ -1,7 +1,8 @@
 // src/renderer/components/SettingsPanel/SettingsPanel.tsx
 import React, { useState, useEffect } from 'react';
 import './SettingsPanel.css';
-import { AppSettings, Keymap, CommandId } from '../../../shared/types';
+import { AppSettings, CommandId } from '../../../shared/types';
+import KeybindingInput from './KeybindingInput';
 
 // 帮助文本，让 UI 更友好
 const commandLabels: Record<CommandId, string> = {
@@ -86,12 +87,9 @@ export default function SettingsPanel() {
                             <label htmlFor={command}>
                                 {commandLabels[command as CommandId] || command}
                             </label>
-                            <input
-                                type="text"
-                                id={command}
-                                className="settings-input wide" // 用一个更宽的 class
+                            <KeybindingInput
                                 value={settings.keymap[command as CommandId]}
-                                onChange={(e) => handleKeymapChange(command as CommandId, e.target.value)}
+                                onChange={(newShortcut) => handleKeymapChange(command as CommandId, newShortcut)}
                             />
                         </div>
                     ))}
