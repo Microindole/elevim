@@ -1,8 +1,8 @@
 // src/main/lib/git-service.ts
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import {execFile} from 'child_process';
+import {promisify} from 'util';
 import * as chokidar from 'chokidar';
 
 const execFileAsync = promisify(execFile);
@@ -143,7 +143,7 @@ export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
             return {};
         }
 
-        const { stdout } = await execFileAsync('git', ['status', '--porcelain=v1', '-uall'], {
+        const {stdout} = await execFileAsync('git', ['status', '--porcelain=v1', '-uall'], {
             cwd: folderPath,
             timeout: 5000
         });
@@ -193,7 +193,7 @@ export async function getGitChanges(folderPath: string): Promise<GitFileChange[]
         const gitDir = path.join(folderPath, '.git');
         await fs.access(gitDir);
 
-        const { stdout } = await execFileAsync('git', ['status', '--porcelain=v1', '-uall'], {
+        const {stdout} = await execFileAsync('git', ['status', '--porcelain=v1', '-uall'], {
             cwd: folderPath,
             timeout: 5000
         });
@@ -338,7 +338,7 @@ export async function commit(folderPath: string, message: string): Promise<boole
             return false;
         }
 
-        const { stdout } = await execFileAsync('git', ['diff', '--cached', '--name-only'], {
+        const {stdout} = await execFileAsync('git', ['diff', '--cached', '--name-only'], {
             cwd: folderPath,
             timeout: 5000
         });
@@ -370,7 +370,7 @@ export async function commit(folderPath: string, message: string): Promise<boole
 // 获取分支列表
 export async function getBranches(folderPath: string): Promise<GitBranch[]> {
     try {
-        const { stdout } = await execFileAsync('git', ['branch', '-a', '--format=%(refname:short)|%(HEAD)'], {
+        const {stdout} = await execFileAsync('git', ['branch', '-a', '--format=%(refname:short)|%(HEAD)'], {
             cwd: folderPath,
             timeout: 5000
         });
@@ -444,7 +444,7 @@ export async function createBranch(folderPath: string, branchName: string): Prom
 // 获取提交历史
 export async function getCommitHistory(folderPath: string, limit: number = 20): Promise<GitCommit[]> {
     try {
-        const { stdout } = await execFileAsync('git', [
+        const {stdout} = await execFileAsync('git', [
             'log',
             `--max-count=${limit}`,
             '--pretty=format:%H|%an|%ad|%s',
@@ -459,7 +459,7 @@ export async function getCommitHistory(folderPath: string, limit: number = 20): 
 
         for (const line of lines) {
             const [hash, author, date, message] = line.split('|');
-            commits.push({ hash, author, date, message });
+            commits.push({hash, author, date, message});
         }
 
         return commits;
@@ -483,7 +483,7 @@ export async function getFileDiff(folderPath: string, filePath: string, staged: 
             args = ['diff', '--', filePath];
         }
 
-        const { stdout } = await execFileAsync('git', args, {
+        const {stdout} = await execFileAsync('git', args, {
             cwd: folderPath,
             timeout: 5000
         });
@@ -545,7 +545,7 @@ export async function getFileDiff(folderPath: string, filePath: string, staged: 
 // 获取当前分支名
 export async function getCurrentBranch(folderPath: string): Promise<string | null> {
     try {
-        const { stdout } = await execFileAsync('git', ['branch', '--show-current'], {
+        const {stdout} = await execFileAsync('git', ['branch', '--show-current'], {
             cwd: folderPath,
             timeout: 5000
         });

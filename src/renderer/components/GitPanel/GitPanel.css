@@ -14,21 +14,21 @@
     justify-content: space-between;
     align-items: center;
     padding: 8px 12px;
-    background-color: var(--bg-sidebar); /* <-- 修复: 使用 --bg-sidebar */
-    border-bottom: 1px solid var(--border-color-light); /* 使用变量 */
+    background-color: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-color-light);
 }
 
 .git-panel-header h3 {
     margin: 0;
     font-size: 14px;
     font-weight: 600;
-    color: var(--text-color-light); /* 使用变量 */
+    color: var(--text-color-light);
 }
 
 .git-close-btn {
     background: none;
     border: none;
-    color: var(--text-color); /* 使用变量 */
+    color: var(--text-color);
     font-size: 20px;
     cursor: pointer;
     padding: 0 8px;
@@ -36,15 +36,15 @@
 }
 
 .git-close-btn:hover {
-    background-color: var(--bg-hover); /* <-- 修复: 使用 --bg-hover */
-    color: var(--text-color-light); /* 使用变量 */
+    background-color: var(--bg-hover);
+    color: var(--text-color-light);
 }
 
 /* Tabs */
 .git-tabs {
     display: flex;
-    background-color: var(--bg-sidebar); /* <-- 修复: 使用 --bg-sidebar */
-    border-bottom: 1px solid var(--border-color-light); /* 使用变量 */
+    background-color: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-color-light);
 }
 
 .git-tab {
@@ -52,7 +52,7 @@
     padding: 8px 12px;
     background: none;
     border: none;
-    color: var(--text-color-subtle); /* 使用变量 */
+    color: var(--text-color-subtle);
     font-size: 12px;
     cursor: pointer;
     border-bottom: 2px solid transparent;
@@ -60,13 +60,13 @@
 }
 
 .git-tab:hover {
-    background-color: var(--bg-hover); /* <-- 修复: 使用 --bg-hover */
-    color: var(--text-color); /* 使用变量 */
+    background-color: var(--bg-hover);
+    color: var(--text-color);
 }
 
 .git-tab.active {
-    color: var(--text-color-light); /* 使用变量 */
-    border-bottom-color: var(--accent-color); /* 使用变量 */
+    color: var(--text-color-light);
+    border-bottom-color: var(--accent-color);
 }
 
 /* Content Area */
@@ -74,13 +74,13 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    background-color: var(--bg-sidebar); /* <-- 修复: 使用 --bg-sidebar */
+    background-color: var(--bg-sidebar);
 }
 
 .git-empty {
     padding: 20px;
     text-align: center;
-    color: var(--text-color-subtle); /* 使用变量 */
+    color: var(--text-color-subtle);
     font-size: 13px;
 }
 
@@ -91,17 +91,17 @@
 
 .git-commit-box {
     padding: 8px 12px;
-    border-bottom: 1px solid var(--border-color-light); /* 使用变量 */
+    border-bottom: 1px solid var(--border-color-light);
     margin-bottom: 8px;
-    background-color: var(--bg-sidebar); /* <-- 修复: 使用 --bg-sidebar */
+    background-color: var(--bg-sidebar);
 }
 
 .git-commit-input {
     width: 100%;
     padding: 8px;
-    background-color: var(--bg-hover); /* <-- 修复: 使用 --bg-hover */
-    border: 1px solid var(--border-color-light); /* 使用变量 */
-    color: var(--text-color); /* 使用变量 */
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-color-light);
+    color: var(--text-color);
     font-size: 13px;
     border-radius: 3px;
     margin-bottom: 6px;
@@ -109,15 +109,15 @@
 
 .git-commit-input:focus {
     outline: none;
-    border-color: var(--accent-color); /* 使用变量 */
+    border-color: var(--accent-color);
 }
 
 .git-commit-btn {
     width: 100%;
     padding: 6px;
-    background-color: var(--accent-color); /* 使用变量 */
+    background-color: var(--accent-color);
     border: none;
-    color: var(--text-color-light); /* <-- 修复: COMMIT 按钮文字应为亮色 */
+    color: var(--text-color-light);
     font-weight: 600;
     font-size: 13px;
     border-radius: 3px;
@@ -126,7 +126,7 @@
 }
 
 .git-commit-btn:hover:not(:disabled) {
-    background-color: #009aff; /* <-- 修复: 硬编码一个更亮的悬停色 */
+    background-color: #009aff;
 }
 
 .git-commit-btn:disabled {
@@ -140,14 +140,14 @@
 
 .git-section-header {
     padding: 6px 12px;
-    background-color: var(--bg-panel); /* <-- 修复: 使用 --bg-panel */
+    background-color: var(--bg-panel);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
-    color: var(--text-color-subtle); /* 使用变量 */
+    color: var(--text-color-subtle);
     letter-spacing: 0.5px;
-    border-top: 1px solid var(--border-color-light); /* 使用变量 */
-    border-bottom: 1px solid var(--border-color-light); /* 使用变量 */
+    border-top: 1px solid var(--border-color-light);
+    border-bottom: 1px solid var(--border-color-light);
 }
 
 .git-file-item {
@@ -159,14 +159,14 @@
 }
 
 .git-file-item:hover {
-    background-color: var(--bg-hover); /* <-- 修复: 使用 --bg-hover */
+    background-color: var(--bg-hover);
 }
 
 .git-file-status {
     flex-shrink: 0;
     width: 20px;
     font-weight: bold;
-    color: var(--git-green); /* <-- 修复: 更改默认颜色 */
+    color: var(--git-green);
 }
 
 /* Git 状态颜色 */
@@ -180,13 +180,13 @@
 }
 .git-file-item .git-file-status[data-status="deleted"],
 .git-file-item .git-file-status[data-status="wd-deleted"] {
-    color: var(--git-red-light); /* <-- 修复: 使用 --git-red-light */
+    color: var(--git-red-light);
 }
 .git-file-item .git-file-status[data-status="renamed"] {
-    color: var(--git-green); /* <-- 修复: 改为 --git-green */
+    color: var(--git-green);
 }
 .git-file-item .git-file-status[data-status="conflicted"] {
-    color: var(--git-red); /* <-- 修复: 改为 --git-red */
+    color: var(--git-red);
 }
 
 
@@ -215,7 +215,7 @@
     background-color: transparent;
     border: none;
     border-radius: 3px;
-    color: var(--text-color); /* 使用变量 */
+    color: var(--text-color);
     cursor: pointer;
     font-size: 16px;
     display: flex;
@@ -225,13 +225,13 @@
 }
 
 .git-action-btn:hover {
-    background-color: var(--bg-hover); /* <-- 修复: 使用 --bg-hover */
-    color: var(--text-color-light); /* 使用变量 */
+    background-color: var(--bg-hover);
+    color: var(--text-color-light);
 }
 
 .git-action-btn.danger:hover {
-    background-color: rgba(224, 108, 117, 0.2); /* var(--git-red) a(0.2) */
-    color: var(--git-red); /* 使用变量 */
+    background-color: rgba(224, 108, 117, 0.2);
+    color: var(--git-red);
 }
 
 /* Branches Tab */
@@ -245,7 +245,7 @@
     align-items: center;
     margin-bottom: 12px;
     padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-color-light); /* 使用变量 */
+    border-bottom: 1px solid var(--border-color-light);
 }
 
 .git-branch-header span {
@@ -253,14 +253,14 @@
 }
 
 .git-branch-header strong {
-    color: var(--git-green); /* 使用变量 */
+    color: var(--git-green);
 }
 
 .git-new-branch-btn {
     padding: 4px 12px;
-    background-color: var(--accent-color); /* 使用变量 */
+    background-color: var(--accent-color);
     border: none;
-    color: var(--text-color-light); /* <-- 修复: 按钮文字为亮色 */
+    color: var(--text-color-light);
     font-weight: 600;
     font-size: 12px;
     border-radius: 3px;
@@ -269,7 +269,7 @@
 }
 
 .git-new-branch-btn:hover {
-    background-color: #009aff; /* <-- 修复: 硬编码一个更亮的悬停色 */
+    background-color: #009aff;
 }
 
 .git-branch-list {
@@ -288,17 +288,17 @@
 }
 
 .git-branch-item:not(.current):hover {
-    background-color: var(--bg-hover); /* <-- 修复: 使用 --bg-hover */
+    background-color: var(--bg-hover);
 }
 
 .git-branch-item.current {
-    background-color: rgba(152, 195, 121, 0.15); /* var(--git-green) a(0.15) */
+    background-color: rgba(152, 195, 121, 0.15);
     cursor: default;
 }
 
 .git-branch-icon {
     margin-right: 8px;
-    color: var(--git-green); /* 使用变量 */
+    color: var(--git-green);
     font-size: 14px;
 }
 
@@ -308,7 +308,7 @@
 
 .git-branch-item.current .git-branch-name {
     font-weight: 600;
-    color: var(--git-green); /* 使用变量 */
+    color: var(--git-green);
 }
 
 /* History Tab */
@@ -319,19 +319,19 @@
 .git-commit-item {
     padding: 12px;
     margin-bottom: 8px;
-    background-color: var(--bg-panel); /* <-- 修复: 使用 --bg-panel */
+    background-color: var(--bg-panel);
     border-radius: 4px;
-    border-left: 3px solid var(--accent-color); /* 使用变量 */
+    border-left: 3px solid var(--accent-color);
     transition: background-color 0.15s;
 }
 
 .git-commit-item:hover {
-    background-color: var(--bg-hover); /* <-- 修复: 使用 --bg-hover */
+    background-color: var(--bg-hover);
 }
 
 .git-commit-message {
     font-size: 13px;
-    color: var(--text-color-light); /* 使用变量 */
+    color: var(--text-color-light);
     margin-bottom: 6px;
     font-weight: 500;
 }
@@ -340,17 +340,17 @@
     display: flex;
     justify-content: space-between;
     font-size: 11px;
-    color: var(--text-color-subtle); /* 使用变量 */
+    color: var(--text-color-subtle);
     margin-bottom: 4px;
 }
 
 .git-commit-author {
-    color: var(--git-green); /* <-- 修复: 改为 --git-green */
+    color: var(--git-green);
 }
 
 .git-commit-hash {
     font-size: 11px;
-    color: var(--text-color-subtle); /* <-- 修复: 改为 --text-color-subtle */
+    color: var(--text-color-subtle);
     font-family: 'Consolas', 'Monaco', monospace;
 }
 
@@ -359,16 +359,16 @@
     display: flex;
     gap: 8px;
     padding: 8px 12px;
-    border-bottom: 1px solid var(--border-color-light); /* 使用变量 */
-    background-color: var(--bg-sidebar); /* <-- 修复: 使用 --bg-sidebar */
+    border-bottom: 1px solid var(--border-color-light);
+    background-color: var(--bg-sidebar);
 }
 
 .git-action-btn.secondary {
     flex: 1;
     padding: 6px 12px;
-    background-color: var(--bg-resizer); /* <-- 修复: 使用 --bg-resizer */
-    border: 1px solid var(--border-color-light); /* 使用变量 */
-    color: var(--text-color); /* 使用变量 */
+    background-color: var(--bg-resizer);
+    border: 1px solid var(--border-color-light);
+    color: var(--text-color);
     font-size: 12px;
     border-radius: 3px;
     cursor: pointer;
@@ -376,8 +376,8 @@
 }
 
 .git-action-btn.secondary:hover:not(:disabled) {
-    background-color: var(--bg-hover); /* <-- 修复: 使用 --bg-hover */
-    border-color: var(--border-color-light); /* 使用变量 */
+    background-color: var(--bg-hover);
+    border-color: var(--border-color-light);
 }
 
 .git-action-btn.secondary:disabled {
@@ -385,17 +385,16 @@
     cursor: not-allowed;
 }
 
-/* 滚动条 (已在 global.css 中定义) */
 .git-content::-webkit-scrollbar {
     width: 10px;
 }
 .git-content::-webkit-scrollbar-track {
-    background: var(--bg-sidebar); /* <-- 修复: 使用 --bg-sidebar */
+    background: var(--bg-sidebar);
 }
 .git-content::-webkit-scrollbar-thumb {
-    background: var(--bg-resizer); /* <-- 修复: 使用 --bg-resizer */
+    background: var(--bg-resizer);
     border-radius: 5px;
 }
 .git-content::-webkit-scrollbar-thumb:hover {
-    background: var(--text-color-subtle); /* <-- 修复: 使用 --text-color-subtle */
+    background: var(--text-color-subtle);
 }

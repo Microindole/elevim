@@ -8,6 +8,7 @@ import { readDirectory, searchInDirectory, replaceInDirectory } from './lib/file
 import * as pty from 'node-pty';
 import * as os from 'os';
 import * as gitService from './lib/git-service';
+import { SearchOptions, ReplaceOptions } from '../shared/types';
 
 // --- 终端设置 ---
 // 根据不同操作系统选择合适的 shell
@@ -289,10 +290,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         await writeSettings(settings);
     });
 
-    // --- 其他 ---
-    ipcMain.on(IPC_CHANNELS.SET_TITLE, (_event, title: string) => {
-        // 虽然渲染进程可以自己改标题，但保留这个可以用于主进程主动修改
-    });
+    ipcMain.on(IPC_CHANNELS.SET_TITLE, (_event, title: string) => {});
 
     // 启动 Git 监听器
     ipcMain.handle(IPC_CHANNELS.START_GIT_WATCHER, async (_event, folderPath: string) => {
@@ -409,38 +407,33 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     });
 
     // 全局搜索处理器
-    ipcMain.handle(IPC_CHANNELS.GLOBAL_SEARCH, async (_event, searchTerm: string) => {
-        if (!currentFolderPath) {
-            return []; // 如果没有打开文件夹，返回空数组
-        }
-        return await searchInDirectory(currentFolderPath, searchTerm, []);
-    });
-
-    // 全局替换处理器
-    ipcMain.handle(IPC_CHANNELS.GLOBAL_REPLACE, async (_event, searchTerm: string, replaceTerm: string) => {
+    ipcMain.handle(IPC_CHANNELS.GLOBAL_SEARCH, async (_event, options: SearchOptions) => { // <-- 修改
         if (!currentFolderPath) {
             return [];
         }
+        return await searchInDirectory(currentFolderPath, options, []);
+    });
 
-        // 1. --- 安全确认 ---
+    // 全局替换处理器
+    ipcMain.handle(IPC_CHANNELS.GLOBAL_REPLACE, async (_event, options: ReplaceOptions) => { // <-- 修改
+        if (!currentFolderPath) {
+            return [];
+        }
+        const { searchTerm, replaceTerm } = options;
         const { response } = await dialog.showMessageBox(mainWindow, {
             type: 'warning',
             buttons: ['全部替换', '取消'],
             title: '确认替换',
-            message: `您确定要在所有文件中将 "${searchTerm}" 替换为 "${replaceTerm}" 吗？`,
+            message: `您确定要在所有文件中将 "${searchTerm}" 替换为 "${replaceTerm}" 吗？`, // 不变
             detail: '此操作不可撤销！',
-            defaultId: 1, // 默认选中“取消”
+            defaultId: 1,
             cancelId: 1
         });
-
-        // 2. 如果用户点击了“取消”(response === 1)
         if (response === 1) {
-            return []; // 返回空数组，表示没有文件被修改
+            return [];
         }
-
-        // 3. 如果用户点击了“全部替换”
         try {
-            return await replaceInDirectory(currentFolderPath, searchTerm, replaceTerm);
+            return await replaceInDirectory(currentFolderPath, options);
         } catch (error) {
             console.error('[Replace] Failed to run replaceInDirectory:', error);
             return [];

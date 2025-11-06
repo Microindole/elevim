@@ -15,29 +15,29 @@
 .palette-container {
     width: 600px;
     max-height: 500px;
-    background-color: var(--bg-color-lighter); /* 使用变量 */
+    background-color: var(--bg-color-lighter);
     border-radius: 8px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    border: 1px solid var(--border-color-light); /* 使用变量 */
+    border: 1px solid var(--border-color-light);
 }
 
 .palette-input {
     width: 100%;
     padding: 12px 15px;
     border: none;
-    background-color: var(--bg-color-lightest); /* 使用变量 */
-    color: var(--text-color); /* 使用变量 */
+    background-color: var(--bg-color-lightest);
+    color: var(--text-color);
     font-size: 16px;
     outline: none;
     box-sizing: border-box;
-    border-bottom: 1px solid var(--border-color-light); /* 使用变量 */
+    border-bottom: 1px solid var(--border-color-light);
 }
 
 .palette-input:focus {
-    outline: 1px solid var(--accent-color); /* 使用变量 */
+    outline: 1px solid var(--accent-color);
 }
 
 .palette-list {
@@ -49,17 +49,17 @@
 
 .palette-item, .palette-item-empty {
     padding: 10px 15px;
-    color: var(--text-color); /* 使用变量 */
+    color: var(--text-color);
     cursor: pointer;
     border-radius: 4px;
 }
 
 .palette-item.active {
-    background-color: var(--accent-color); /* 使用变量 */
-    color: var(--text-color-light); /* 使用变量 */
+    background-color: var(--accent-color);
+    color: var(--text-color-light);
 }
 
 .palette-item-empty {
-    color: var(--text-color-subtle); /* 使用变量 */
+    color: var(--text-color-subtle);
     cursor: default;
 }

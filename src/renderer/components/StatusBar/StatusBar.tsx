@@ -5,7 +5,7 @@ import './StatusBar.css';
 interface StatusBarProps {
     cursorLine: number;
     cursorCol: number;
-    // 未来可以扩展，比如文件编码、Git 分支等
+    // TODO 未来可以扩展，比如文件编码、Git 分支等
 }
 
 export default function StatusBar({ cursorLine, cursorCol }: StatusBarProps) {

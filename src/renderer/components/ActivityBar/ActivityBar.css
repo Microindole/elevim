@@ -3,14 +3,14 @@
 .activity-bar {
     width: 50px;
     height: 100%;
-    background-color: var(--bg-titlebar); /* 使用标题栏背景色 #2d2d2d */
+    background-color: var(--bg-titlebar);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
     padding: 10px 0;
     flex-shrink: 0;
-    border-right: 1px solid var(--border-color-dark); /* #252526 */
+    border-right: 1px solid var(--border-color-dark);
 }
 
 .top-icons, .bottom-icons {
@@ -19,7 +19,6 @@
     gap: 8px;
 }
 
-/* 给底部图标组添加底部边距，避免与状态栏重叠 */
 .bottom-icons {
     margin-bottom: 15px;
 }
@@ -29,8 +28,8 @@
     height: 48px;
     background: none;
     border: none;
-    border-radius: 0; /* VSCode 没有圆角 */
-    color: var(--text-color-subtle); /* #9e9e9e */
+    border-radius: 0;
+    color: var(--text-color-subtle);
     cursor: pointer;
     transition: all 0.15s ease;
     display: flex;

@@ -108,6 +108,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     readDirectory: (folderPath: string): Promise<any | null> => ipcRenderer.invoke(IPC_CHANNELS.READ_DIRECTORY, folderPath),
-    globalSearch: (searchTerm: string) => ipcRenderer.invoke(IPC_CHANNELS.GLOBAL_SEARCH, searchTerm),
-    globalReplace: (searchTerm: string, replaceTerm: string) => ipcRenderer.invoke(IPC_CHANNELS.GLOBAL_REPLACE, searchTerm, replaceTerm),
+
+    globalSearch: (options: any) => ipcRenderer.invoke(IPC_CHANNELS.GLOBAL_SEARCH, options),
+    globalReplace: (options: any) => ipcRenderer.invoke(IPC_CHANNELS.GLOBAL_REPLACE, options),
 });

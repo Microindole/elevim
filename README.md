@@ -1,6 +1,6 @@
 # Elevim Editor
 
-一个使用 Electron、React (TypeScript) 和 CodeMirror 6 构建的，类似 VS Code 的现代轻量级文本编辑器。
+一个使用 Electron、React (TypeScript) 和 CodeMirror 6 构建的轻量级文本编辑器。
 
 ## ✨ 功能特性
 

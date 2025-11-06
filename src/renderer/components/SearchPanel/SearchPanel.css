@@ -11,6 +11,31 @@
 .search-header {
     padding: 8px 12px;
     border-bottom: 1px solid var(--border-color-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.search-header-actions {
+    display: flex;
+}
+
+.header-action-btn {
+    background: none;
+    border: none;
+    color: var(--text-color-subtle);
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 3px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.header-action-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-color-light);
 }
 
 .search-header h3 {
@@ -25,9 +50,16 @@
     gap: 8px;
 }
 
+.search-input-group {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 .search-input {
-    width: 92%;
-    padding: 8px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 96px 8px 8px;
     background-color: var(--bg-hover);
     border: 1px solid var(--border-color-light);
     color: var(--text-color);
@@ -45,7 +77,6 @@
     gap: 8px; /* 按钮间距 */
 }
 
-/* --- 让两个按钮平分宽度 --- */
 .search-button-group .search-btn,
 .search-button-group .replace-btn {
     flex: 1; /* 平分宽度 */
@@ -62,7 +93,7 @@
     color: var(--text-color-light);
 }
 
-/* --- 新增：替换按钮样式 (使用灰色) --- */
+/* --- 替换按钮样式 */
 .replace-btn {
     background-color: var(--bg-hover);
     color: var(--text-color);
@@ -78,6 +109,30 @@
 .replace-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.toggle-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: var(--text-color-subtle);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: "Consolas", "Courier New", monospace;
+    cursor: pointer;
+    border-radius: 3px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0 2px;
+}
+.toggle-btn:hover {
+    background-color: var(--bg-hover);
+}
+.toggle-btn.active {
+    background-color: var(--accent-color);
+    color: var(--text-color-light);
 }
 
 .search-info {

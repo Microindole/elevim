@@ -11,7 +11,7 @@ export interface FileNode {
 }
 
 interface FileTreeProps {
-    treeData: FileNode; // 我们现在只接收根节点
+    treeData: FileNode;
     onFileSelect: (filePath: string) => void;
     gitStatus: GitStatusMap;
 }
@@ -28,9 +28,9 @@ const FileTree: React.FC<FileTreeProps> = ({ treeData, onFileSelect, gitStatus }
         <div className="file-tree-root">
             <TreeNode
                 node={treeData}
-                onFileSelect={handleNodeClick} // 3. 使用新的处理器
+                onFileSelect={handleNodeClick}
                 gitStatus={gitStatus}
-                activeFile={activeFile} // 4. 将 activeFile 状态传递下去
+                activeFile={activeFile}
             />
         </div>
     );

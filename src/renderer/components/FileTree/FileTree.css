@@ -1,6 +1,5 @@
 /* src/renderer/components/FileTree/FileTree.css */
 
-/* ... (文件顶部的所有样式保持不变) ... */
 .file-tree-root {
     padding: 0 10px;
     font-size: 14px;
@@ -91,44 +90,40 @@
     background-color: #777;
 }
 
-/* --- (以下是更新部分) --- */
-
-/* Staged changes */
 .node-name.git-modified {
-    color: var(--git-yellow); /* <-- 使用变量 */
+    color: var(--git-yellow);
 }
 .node-name.git-modified::after { content: " M"; font-size: 0.9em; opacity: 0.8; }
 
 .node-name.git-added {
-    color: var(--git-green); /* <-- 使用变量 */
+    color: var(--git-green);
 }
 .node-name.git-added::after { content: " A"; font-size: 0.9em; opacity: 0.8; }
 
 .node-name.git-deleted {
-    color: var(--git-red); /* <-- 使用变量 */
+    color: var(--git-red);
     text-decoration: line-through;
 }
 .node-name.git-deleted::after { content: " D"; font-size: 0.9em; opacity: 0.8; }
 
 /* Working directory changes */
 .node-name.git-wd-modified {
-    color: var(--git-yellow); /* <-- 使用变量 */
+    color: var(--git-yellow);
 }
 .node-name.git-wd-modified::after { content: " M"; font-size: 0.9em; opacity: 0.7; color: var(--git-green); } /* 保持 VS Code 风格 (M为黄, U为绿) */
 
 .node-name.git-wd-deleted {
-    color: var(--git-red-light); /* <-- 使用变量 */
+    color: var(--git-red-light);
     text-decoration: line-through;
 }
 .node-name.git-wd-deleted::after { content: " D"; font-size: 0.9em; opacity: 0.7; color: var(--git-red-light); }
 
 /* Untracked */
 .node-name.git-untracked {
-    color: var(--git-green); /* <-- 使用变量 */
+    color: var(--git-green);
 }
 .node-name.git-untracked::after { content: " U"; font-size: 0.9em; opacity: 0.8; }
 
-/* Conflicted */
 .node-name.git-conflicted {
     color: #e47c74;
 }

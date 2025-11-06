@@ -14,5 +14,5 @@ export type CliAction =
     // 4. 启动 GUI，并立即打开一个文件
     | { type: 'start-gui-open-file'; filePath: string }
 
-    // 5. 【示例】启动 GUI，并立即打开 Git Diff
+    // 5. 启动 GUI，并立即打开 Git Diff
     | { type: 'start-gui-open-diff'; filePath: string };

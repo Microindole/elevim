@@ -7,14 +7,14 @@
     width: 80%;
     max-width: 1000px;
     height: 70%;
-    background-color: var(--bg-editor); /* <-- 修复：使用已定义的变量 */
-    border: 1px solid var(--border-color-light); /* 使用变量 */
+    background-color: var(--bg-editor);
+    border: 1px solid var(--border-color-light);
     border-radius: 6px;
     display: flex;
     flex-direction: column;
     z-index: 200;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-    color: var(--text-color); /* 使用变量 */
+    color: var(--text-color);
 }
 
 .diff-header {
@@ -22,13 +22,13 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    background-color: var(--bg-panel); /* <-- 修复：使用 var(--bg-panel) */
-    border-bottom: 1px solid var(--border-color-light); /* 使用变量 */
+    background-color: var(--bg-panel);
+    border-bottom: 1px solid var(--border-color-light);
     border-radius: 6px 6px 0 0;
 }
 
 .diff-file-name {
-    color: var(--text-color-light); /* 使用变量 */
+    color: var(--text-color-light);
     font-weight: 600;
     font-size: 14px;
 }
@@ -41,25 +41,25 @@
 }
 
 .diff-additions {
-    color: var(--git-green); /* 使用变量 */
+    color: var(--git-green);
 }
 
 .diff-deletions {
-    color: var(--git-red); /* 使用变量 */
+    color: var(--git-red);
 }
 
 .diff-close-btn {
     background: none;
     border: none;
-    color: var(--text-color); /* 使用变量 */
+    color: var(--text-color);
     font-size: 20px;
     cursor: pointer;
     padding: 0 8px;
 }
 
 .diff-close-btn:hover {
-    color: var(--text-color-light); /* 使用变量 */
-    background-color: var(--bg-hover); /* <-- 修复：使用 var(--bg-hover) */
+    color: var(--text-color-light);
+    background-color: var(--bg-hover);
 }
 
 .diff-content {
@@ -82,28 +82,28 @@
 }
 
 .diff-file-header {
-    background-color: var(--bg-panel); /* <-- 修复：使用 var(--bg-panel) */
-    color: var(--text-color-subtle); /* 使用变量 */
+    background-color: var(--bg-panel);
+    color: var(--text-color-subtle);
     font-weight: bold;
 }
 
 .diff-addition {
-    background-color: rgba(152, 195, 121, 0.15); /* var(--git-green) a(0.15) */
-    color: var(--git-green); /* 使用变量 */
+    background-color: rgba(152, 195, 121, 0.15);
+    color: var(--git-green);
 }
 
 .diff-deletion {
-    background-color: rgba(224, 108, 117, 0.15); /* var(--git-red) a(0.15) */
-    color: var(--git-red); /* 使用变量 */
+    background-color: rgba(224, 108, 117, 0.15);
+    color: var(--git-red);
 }
 
 .diff-hunk-header {
-    background-color: rgba(0, 122, 204, 0.2); /* var(--accent-color) a(0.2) */
-    color: var(--accent-color); /* 使用变量 */
+    background-color: rgba(0, 122, 204, 0.2);
+    color: var(--accent-color);
 }
 
 .diff-loading, .diff-empty {
     padding: 40px;
     text-align: center;
-    color: var(--text-color-subtle); /* 使用变量 */
+    color: var(--text-color-subtle);
 }

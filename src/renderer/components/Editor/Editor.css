@@ -38,12 +38,10 @@
     box-sizing: border-box !important;
 }
 
-/* 确保内容区域没有额外的 padding */
 .cm-editor .cm-content {
     padding: 0 !important;
 }
 
-/* 确保 gutters 与内容对齐 */
 .cm-editor .cm-gutters {
     padding: 0 !important;
 }

@@ -1,6 +1,7 @@
 // src/main/lib/file-system.ts
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
+import { SearchOptions, ReplaceOptions, SearchResult } from '../../shared/types';
 
 interface ProcessedEntry {
     name: string;
@@ -48,15 +49,36 @@ export async function readDirectory(dirPath: string): Promise<ProcessedEntry[]> 
     return validEntries;
 }
 
-export interface SearchResult {
-    filePath: string;
-    line: number;
-    match: string;
+function createSearchRegex(options: SearchOptions): RegExp | null {
+    // 解构出新选项
+    const { searchTerm, isCaseSensitive, isRegex, isWholeWord } = options;
+
+    let flags = 'g';
+    if (!isCaseSensitive) {
+        flags += 'i';
+    }
+
+    // 转义搜索词 (如果不是正则模式)
+    let finalSearchTerm = isRegex
+        ? searchTerm
+        : searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+    // 全词匹配
+    if (isWholeWord && !isRegex) {
+        finalSearchTerm = `\\b${finalSearchTerm}\\b`;
+    }
+
+    try {
+        return new RegExp(finalSearchTerm, flags);
+    } catch (e) {
+        console.error('[Search] 无效的正则表达式:', finalSearchTerm, e);
+        return null;
+    }
 }
 
 export async function searchInDirectory(
     dirPath: string,
-    searchTerm: string,
+    options: SearchOptions,
     currentResults: SearchResult[] = []
 ): Promise<SearchResult[]> {
 
@@ -64,6 +86,11 @@ export async function searchInDirectory(
     const ignoreList = ['.git', 'node_modules', '.DS_Store'];
     const binaryExtensions = ['.png', '.jpg', '.jpeg',
         '.gif', '.exe', '.appimage', '.deb', '.rpm', '.ico', '.asar'];
+
+    const searchRegex = createSearchRegex(options);
+    if (!searchRegex) {
+        return []; // 如果正则表达式无效，直接返回空
+    }
 
     try {
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -77,7 +104,7 @@ export async function searchInDirectory(
 
             if (entry.isDirectory()) {
                 // 递归搜索子目录
-                await searchInDirectory(fullPath, searchTerm, currentResults);
+                await searchInDirectory(fullPath, options, currentResults);
             } else if (entry.isFile()) {
                 // 检查是否为二进制文件
                 const ext = path.extname(entry.name).toLowerCase();
@@ -91,13 +118,14 @@ export async function searchInDirectory(
                     const lines = content.split('\n');
 
                     lines.forEach((lineText, index) => {
-                        if (lineText.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        if (searchRegex.test(lineText)) {
                             currentResults.push({
-                                filePath: fullPath, // 存完整路径
+                                filePath: fullPath,
                                 line: index + 1,
                                 match: lineText.trim()
                             });
                         }
+                        searchRegex.lastIndex = 0; // 重置 .test() 后的索引
                     });
                 } catch (readError) {
                     // 可能是权限问题或文件编码问题，忽略这个文件
@@ -114,20 +142,22 @@ export async function searchInDirectory(
 
 export async function replaceInDirectory(
     dirPath: string,
-    searchTerm: string,
-    replaceTerm: string
+    options: ReplaceOptions
 ): Promise<string[]> {
     const modifiedFiles: string[] = [];
 
-    // 关键：使用与搜索函数完全相同的忽略列表
+    // 使用与搜索函数完全相同的忽略列表
     const ignoreList = ['.git', 'node_modules', '.DS_Store', 'release', 'dist'];
     const binaryExtensions = [
         '.png', '.jpg', '.jpeg', '.gif', '.exe', '.appimage',
         '.deb', '.rpm', '.ico', '.asar'
     ];
 
-    // 创建一个不区分大小写的全局正则表达式
-    const searchRegex = new RegExp(searchTerm, 'gi');
+    const { replaceTerm } = options;
+    const searchRegex = createSearchRegex(options);
+    if (!searchRegex) {
+        return []; // 无效正则，不执行任何操作
+    }
 
     // 递归替换的内部函数
     async function traverse(currentPath: string) {
@@ -150,15 +180,11 @@ export async function replaceInDirectory(
                     }
 
                     try {
-                        // 1. 读取文件
                         const content = await fs.readFile(fullPath, 'utf-8');
 
-                        // 2. 检查是否有匹配项
-                        if (searchRegex.test(content)) {
-                            // 3. 执行替换
+                        searchRegex.lastIndex = 0;
+                        if (searchRegex?.test(content)) {
                             const newContent = content.replace(searchRegex, replaceTerm);
-
-                            // 4. 写回文件
                             await fs.writeFile(fullPath, newContent, 'utf-8');
                             modifiedFiles.push(fullPath);
                         }

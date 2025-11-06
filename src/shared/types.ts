@@ -7,6 +7,19 @@ export interface SearchResult {
     match: string;
 }
 
+// 搜索选项接口
+export interface SearchOptions {
+    searchTerm: string;
+    isCaseSensitive: boolean;
+    isRegex: boolean;
+    isWholeWord: boolean;
+}
+
+// 替换选项接口
+export interface ReplaceOptions extends SearchOptions {
+    replaceTerm: string;
+}
+
 export interface IElectronAPI {
     onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => () => void;
     saveFile: (content: string) => Promise<string | null>;
@@ -52,8 +65,8 @@ export interface IElectronAPI {
     onOpenFileFromCli: (callback: (data: { content: string; filePath: string }) => void) => () => void;
     onOpenDiffFromCli: (callback: (filePath: string) => void) => () => void;
 
-    globalSearch: (searchTerm: string) => Promise<SearchResult[]>;
-    globalReplace: (searchTerm: string, replaceTerm: string) => Promise<string[]>;
+    globalSearch: (options: SearchOptions) => Promise<SearchResult[]>;
+    globalReplace: (options: ReplaceOptions) => Promise<string[]>;
 }
 
 declare global {

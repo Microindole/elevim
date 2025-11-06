@@ -1,16 +1,10 @@
 /* src/renderer/styles/global.css */
 
 :root {
-    /* 根据你的要求：
-      --bg-editor: 编辑器/活动标签页的背景
-      --bg-sidebar: 侧边栏背景，设置为与编辑器相同
-      --bg-tabs-container: 标签栏容器背景，设置为与编辑器相同
-    */
     --bg-editor: #202020;
     --bg-sidebar: #202020;
     --bg-tabs-container: #202020;
 
-    /* 其他 UI 元素的颜色 (取自你的原始 CSS) */
     --bg-inactive-tab: #2d2d2d;
     --bg-titlebar: #2d2d2d;
     --bg-panel: #393939;
@@ -27,14 +21,12 @@
     --accent-color: #007acc;
     --danger-color: #e81123;
 
-    /* Git 颜色 (取自你的 FileTree.css) */
     --git-yellow: #E2C08D;
     --git-green: #81b88b;
     --git-red: #c74e39;
     --git-red-light: #f17c67;
 }
 
-/* 核心修复：确保 html 和 body 也占满 100% 高度 */
 html, body, #root {
     margin: 0;
     padding: 0;
@@ -46,7 +38,7 @@ html, body, #root {
     user-select: none;
 }
 
-/* 自定义滚动条样式 (保持不变) */
+/* 自定义滚动条样式 */
 ::-webkit-scrollbar {
     width: 12px;
     height: 12px;
