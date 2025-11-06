@@ -10,6 +10,7 @@ import TerminalComponent from './components/Terminal/Terminal';
 import GitPanel from './components/GitPanel/GitPanel';
 import ActivityBar from './components/ActivityBar/ActivityBar';
 import SearchPanel from './components/SearchPanel/SearchPanel';
+import SettingsPanel from './components/SettingsPanel/SettingsPanel';
 
 // Hooks
 import { useFileOperations } from './hooks/useFileOperations';
@@ -229,7 +230,7 @@ export default function App() {
                                     />
                                 )}
                                 {activeSidebarView === 'settings' && (
-                                    <div style={{ padding: 20 }}>Settings View (Not Implemented)</div>
+                                    <SettingsPanel />
                                 )}
                             </div>
                             <div className="resizer" onMouseDown={startResizing} />

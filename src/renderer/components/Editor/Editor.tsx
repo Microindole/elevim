@@ -42,7 +42,6 @@ export default function Editor({
         }
     }, [content, view, programmaticChangeRef]); // 将 ref 加入依赖数组
 
-    // 加载和更新字体大小的 Effect (保持不变)
     useEffect(() => {
         window.electronAPI.getSetting('fontSize').then(savedFontSize => {
             if (savedFontSize) {
@@ -53,7 +52,7 @@ export default function Editor({
 
     useEffect(() => {
         updateEditorFontSize(view, fontSize);
-        window.electronAPI.setSetting('fontSize', fontSize);
+        // window.electronAPI.setSetting('fontSize', fontSize);
     }, [fontSize, view]);
 
     // 滚轮缩放事件
@@ -92,6 +91,21 @@ export default function Editor({
             onJumpComplete();
         }
     }, [view, jumpToLine, filePath, onJumpComplete]);
+
+    useEffect(() => {
+        const handleSettingsChange = (event: Event) => {
+            const { key, value } = (event as CustomEvent).detail;
+
+            if (key === 'fontSize') {
+                setFontSize(value);
+            }
+        };
+
+        window.addEventListener('settings-changed', handleSettingsChange);
+        return () => {
+            window.removeEventListener('settings-changed', handleSettingsChange);
+        };
+    }, []);
 
     return <div id="editor" ref={editorRef}></div>;
 }
