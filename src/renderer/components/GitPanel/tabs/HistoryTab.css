@@ -1,0 +1,43 @@
+/* src/renderer/components/GitPanel/tabs/HistoryTab.css */
+
+.git-history {
+    padding: 8px;
+}
+
+.git-commit-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    background-color: var(--bg-panel);
+    border-radius: 4px;
+    border-left: 3px solid var(--accent-color);
+    transition: background-color 0.15s;
+}
+
+.git-commit-item:hover {
+    background-color: var(--bg-hover);
+}
+
+.git-commit-message {
+    font-size: 13px;
+    color: var(--text-color-light);
+    margin-bottom: 6px;
+    font-weight: 500;
+}
+
+.git-commit-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-color-subtle);
+    margin-bottom: 4px;
+}
+
+.git-commit-author {
+    color: var(--git-green);
+}
+
+.git-commit-hash {
+    font-size: 11px;
+    color: var(--text-color-subtle);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
