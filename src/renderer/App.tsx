@@ -85,7 +85,7 @@ export default function App() {
     const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.closeWindow()), [safeAction]);
     const handleFileTreeSelectWrapper = useCallback((filePath: string) => handleFileTreeSelect(filePath, safeAction), [handleFileTreeSelect, safeAction]);
 
-    const handleSearchResultClick = (filePath: string, line: number) => {
+    const openFileToLine = (filePath: string, line: number) => {
         const alreadyOpenIndex = openFiles.findIndex(f => f.path === filePath);
 
         if (alreadyOpenIndex > -1) {
@@ -94,8 +94,6 @@ export default function App() {
             setJumpToLine({ path: filePath, line: line });
         } else {
             // 2. 文件未打开：
-            //    我们必须模拟 handleFileTreeSelectWrapper 的行为，
-            //    但同时要传递行号。
             safeAction(async () => {
                 const content = await window.electronAPI.openFile(filePath);
                 if (content !== null) {
@@ -104,6 +102,37 @@ export default function App() {
             });
         }
     };
+
+    const handleReplaceComplete = useCallback(async (modifiedFiles: string[]) => {
+        if (modifiedFiles.length === 0) return;
+
+        // 检查是否有已打开的文件被修改了
+        const openFilesToReload = openFiles.filter(
+            f => f.path && modifiedFiles.includes(f.path)
+        );
+
+        if (openFilesToReload.length > 0) {
+            // 重新读取这些文件的内容
+            const updatedFileContents = await Promise.all(
+                openFilesToReload.map(async f => {
+                    const content = await window.electronAPI.openFile(f.path!);
+                    return { path: f.path, content };
+                })
+            );
+
+            // 批量更新 openFiles state
+            setOpenFiles(prevOpenFiles =>
+                prevOpenFiles.map(file => {
+                    const updated = updatedFileContents.find(u => u.path === file.path);
+                    if (updated && updated.content !== null) {
+                        return { ...file, content: updated.content, isDirty: false };
+                    }
+                    return file;
+                })
+            );
+            console.log(`[App] Reloaded ${updatedFileContents.length} open editors.`);
+        }
+    }, [openFiles, setOpenFiles]);
 
     const handleJumpComplete = useCallback(() => {
         setJumpToLine(null);
@@ -195,7 +224,8 @@ export default function App() {
                                 {activeSidebarView === 'search' && (
                                     <SearchPanel
                                         folderPath={currentOpenFolderPath.current}
-                                        onResultClick={handleSearchResultClick}
+                                        onResultClick={openFileToLine}
+                                        onReplaceComplete={handleReplaceComplete}
                                     />
                                 )}
                                 {activeSidebarView === 'settings' && (

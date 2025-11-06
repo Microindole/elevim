@@ -40,14 +40,44 @@
     border-color: var(--accent-color);
 }
 
-.search-btn {
+.search-button-group {
+    display: flex;
+    gap: 8px; /* 按钮间距 */
+}
+
+/* --- 让两个按钮平分宽度 --- */
+.search-button-group .search-btn,
+.search-button-group .replace-btn {
+    flex: 1; /* 平分宽度 */
     padding: 6px;
-    background-color: var(--accent-color);
     border: none;
-    color: var(--text-color-light);
     font-weight: 600;
     border-radius: 3px;
     cursor: pointer;
+}
+
+/* 保持搜索按钮的蓝色 */
+.search-btn {
+    background-color: var(--accent-color);
+    color: var(--text-color-light);
+}
+
+/* --- 新增：替换按钮样式 (使用灰色) --- */
+.replace-btn {
+    background-color: var(--bg-hover);
+    color: var(--text-color);
+    border: 1px solid var(--border-color-light);
+}
+
+.replace-btn:hover:not(:disabled) {
+    background-color: var(--border-color-light);
+}
+
+/* 统一的禁用样式 */
+.search-btn:disabled,
+.replace-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
 .search-info {

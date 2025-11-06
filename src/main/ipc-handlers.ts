@@ -4,7 +4,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import { IPC_CHANNELS } from '../shared/constants';
 import { readSettings, writeSettings } from './lib/settings';
-import { readDirectory, searchInDirectory } from './lib/file-system';
+import { readDirectory, searchInDirectory, replaceInDirectory } from './lib/file-system';
 import * as pty from 'node-pty';
 import * as os from 'os';
 import * as gitService from './lib/git-service';
@@ -414,5 +414,36 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             return []; // 如果没有打开文件夹，返回空数组
         }
         return await searchInDirectory(currentFolderPath, searchTerm, []);
+    });
+
+    // 全局替换处理器
+    ipcMain.handle(IPC_CHANNELS.GLOBAL_REPLACE, async (_event, searchTerm: string, replaceTerm: string) => {
+        if (!currentFolderPath) {
+            return [];
+        }
+
+        // 1. --- 安全确认 ---
+        const { response } = await dialog.showMessageBox(mainWindow, {
+            type: 'warning',
+            buttons: ['全部替换', '取消'],
+            title: '确认替换',
+            message: `您确定要在所有文件中将 "${searchTerm}" 替换为 "${replaceTerm}" 吗？`,
+            detail: '此操作不可撤销！',
+            defaultId: 1, // 默认选中“取消”
+            cancelId: 1
+        });
+
+        // 2. 如果用户点击了“取消”(response === 1)
+        if (response === 1) {
+            return []; // 返回空数组，表示没有文件被修改
+        }
+
+        // 3. 如果用户点击了“全部替换”
+        try {
+            return await replaceInDirectory(currentFolderPath, searchTerm, replaceTerm);
+        } catch (error) {
+            console.error('[Replace] Failed to run replaceInDirectory:', error);
+            return [];
+        }
     });
 }

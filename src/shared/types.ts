@@ -53,6 +53,7 @@ export interface IElectronAPI {
     onOpenDiffFromCli: (callback: (filePath: string) => void) => () => void;
 
     globalSearch: (searchTerm: string) => Promise<SearchResult[]>;
+    globalReplace: (searchTerm: string, replaceTerm: string) => Promise<string[]>;
 }
 
 declare global {

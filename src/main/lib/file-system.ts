@@ -111,3 +111,67 @@ export async function searchInDirectory(
 
     return currentResults;
 }
+
+export async function replaceInDirectory(
+    dirPath: string,
+    searchTerm: string,
+    replaceTerm: string
+): Promise<string[]> {
+    const modifiedFiles: string[] = [];
+
+    // 关键：使用与搜索函数完全相同的忽略列表
+    const ignoreList = ['.git', 'node_modules', '.DS_Store', 'release', 'dist'];
+    const binaryExtensions = [
+        '.png', '.jpg', '.jpeg', '.gif', '.exe', '.appimage',
+        '.deb', '.rpm', '.ico', '.asar'
+    ];
+
+    // 创建一个不区分大小写的全局正则表达式
+    const searchRegex = new RegExp(searchTerm, 'gi');
+
+    // 递归替换的内部函数
+    async function traverse(currentPath: string) {
+        try {
+            const entries = await fs.readdir(currentPath, { withFileTypes: true });
+
+            for (const entry of entries) {
+                if (ignoreList.includes(entry.name)) {
+                    continue;
+                }
+
+                const fullPath = path.join(currentPath, entry.name);
+
+                if (entry.isDirectory()) {
+                    await traverse(fullPath); // 递归
+                } else if (entry.isFile()) {
+                    const ext = path.extname(entry.name).toLowerCase();
+                    if (binaryExtensions.includes(ext)) {
+                        continue;
+                    }
+
+                    try {
+                        // 1. 读取文件
+                        const content = await fs.readFile(fullPath, 'utf-8');
+
+                        // 2. 检查是否有匹配项
+                        if (searchRegex.test(content)) {
+                            // 3. 执行替换
+                            const newContent = content.replace(searchRegex, replaceTerm);
+
+                            // 4. 写回文件
+                            await fs.writeFile(fullPath, newContent, 'utf-8');
+                            modifiedFiles.push(fullPath);
+                        }
+                    } catch (readWriteError) {
+                        console.warn(`[Replace] Failed to read/write file: ${fullPath}`, readWriteError);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error(`[Replace] Error reading directory: ${currentPath}`, err);
+        }
+    }
+
+    await traverse(dirPath);
+    return modifiedFiles;
+}

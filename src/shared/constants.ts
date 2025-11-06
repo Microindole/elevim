@@ -42,4 +42,5 @@ export const IPC_CHANNELS = {
     OPEN_DIFF_FROM_CLI: 'open-diff-from-cli',
 
     GLOBAL_SEARCH: 'global-search',
+    GLOBAL_REPLACE: 'global-replace',
 };
