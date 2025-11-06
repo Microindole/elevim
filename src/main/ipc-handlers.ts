@@ -8,7 +8,7 @@ import { readDirectory, searchInDirectory, replaceInDirectory } from './lib/file
 import * as pty from 'node-pty';
 import * as os from 'os';
 import * as gitService from './lib/git-service';
-import { SearchOptions, ReplaceOptions } from '../shared/types';
+import { SearchOptions, ReplaceOptions, AppSettings } from '../shared/types';
 
 // --- 终端设置 ---
 // 根据不同操作系统选择合适的 shell
@@ -279,15 +279,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
     // --- 设置 ---
 
-    ipcMain.handle(IPC_CHANNELS.GET_SETTING, async (_event, key: string) => {
-        const settings = await readSettings();
-        return settings[key];
+    ipcMain.handle(IPC_CHANNELS.GET_SETTINGS, async () => {
+        return await readSettings();
     });
 
-    ipcMain.on(IPC_CHANNELS.SET_SETTING, async (_event, key: string, value: any) => {
-        const settings = await readSettings();
-        settings[key] = value;
-        await writeSettings(settings);
+    // 保持 setSetting 不变，它现在可以保存 keymap 或 fontSize
+    ipcMain.on(IPC_CHANNELS.SET_SETTING, async (_event, key: keyof AppSettings, value: any) => {
+        // 注意：我们依赖 writeSettings 中的合并逻辑
+        await writeSettings({ [key]: value });
     });
 
     ipcMain.on(IPC_CHANNELS.SET_TITLE, (_event, title: string) => {});

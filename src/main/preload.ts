@@ -2,6 +2,7 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 import { IPC_CHANNELS } from '../shared/constants';
 import {GitStatusMap} from "./lib/git-service";
+import {AppSettings} from "../shared/types";
 
 contextBridge.exposeInMainWorld('electronAPI', {
     onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => {
@@ -50,7 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.removeListener(IPC_CHANNELS.NEW_FILE, handler);
         };
     },
-    getSetting: (key: string): Promise<any> => ipcRenderer.invoke(IPC_CHANNELS.GET_SETTING, key),
+    getSettings: () : Promise<AppSettings> => ipcRenderer.invoke(IPC_CHANNELS.GET_SETTINGS),
     setSetting: (key: string, value: any) => ipcRenderer.send(IPC_CHANNELS.SET_SETTING, key, value),
     terminalInit: () => ipcRenderer.send(IPC_CHANNELS.TERMINAL_INIT),
     terminalWrite: (data: string) => ipcRenderer.send(IPC_CHANNELS.TERMINAL_IN, data),

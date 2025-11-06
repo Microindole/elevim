@@ -1,6 +1,28 @@
 // src/shared/types.ts
 import { GitStatusMap, GitFileChange, GitBranch, GitCommit, GitDiff } from "../main/lib/git-service";
 
+export type CommandId =
+    | 'app.quit'
+    | 'file.new'
+    | 'file.open'
+    | 'file.openFolder'
+    | 'file.save'
+    | 'file.saveAs'
+    | 'view.togglePalette'
+    | 'view.toggleTerminal'
+    | 'view.toggleGitPanel'
+    | 'view.toggleSearchPanel'
+    | 'editor.save';
+
+// Keymap 结构
+export type Keymap = Record<CommandId, string>;
+
+// 设置接口
+export interface AppSettings {
+    fontSize: number;
+    keymap: Keymap;
+}
+
 export interface SearchResult {
     filePath: string;
     line: number;
@@ -36,7 +58,7 @@ export interface IElectronAPI {
     showSaveDialog: () => Promise<'save' | 'dont-save' | 'cancel'>;
     openFolder: () => Promise<any | null>;
     openFile: (filePath: string) => Promise<string | null>;
-    getSetting: (key: string) => Promise<any>;
+    getSettings: () => Promise<AppSettings>;
     setSetting: (key: string, value: any) => void;
     terminalInit: () => void;
     terminalWrite: (data: string) => void;

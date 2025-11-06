@@ -1,8 +1,7 @@
 // src/renderer/hooks/useCodeMirror.ts
-
 import { useEffect, useRef, useState } from 'react';
-import { EditorState, Compartment } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from "@codemirror/view";
+import { EditorState, Compartment, Extension } from "@codemirror/state";
+import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, KeyBinding } from "@codemirror/view";
 import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, foldKeymap, indentUnit } from "@codemirror/language";
 import { oneDark } from '@codemirror/theme-one-dark';
 import { search, searchKeymap } from '@codemirror/search';
@@ -10,9 +9,9 @@ import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { getLanguage } from '../../main/lib/language-map';
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
-
-// 导入缩进对齐线扩展
 import { indentationMarkers } from '@replit/codemirror-indentation-markers';
+
+import { Keymap } from '../../shared/types';
 
 const simpleLinter = (view: EditorView): readonly Diagnostic[] => {
     const diagnostics: Diagnostic[] = [];
@@ -51,10 +50,12 @@ interface UseCodeMirrorProps {
     onDocChange: (doc: string) => void;
     onSave: () => void;
     onCursorChange: (line: number, col: number) => void;
+    initialKeymap: Keymap | null;
 }
 
 const fontThemeCompartment = new Compartment();
 const languageCompartment = new Compartment();
+const keymapCompartment = new Compartment();
 
 // 自定义缩进线的样式主题
 const indentationMarkersTheme = EditorView.baseTheme({
@@ -66,13 +67,36 @@ const indentationMarkersTheme = EditorView.baseTheme({
     },
 });
 
+function createKeymapExtension(keymapConfig: Keymap, onSave: () => void): Extension {
+    const saveBinding: KeyBinding[] = [];
+
+    // 从 keymap 对象中读取 'editor.save' 的配置
+    if (keymapConfig['editor.save']) {
+        saveBinding.push({
+            key: keymapConfig['editor.save'], // (例如 "Mod+S")
+            run: () => { onSave(); return true; }
+        });
+    }
+
+    // 返回包含所有快捷键的扩展
+    return keymap.of([
+        ...saveBinding,
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        ...completionKeymap,
+    ]);
+}
+
 export function useCodeMirror(props: UseCodeMirrorProps) {
-    const { content, filename, onDocChange, onSave, onCursorChange } = props;
+    const { content, filename, onDocChange, onSave, onCursorChange, initialKeymap } = props;
     const editorRef = useRef<HTMLDivElement>(null);
     const [view, setView] = useState<EditorView | null>(null);
 
     useEffect(() => {
-        if (!editorRef.current) return;
+        if (!editorRef.current || !initialKeymap) return;
 
         const updateListener = EditorView.updateListener.of((update) => {
             if (update.docChanged) {
@@ -84,13 +108,6 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
                 onCursorChange(line.number, (pos - line.from) + 1);
             }
         });
-
-        const customKeymap = [
-            {
-                key: "Mod-s",
-                run: () => { onSave(); return true; }
-            },
-        ];
 
         const initialLanguage = getLanguage(filename);
 
@@ -112,15 +129,6 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             crosshairCursor(),
             highlightActiveLine(),
             search({ top: true }),
-            keymap.of([
-                ...closeBracketsKeymap,
-                ...defaultKeymap,
-                ...searchKeymap,
-                ...historyKeymap,
-                ...foldKeymap,
-                ...completionKeymap,
-                ...customKeymap,
-            ]),
             oneDark,
             updateListener,
             fontThemeCompartment.of(EditorView.theme({
@@ -146,6 +154,9 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
                 thickness: 1,
             }),
             indentationMarkersTheme,
+            keymapCompartment.of(
+                createKeymapExtension(initialKeymap, onSave)
+            ),
         ];
 
         const startState = EditorState.create({
@@ -165,7 +176,7 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             newView.destroy();
             setView(null);
         };
-    }, []);
+    }, [initialKeymap]);
 
     useEffect(() => {
         if (view) {
@@ -218,5 +229,15 @@ export function jumpToLine(view: EditorView | null, line: number) {
 
     } catch (e) {
         console.error(`[jumpToLine] 无法跳转到行 ${line}:`, e);
+    }
+}
+
+export function updateKeymap(view: EditorView | null, keymap: Keymap, onSave: () => void) {
+    if (view) {
+        view.dispatch({
+            effects: keymapCompartment.reconfigure(
+                createKeymapExtension(keymap, onSave)
+            )
+        });
     }
 }

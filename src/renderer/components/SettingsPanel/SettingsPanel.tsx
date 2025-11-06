@@ -1,39 +1,56 @@
 // src/renderer/components/SettingsPanel/SettingsPanel.tsx
 import React, { useState, useEffect } from 'react';
 import './SettingsPanel.css';
+import { AppSettings, Keymap, CommandId } from '../../../shared/types';
 
-// 定义我们目前支持的设置
-interface AppSettings {
-    fontSize: number;
-}
+// 帮助文本，让 UI 更友好
+const commandLabels: Record<CommandId, string> = {
+    'app.quit': '退出应用',
+    'file.new': '新建文件',
+    'file.open': '打开文件',
+    'file.openFolder': '打开文件夹',
+    'file.save': '保存',
+    'file.saveAs': '另存为',
+    'view.togglePalette': '切换命令面板',
+    'view.toggleTerminal': '切换终端',
+    'view.toggleGitPanel': '切换 Git 面板',
+    'view.toggleSearchPanel': '切换搜索面板',
+    'editor.save': '保存 (编辑器)',
+};
 
 export default function SettingsPanel() {
     const [settings, setSettings] = useState<AppSettings | null>(null);
 
-    // 1. 组件加载时，从主进程获取当前设置
     useEffect(() => {
         const fetchSettings = async () => {
-            // 我们一次性获取所有设置（虽然现在只有一个）
-            const fontSize = await window.electronAPI.getSetting('fontSize') || 15;
-            setSettings({ fontSize });
+            const loadedSettings = await window.electronAPI.getSettings();
+            setSettings(loadedSettings);
         };
         fetchSettings();
     }, []);
 
-    // 2. 处理设置变更
-    const handleSettingChange = (key: keyof AppSettings, value: any) => {
-        if (!settings) return;
-
-        const newSettings = { ...settings, [key]: value };
+    // --- 统一的保存逻辑 ---
+    const handleSave = (key: keyof AppSettings, value: any) => {
+        // 1. 更新本地 state
+        const newSettings = { ...settings!, [key]: value };
         setSettings(newSettings);
 
-        // 3. 将新设置保存到主进程的 settings.json
+        // 2. 保存到主进程
         window.electronAPI.setSetting(key, value);
 
-        // 4. 广播一个全局事件，通知所有组件（比如 Editor）设置已变更
+        // 3. 广播事件
         window.dispatchEvent(new CustomEvent('settings-changed', {
             detail: { key, value }
         }));
+    };
+
+    const handleKeymapChange = (command: CommandId, newShortcut: string) => {
+        const newKeymap = { ...settings!.keymap, [command]: newShortcut };
+        handleSave('keymap', newKeymap);
+    };
+
+    const handleFontSizeChange = (newSize: number) => {
+        handleSave('fontSize', newSize);
     };
 
     if (!settings) {
@@ -46,6 +63,7 @@ export default function SettingsPanel() {
                 <h3>设置</h3>
             </div>
             <div className="settings-content">
+                {/* 1. 字体大小 */}
                 <div className="settings-group">
                     <h4>编辑器</h4>
                     <div className="settings-item">
@@ -55,9 +73,28 @@ export default function SettingsPanel() {
                             id="font-size"
                             className="settings-input"
                             value={settings.fontSize}
-                            onChange={(e) => handleSettingChange('fontSize', parseInt(e.target.value, 10))}
+                            onChange={(e) => handleFontSizeChange(parseInt(e.target.value, 10))}
                         />
                     </div>
+                </div>
+
+                {/* 2. 快捷键 */}
+                <div className="settings-group">
+                    <h4>快捷键</h4>
+                    {Object.keys(settings.keymap).map((command) => (
+                        <div className="settings-item" key={command}>
+                            <label htmlFor={command}>
+                                {commandLabels[command as CommandId] || command}
+                            </label>
+                            <input
+                                type="text"
+                                id={command}
+                                className="settings-input wide" // 用一个更宽的 class
+                                value={settings.keymap[command as CommandId]}
+                                onChange={(e) => handleKeymapChange(command as CommandId, e.target.value)}
+                            />
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

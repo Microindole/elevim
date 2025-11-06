@@ -12,7 +12,7 @@ export const IPC_CHANNELS = {
     SHOW_SAVE_DIALOG: 'show-save-dialog', // 渲 -> 主，请求显示保存对话框
     OPEN_FOLDER: 'open-folder',
     OPEN_FILE: 'open-file',
-    GET_SETTING: 'get-setting', // 获取设置
+    GET_SETTINGS: 'get-settings', // 获取设置
     SET_SETTING: 'set-setting', // 保存设置
     TERMINAL_INIT: 'terminal-init',     // 渲 -> 主：请求启动 pty
     TERMINAL_IN: 'terminal-in',       // 渲 -> 主：从 xterm.js 发送数据 (用户输入)

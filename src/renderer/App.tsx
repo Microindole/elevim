@@ -1,5 +1,5 @@
 // src/renderer/App.tsx
-import React, { useState, useCallback } from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import TitleBar from './components/TitleBar/TitleBar';
 import Editor from './components/Editor/Editor';
 import FileTree from './components/FileTree/FileTree';
@@ -11,6 +11,7 @@ import GitPanel from './components/GitPanel/GitPanel';
 import ActivityBar from './components/ActivityBar/ActivityBar';
 import SearchPanel from './components/SearchPanel/SearchPanel';
 import SettingsPanel from './components/SettingsPanel/SettingsPanel';
+import { AppSettings, Keymap } from '../shared/types';
 
 // Hooks
 import { useFileOperations } from './hooks/useFileOperations';
@@ -28,6 +29,7 @@ import './components/App/App.css';
 
 export default function App() {
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+    const [settings, setSettings] = useState<AppSettings | null>(null);
 
     // 文件操作
     const {
@@ -139,6 +141,24 @@ export default function App() {
         setJumpToLine(null);
     }, []); // setJumpToLine 是稳定的，不需要加入依赖
 
+    // 加载设置
+    useEffect(() => {
+        const fetchSettings = async () => {
+            const loadedSettings = await window.electronAPI.getSettings();
+            setSettings(loadedSettings);
+        };
+        fetchSettings();
+
+        const handleSettingsChange = (event: Event) => {
+            const { key, value } = (event as CustomEvent).detail;
+            setSettings(prev => ({ ...prev!, [key]: value }));
+        };
+        window.addEventListener('settings-changed', handleSettingsChange);
+        return () => {
+            window.removeEventListener('settings-changed', handleSettingsChange);
+        };
+    }, []);
+
     // CLI 处理器
     useCliHandlers({
         setFileTree,
@@ -164,6 +184,7 @@ export default function App() {
 
     // 键盘快捷键
     useKeyboardShortcuts({
+        keymap: settings?.keymap,
         setIsPaletteOpen,
         setIsTerminalVisible,
         handleViewChange
@@ -179,6 +200,10 @@ export default function App() {
         handleMenuCloseWindow,
         handleViewChange
     });
+
+    if (!settings) {
+        return <div className="main-layout">Loading Settings...</div>;
+    }
 
     return (
         <div className="main-layout">
@@ -248,6 +273,7 @@ export default function App() {
                                 onCursorChange={handleCursorChange}
                                 jumpToLine={jumpToLine}
                                 onJumpComplete={handleJumpComplete}
+                                initialFontSize={settings.fontSize}
                             />
                         ) : (
                             <div className="welcome-placeholder">Open a file or folder to start</div>

@@ -1,7 +1,8 @@
 // src/renderer/components/Editor/Editor.tsx
 import React, { useEffect, useState } from 'react';
-import { useCodeMirror, updateEditorFontSize, jumpToLine as cmJumpToLine } from '../../hooks/useCodeMirror';
+import { useCodeMirror, updateEditorFontSize, jumpToLine as cmJumpToLine, updateKeymap } from '../../hooks/useCodeMirror';
 import './Editor.css';
+import {Keymap} from "../../../shared/types";
 
 const MIN_FONT_SIZE = 8;
 const MAX_FONT_SIZE = 40;
@@ -16,21 +17,39 @@ interface EditorProps {
     onCursorChange: (line: number, col: number) => void;
     jumpToLine: { path: string | null, line: number } | null;
     onJumpComplete: () => void;
+    initialFontSize: number;
 }
 
 export default function Editor({
-   content,
-   filename,
-   filePath,
-   onDocChange,
-   onSave,
-   programmaticChangeRef,
-   onCursorChange,
-   jumpToLine,
-   onJumpComplete
+    content,
+    filename,
+    filePath,
+    onDocChange,
+    onSave,
+    programmaticChangeRef,
+    onCursorChange,
+    jumpToLine,
+    onJumpComplete,
+    initialFontSize
 }: EditorProps) {
-    const { editorRef, view } = useCodeMirror({ content, filename, onDocChange, onSave, onCursorChange });
-    const [fontSize, setFontSize] = useState(15);
+    const [fontSize, setFontSize] = useState(initialFontSize);
+    const [keymap, setKeymap] = useState<Keymap | null>(null);
+
+    // 延迟加载 keymap
+    useEffect(() => {
+        window.electronAPI.getSettings().then(settings => {
+            setKeymap(settings.keymap);
+        });
+    }, []);
+
+    const { editorRef, view } = useCodeMirror({
+        content,
+        filename,
+        onDocChange,
+        onSave,
+        onCursorChange,
+        initialKeymap: keymap
+    });
 
     useEffect(() => {
         if (view && content !== view.state.doc.toString()) {
@@ -43,16 +62,11 @@ export default function Editor({
     }, [content, view, programmaticChangeRef]); // 将 ref 加入依赖数组
 
     useEffect(() => {
-        window.electronAPI.getSetting('fontSize').then(savedFontSize => {
-            if (savedFontSize) {
-                setFontSize(savedFontSize);
-            }
-        });
-    }, []);
+        setFontSize(initialFontSize);
+    }, [initialFontSize]);
 
     useEffect(() => {
         updateEditorFontSize(view, fontSize);
-        // window.electronAPI.setSetting('fontSize', fontSize);
     }, [fontSize, view]);
 
     // 滚轮缩放事件
@@ -99,13 +113,17 @@ export default function Editor({
             if (key === 'fontSize') {
                 setFontSize(value);
             }
+            if (key === 'keymap') {
+                setKeymap(value);
+                updateKeymap(view, value, onSave);
+            }
         };
 
         window.addEventListener('settings-changed', handleSettingsChange);
         return () => {
             window.removeEventListener('settings-changed', handleSettingsChange);
         };
-    }, []);
+    }, [view, onSave]);
 
     return <div id="editor" ref={editorRef}></div>;
 }
