@@ -6,7 +6,7 @@ import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatchi
 import { oneDark } from '@codemirror/theme-one-dark';
 import { search, searchKeymap } from '@codemirror/search';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { getLanguage } from '../../main/lib/language-map';
+import { getLanguage } from '../lib/language-map';
 import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
 import { indentationMarkers } from '@replit/codemirror-indentation-markers';

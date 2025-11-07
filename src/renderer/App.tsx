@@ -25,7 +25,7 @@ import { useBranchChange } from './hooks/useBranchChange';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useCommands } from './hooks/useCommands';
 
-import './components/App/App.css';
+import './App.css';
 
 export default function App() {
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
