@@ -85,6 +85,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     gitGetCurrentBranch: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_CURRENT_BRANCH),
     gitStash: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_STASH),
     gitStashPop: () => ipcRenderer.invoke(IPC_CHANNELS.GIT_STASH_POP),
+    gitCheckoutCommit: async (commitHash: string) => {
+        return await ipcRenderer.invoke('git-checkout-commit', commitHash);
+    },
+    gitCreateBranchFromCommit: async (commitHash: string, branchName?: string) => {
+        return await ipcRenderer.invoke('git-create-branch-from-commit', commitHash, branchName);
+    },
+    openCommitDiff: async (commitHash: string) => {
+        return await ipcRenderer.invoke('git-open-commit-diff', commitHash);
+    },
 
     onOpenFolderFromCli: (callback: (tree: any) => void) => {
         const handler = (_event: IpcRendererEvent, tree: any) => callback(tree);

@@ -37,9 +37,17 @@ export interface GitBranch {
 
 export interface GitCommit {
     hash: string;
+    parentHashes: string[];
+    message: string;
     author: string;
     date: string;
-    message: string;
+    branch: string;
+    graph: ('commit' | 'line' | 'merge-left' | 'merge-right' | 'line-across' | 'empty')[]; // 添加图形结构
+    fileChanges?: {
+        additions: number;
+        deletions: number;
+        files: string[];
+    };
 }
 
 export interface GitDiff {
@@ -442,24 +450,76 @@ export async function createBranch(folderPath: string, branchName: string): Prom
 }
 
 // 获取提交历史
-export async function getCommitHistory(folderPath: string, limit: number = 20): Promise<GitCommit[]> {
+export async function getCommitHistory(folderPath: string, limit: number = 50): Promise<GitCommit[]> {
     try {
+        // 使用 git log --graph 获取ASCII图形输出
         const {stdout} = await execFileAsync('git', [
             'log',
             `--max-count=${limit}`,
-            '--pretty=format:%H|%an|%ad|%s',
+            '--graph',
+            '--all',
+            '--format=%x1f%H%x1f%P%x1f%an%x1f%ad%x1f%s%x1f%D',
             '--date=format:%Y-%m-%d %H:%M'
         ], {
             cwd: folderPath,
             timeout: 5000
         });
 
+        if (!stdout.trim()) {
+            return [];
+        }
+
         const commits: GitCommit[] = [];
-        const lines = stdout.trim().split('\n').filter(line => line.trim());
+        const lines = stdout.trim().split('\n');
 
         for (const line of lines) {
-            const [hash, author, date, message] = line.split('|');
-            commits.push({hash, author, date, message});
+            // 解析图形字符
+            const graphMatch = line.match(/^([*|\/\\ _]+)/);
+            const graphPart = graphMatch ? graphMatch[1] : '';
+            
+            // 分割提交信息
+            const parts = line.substring(graphPart.length).trim().split('\x1f');
+            if (parts.length < 6) continue;
+
+            const [hash, parents, author, date, message, refs] = parts.filter(Boolean);
+
+            // 解析分支信息
+            let branch = 'HEAD';
+            if (refs) {
+                const refsList = refs.split(',').map(r => r.trim());
+                const localBranch = refsList.find(r => !r.includes('HEAD') && !r.includes('origin/'));
+                if (localBranch) {
+                    branch = localBranch;
+                } else {
+                    const remoteBranch = refsList.find(r => r.includes('origin/'));
+                    if (remoteBranch) {
+                        branch = remoteBranch.replace('origin/', '');
+                    }
+                }
+            }
+
+            // 解析图形结构
+            const graphStructure = graphPart.split('').map(char => {
+                switch (char) {
+                    case '*': return 'commit';
+                    case '|': return 'line';
+                    case '/': return 'merge-left';
+                    case '\\': return 'merge-right';
+                    case '_': return 'line-across';
+                    case ' ': return 'empty';
+                    default: return 'empty';
+                }
+            });
+
+            commits.push({
+                hash,
+                parentHashes: parents ? parents.split(' ') : [],
+                message,
+                author,
+                date,
+                branch,
+                graph: graphStructure // 添加图形结构信息
+            });
         }
 
         return commits;
@@ -583,5 +643,46 @@ export async function popStash(folderPath: string): Promise<boolean> {
     } catch (error: any) {
         console.error('[Git] Failed to pop stash:', error.message);
         return false;
+    }
+}
+
+/**
+ * 在指定 commit 上 checkout（以 detached HEAD 方式）
+ */
+export async function checkoutCommit(folderPath: string, commitHash: string): Promise<boolean> {
+    try {
+        await execFileAsync('git', ['checkout', '--detach', commitHash], { cwd: folderPath });
+        return true;
+    } catch (err) {
+        console.error('[Git] checkoutCommit failed', err);
+        return false;
+    }
+}
+
+/**
+ * 从指定 commit 创建新分支，返回创建的分支名（如果失败返回 null）
+ */
+export async function createBranchFromCommit(folderPath: string, commitHash: string, branchName?: string): Promise<string | null> {
+    try {
+        const safeName = branchName || `branch-from-${commitHash.substring(0,7)}`;
+        // 使用 git branch <name> <hash>
+        await execFileAsync('git', ['branch', safeName, commitHash], { cwd: folderPath });
+        return safeName;
+    } catch (err) {
+        console.error('[Git] createBranchFromCommit failed', err);
+        return null;
+    }
+}
+
+/**
+ * 返回 commit 的完整 diff / show 输出，供 renderer 展示
+ */
+export async function getCommitDiff(folderPath: string, commitHash: string): Promise<string | null> {
+    try {
+        const { stdout } = await execFileAsync('git', ['show', commitHash, '--pretty=fuller', '--stat'], { cwd: folderPath, maxBuffer: 10 * 1024 * 1024 });
+        return stdout;
+    } catch (err) {
+        console.error('[Git] getCommitDiff failed', err);
+        return null;
     }
 }

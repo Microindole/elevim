@@ -82,6 +82,9 @@ export interface IElectronAPI {
     gitGetCurrentBranch: () => Promise<string | null>;
     gitStash: () => Promise<boolean>;
     gitStashPop: () => Promise<boolean>;
+    gitCheckoutCommit: (commitHash: string) => Promise<boolean>;
+    gitCreateBranchFromCommit: (commitHash: string, branchName?: string) => Promise<string | null>;
+    openCommitDiff: (commitHash: string) => Promise<string | null>;
 
     onOpenFolderFromCli: (callback: (tree: any) => void) => () => void;
     onOpenFileFromCli: (callback: (data: { content: string; filePath: string }) => void) => () => void;

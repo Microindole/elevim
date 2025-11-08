@@ -438,4 +438,28 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             return [];
         }
     });
+    
+    ipcMain.handle('git-checkout-commit', async (_event, commitHash: string) => {
+        if (!currentFolderPath) {
+            console.warn('[Main] git-checkout-commit called without currentFolderPath');
+            return false;
+        }
+        return await gitService.checkoutCommit(currentFolderPath, commitHash);
+    });
+
+    ipcMain.handle('git-create-branch-from-commit', async (_event, commitHash: string, branchName?: string) => {
+        if (!currentFolderPath) {
+            console.warn('[Main] git-create-branch-from-commit called without currentFolderPath');
+            return null;
+        }
+        return await gitService.createBranchFromCommit(currentFolderPath, commitHash, branchName);
+    });
+
+    ipcMain.handle('git-open-commit-diff', async (_event, commitHash: string) => {
+        if (!currentFolderPath) {
+            console.warn('[Main] git-open-commit-diff called without currentFolderPath');
+            return null;
+        }
+        return await gitService.getCommitDiff(currentFolderPath, commitHash);
+    });
 }
