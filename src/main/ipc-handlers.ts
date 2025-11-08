@@ -11,11 +11,10 @@ import * as gitService from './lib/git-service';
 import { SearchOptions, ReplaceOptions, AppSettings } from '../shared/types';
 
 // --- 终端设置 ---
-// 根据不同操作系统选择合适的 shell
 const shell = os.platform() === 'win32' ? 'powershell.exe' : 'bash';
 
+// --- 模块级状态 ---
 let currentFolderPath: string | null = null;
-// 使用一个模块级变量来跟踪当前文件路径
 let currentFilePath: string | null = null;
 
 export function registerIpcHandlers(mainWindow: BrowserWindow) {
@@ -26,16 +25,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     // --- 终端处理 ---
 
     ipcMain.on(IPC_CHANNELS.TERMINAL_INIT, () => {
-        // *** Ignore request if a pty is already running or currently starting ***
         if (localPtyProcess || isPtyStarting) {
             console.warn('[Main] Ignoring redundant TERMINAL_INIT request.');
-            return; // <<< Simply exit if already initialized or starting
+            return;
         }
-
-        isPtyStarting = true; // Set flag: we are now attempting to start
+        isPtyStarting = true;
         console.log('[Main] Received TERMINAL_INIT - attempting to spawn.');
 
-        // Kill logic (should ideally not be needed with the check above, but safe fallback)
         if (localPtyProcess) {
             console.log('[Main] Killing existing pty process (unexpected)');
             try { localPtyProcess.kill(); } catch (e) { console.error('[Main] Error killing existing pty:', e); }
@@ -44,14 +40,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
         try {
             console.log(`[Main] Spawning shell: ${shell} in ${app.getPath('home')}`);
-            const newPty = pty.spawn(shell, [], { // Create in temporary variable
+            const newPty = pty.spawn(shell, [], {
                 name: 'xterm-color',
                 cols: 80, rows: 30,
                 cwd: app.getPath('home'),
                 env: process.env
             });
 
-            // Set up listeners *before* assigning to localPtyProcess
             newPty.onData((data: string) => {
                 if (!mainWindow.isDestroyed()) {
                     mainWindow.webContents.send(IPC_CHANNELS.TERMINAL_OUT, data);
@@ -60,31 +55,25 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
             newPty.onExit(({ exitCode, signal }) => {
                 console.log(`[Main] Pty process exited with code: ${exitCode}, signal: ${signal}`);
-                // Only nullify if this *is* the pty we think is active
                 if (localPtyProcess === newPty) {
                     localPtyProcess = null;
-                    isPtyStarting = false; // Allow starting again
+                    isPtyStarting = false;
                 } else {
                     console.log("[Main] An older/orphaned pty process instance exited.");
                 }
             });
 
-            // Assign to main variable *after* setup
             localPtyProcess = newPty;
-            isPtyStarting = false; // Clear flag: starting is complete
+            isPtyStarting = false;
             console.log('[Main] Pty process spawned successfully');
 
         } catch (e) {
             console.error('[Main] Failed to spawn pty process:', e);
             localPtyProcess = null;
-            isPtyStarting = false; // Clear flag: starting failed
-            if (!mainWindow.isDestroyed()) {
-                // Notify renderer of failure if desired
-            }
+            isPtyStarting = false;
         }
     });
 
-    // TERMINAL_IN handler: Now correctly checks localPtyProcess which should be stable
     ipcMain.on(IPC_CHANNELS.TERMINAL_IN, (_event, data: string) => {
         if (localPtyProcess) {
             localPtyProcess.write(data);
@@ -93,7 +82,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         }
     });
 
-    // TERMINAL_RESIZE handler (no changes needed from previous version)
     ipcMain.on(IPC_CHANNELS.TERMINAL_RESIZE, (_event, size: { cols: number, rows: number }) => {
         if (localPtyProcess && size && typeof size.cols === 'number' && typeof size.rows === 'number' && size.cols > 0 && size.rows > 0) {
             try {
@@ -106,7 +94,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         }
     });
 
-    // Window close handler (no changes needed from previous version)
+    // 终端相关的窗口关闭处理
     mainWindow.on('close', () => {
         console.log('[Main] Main window is closing, killing pty process...');
         if (localPtyProcess) {
@@ -115,7 +103,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             isPtyStarting = false;
         }
     });
-    // --- 文件操作 ---
+
+    // --- 文件 & 文件夹操作 ---
 
     ipcMain.on(IPC_CHANNELS.SHOW_OPEN_DIALOG, async () => {
         const { canceled, filePaths } = await dialog.showOpenDialog({
@@ -167,34 +156,28 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         mainWindow.webContents.send(IPC_CHANNELS.NEW_FILE);
     });
 
-    // 另存为的核心是清空当前路径，然后触发渲染进程的保存逻辑
-    ipcMain.on('trigger-save-as-file', () => {
+    ipcMain.on(IPC_CHANNELS.TRIGGER_SAVE_AS_FILE, () => {
         currentFilePath = null;
-        mainWindow.webContents.send('trigger-save-file');
+        mainWindow.webContents.send(IPC_CHANNELS.TRIGGER_SAVE_FILE);
     });
 
-    // 保存文件（由菜单触发）
-    ipcMain.on('trigger-save-file', () => {
-        mainWindow.webContents.send('trigger-save-file');
+    ipcMain.on(IPC_CHANNELS.TRIGGER_SAVE_FILE, () => {
+        mainWindow.webContents.send(IPC_CHANNELS.TRIGGER_SAVE_FILE);
     });
-
-    // --- 目录/文件夹操作 ---
 
     ipcMain.handle(IPC_CHANNELS.OPEN_FOLDER, async (): Promise<any | null> => {
         const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
             properties: ['openDirectory'],
         });
         if (canceled || filePaths.length === 0) {
-            currentFolderPath = null; // 清空文件夹路径
+            currentFolderPath = null;
             return null;
         }
 
         const folderPath = filePaths[0];
-        currentFolderPath = folderPath; // --- 记录当前文件夹路径 ---
+        currentFolderPath = folderPath;
         try {
             const fileTree = await readDirectory(folderPath);
-            // 可以在这里主动获取一次 Git 状态，但不强制
-            // getGitStatus(currentFolderPath);
             return {
                 name: path.basename(folderPath),
                 path: folderPath,
@@ -202,7 +185,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             };
         } catch (error) {
             console.error('Failed to read directory:', error);
-            currentFolderPath = null; // 出错时也清空
+            currentFolderPath = null;
             return null;
         }
     });
@@ -223,10 +206,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
     });
 
     ipcMain.handle(IPC_CHANNELS.READ_DIRECTORY, async (_event, folderPath: string): Promise<any | null> => {
-        if (!folderPath) return null; // 需要提供路径
+        if (!folderPath) return null;
         try {
-            const fileTree = await readDirectory(folderPath); // 调用已有的函数
-            // 注意：这里返回的是子节点数组，需要包装一下符合 FileNode 结构
+            const fileTree = await readDirectory(folderPath);
             return {
                 name: path.basename(folderPath),
                 path: folderPath,
@@ -234,19 +216,11 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             };
         } catch (error) {
             console.error(`Failed to re-read directory: ${folderPath}`, error);
-            return null; // 出错返回 null
+            return null;
         }
     });
 
-    ipcMain.handle(IPC_CHANNELS.GET_GIT_STATUS, async () => {
-        if (!currentFolderPath) {
-            return {}; // 没有打开文件夹，返回空状态
-        }
-        return await gitService.getGitStatus(currentFolderPath);
-    });
-
-
-    // --- 窗口控制 ---
+    // --- 窗口控制 & 对话框 ---
 
     ipcMain.on(IPC_CHANNELS.WINDOW_MINIMIZE, () => mainWindow.minimize());
 
@@ -260,8 +234,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
 
     ipcMain.on(IPC_CHANNELS.WINDOW_CLOSE, () => mainWindow.close());
 
-    // --- 对话框 ---
-
     ipcMain.handle(IPC_CHANNELS.SHOW_SAVE_DIALOG, async (): Promise<'save' | 'dont-save' | 'cancel'> => {
         const { response } = await dialog.showMessageBox(mainWindow, {
             type: 'warning',
@@ -271,10 +243,16 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             defaultId: 0,
             cancelId: 2
         });
-
         if (response === 0) return 'save';
         if (response === 1) return 'dont-save';
         return 'cancel';
+    });
+
+    ipcMain.on(IPC_CHANNELS.SET_TITLE, (_event, title: string) => {
+        // 标题设置逻辑 (如果需要可以取消注释)
+        // if (mainWindow && !mainWindow.isDestroyed()) {
+        //     mainWindow.setTitle(title);
+        // }
     });
 
     // --- 设置 ---
@@ -283,20 +261,16 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         return await readSettings();
     });
 
-    // 保持 setSetting 不变，它现在可以保存 keymap 或 fontSize
     ipcMain.on(IPC_CHANNELS.SET_SETTING, async (_event, key: keyof AppSettings, value: any) => {
-        // 注意：我们依赖 writeSettings 中的合并逻辑
         await writeSettings({ [key]: value });
     });
 
-    ipcMain.on(IPC_CHANNELS.SET_TITLE, (_event, title: string) => {});
+    // --- Git ---
 
-    // 启动 Git 监听器
     ipcMain.handle(IPC_CHANNELS.START_GIT_WATCHER, async (_event, folderPath: string) => {
         await gitService.startGitWatcher(folderPath);
     });
 
-    // 停止 Git 监听器
     ipcMain.handle(IPC_CHANNELS.STOP_GIT_WATCHER, async () => {
         await gitService.stopGitWatcher();
     });
@@ -308,25 +282,28 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         }
     });
 
-    // Git 详细变更列表
+    ipcMain.handle(IPC_CHANNELS.GET_GIT_STATUS, async () => {
+        if (!currentFolderPath) {
+            return {};
+        }
+        return await gitService.getGitStatus(currentFolderPath);
+    });
+
     ipcMain.handle(IPC_CHANNELS.GIT_GET_CHANGES, async () => {
         if (!currentFolderPath) return [];
         return await gitService.getGitChanges(currentFolderPath);
     });
 
-    // Git 暂存文件
     ipcMain.handle(IPC_CHANNELS.GIT_STAGE_FILE, async (_event, filePath: string) => {
         if (!currentFolderPath) return false;
         const result = await gitService.stageFile(currentFolderPath, filePath);
         if (result) {
-            // 刷新状态
             const status = await gitService.getGitStatus(currentFolderPath);
             gitService.notifyStatusChange(status);
         }
         return result;
     });
 
-    // Git 取消暂存
     ipcMain.handle(IPC_CHANNELS.GIT_UNSTAGE_FILE, async (_event, filePath: string) => {
         if (!currentFolderPath) return false;
         const result = await gitService.unstageFile(currentFolderPath, filePath);
@@ -337,7 +314,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         return result;
     });
 
-    // Git 丢弃修改
     ipcMain.handle(IPC_CHANNELS.GIT_DISCARD_CHANGES, async (_event, filePath: string) => {
         if (!currentFolderPath) return false;
         const result = await gitService.discardChanges(currentFolderPath, filePath);
@@ -348,7 +324,6 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         return result;
     });
 
-    // Git 提交
     ipcMain.handle(IPC_CHANNELS.GIT_COMMIT, async (_event, message: string) => {
         if (!currentFolderPath) return false;
         const result = await gitService.commit(currentFolderPath, message);
@@ -359,37 +334,31 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         return result;
     });
 
-    // Git 获取分支列表
     ipcMain.handle(IPC_CHANNELS.GIT_GET_BRANCHES, async () => {
         if (!currentFolderPath) return [];
         return await gitService.getBranches(currentFolderPath);
     });
 
-    // Git 切换分支
     ipcMain.handle(IPC_CHANNELS.GIT_CHECKOUT_BRANCH, async (_event, branchName: string) => {
         if (!currentFolderPath) return false;
         return await gitService.checkoutBranch(currentFolderPath, branchName);
     });
 
-    // Git 创建分支
     ipcMain.handle(IPC_CHANNELS.GIT_CREATE_BRANCH, async (_event, branchName: string) => {
         if (!currentFolderPath) return false;
         return await gitService.createBranch(currentFolderPath, branchName);
     });
 
-    // Git 获取提交历史
     ipcMain.handle(IPC_CHANNELS.GIT_GET_COMMITS, async (_event, limit: number = 20) => {
         if (!currentFolderPath) return [];
         return await gitService.getCommitHistory(currentFolderPath, limit);
     });
 
-    // Git 获取文件差异
     ipcMain.handle(IPC_CHANNELS.GIT_GET_DIFF, async (_event, filePath: string, staged: boolean) => {
         if (!currentFolderPath) return null;
         return await gitService.getFileDiff(currentFolderPath, filePath, staged);
     });
 
-    // Git 获取当前分支
     ipcMain.handle(IPC_CHANNELS.GIT_GET_CURRENT_BRANCH, async () => {
         if (!currentFolderPath) return null;
         return await gitService.getCurrentBranch(currentFolderPath);
@@ -405,16 +374,40 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         return await gitService.popStash(currentFolderPath);
     });
 
-    // 全局搜索处理器
-    ipcMain.handle(IPC_CHANNELS.GLOBAL_SEARCH, async (_event, options: SearchOptions) => { // <-- 修改
+    ipcMain.handle(IPC_CHANNELS.GIT_CHECKOUT_COMMIT, async (_event, commitHash: string) => {
+        if (!currentFolderPath) {
+            console.warn('[Main] git-checkout-commit called without currentFolderPath');
+            return false;
+        }
+        return await gitService.checkoutCommit(currentFolderPath, commitHash);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GIT_CREATE_BRANCH_FROM_COMMIT, async (_event, commitHash: string, branchName?: string) => {
+        if (!currentFolderPath) {
+            console.warn('[Main] git-create-branch-from-commit called without currentFolderPath');
+            return null;
+        }
+        return await gitService.createBranchFromCommit(currentFolderPath, commitHash, branchName);
+    });
+
+    ipcMain.handle(IPC_CHANNELS.GIT_OPEN_COMMIT_DIFF, async (_event, commitHash: string) => {
+        if (!currentFolderPath) {
+            console.warn('[Main] git-open-commit-diff called without currentFolderPath');
+            return null;
+        }
+        return await gitService.getCommitDiff(currentFolderPath, commitHash);
+    });
+
+    // --- 搜索 & 替换 ---
+
+    ipcMain.handle(IPC_CHANNELS.GLOBAL_SEARCH, async (_event, options: SearchOptions) => {
         if (!currentFolderPath) {
             return [];
         }
         return await searchInDirectory(currentFolderPath, options, []);
     });
 
-    // 全局替换处理器
-    ipcMain.handle(IPC_CHANNELS.GLOBAL_REPLACE, async (_event, options: ReplaceOptions) => { // <-- 修改
+    ipcMain.handle(IPC_CHANNELS.GLOBAL_REPLACE, async (_event, options: ReplaceOptions) => {
         if (!currentFolderPath) {
             return [];
         }
@@ -423,12 +416,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             type: 'warning',
             buttons: ['全部替换', '取消'],
             title: '确认替换',
-            message: `您确定要在所有文件中将 "${searchTerm}" 替换为 "${replaceTerm}" 吗？`, // 不变
+            message: `您确定要在所有文件中将 "${searchTerm}" 替换为 "${replaceTerm}" 吗？`,
             detail: '此操作不可撤销！',
             defaultId: 1,
             cancelId: 1
         });
-        if (response === 1) {
+        if (response === 1) { // 对应 "取消"
             return [];
         }
         try {
@@ -437,29 +430,5 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
             console.error('[Replace] Failed to run replaceInDirectory:', error);
             return [];
         }
-    });
-    
-    ipcMain.handle('git-checkout-commit', async (_event, commitHash: string) => {
-        if (!currentFolderPath) {
-            console.warn('[Main] git-checkout-commit called without currentFolderPath');
-            return false;
-        }
-        return await gitService.checkoutCommit(currentFolderPath, commitHash);
-    });
-
-    ipcMain.handle('git-create-branch-from-commit', async (_event, commitHash: string, branchName?: string) => {
-        if (!currentFolderPath) {
-            console.warn('[Main] git-create-branch-from-commit called without currentFolderPath');
-            return null;
-        }
-        return await gitService.createBranchFromCommit(currentFolderPath, commitHash, branchName);
-    });
-
-    ipcMain.handle('git-open-commit-diff', async (_event, commitHash: string) => {
-        if (!currentFolderPath) {
-            console.warn('[Main] git-open-commit-diff called without currentFolderPath');
-            return null;
-        }
-        return await gitService.getCommitDiff(currentFolderPath, commitHash);
     });
 }

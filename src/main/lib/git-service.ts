@@ -1,6 +1,6 @@
 // src/main/lib/git-service.ts
 
-// 1. Re-export all types (保持不变)
+// 1. Re-export all types
 export * from './git/types';
 
 // 2. Re-export all state/watcher functions
