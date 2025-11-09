@@ -11,8 +11,8 @@
     position: relative;
     background-color: transparent;
     transition: background-color 0.12s;
-    align-items: stretch;
-    min-height: 48px;
+    align-items: flex-start;
+    min-height: 32px;
 }
 
 .git-commit-item.selected {
@@ -227,9 +227,9 @@
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.12);
     color: #ddd;
-    padding: 10px 18px;
-    border-radius: 6px;
-    font-size: 13px;
+    padding: 14px 45px;
+    border-radius: 14px;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;

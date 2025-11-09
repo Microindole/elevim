@@ -317,38 +317,36 @@ export async function createBranch(folderPath: string, branchName: string): Prom
 
 export async function getCommitHistory(folderPath: string, limit: number = 50): Promise<GitCommit[]> {
     try {
-        const {stdout} = await execFileAsync('git', [
+        // 第一步：获取提交历史和图形
+        const {stdout: logOutput} = await execFileAsync('git', [
             'log',
             `--max-count=${limit}`,
-            '--graph',
             '--all',
-            '--format=%x1f%H%x1f%P%x1f%an%x1f%ad%x1f%s%x1f%D',
+            '--format=%H%x1f%P%x1f%an%x1f%ad%x1f%s%x1f%D',
             '--date=format:%Y-%m-%d %H:%M'
         ], {
             cwd: folderPath,
-            timeout: 5000
+            timeout: 10000
         });
 
-        if (!stdout.trim()) {
+        if (!logOutput.trim()) {
             return [];
         }
 
         const commits: GitCommit[] = [];
-        const lines = stdout.trim().split('\n');
+        const lines = logOutput.trim().split('\n');
 
         for (const line of lines) {
-            const graphMatch = line.match(/^([*|\/\\ _]+)/);
-            const graphPart = graphMatch ? graphMatch[1] : '';
+            const parts = line.trim().split('\x1f');
+            if (parts.length < 5) continue;
 
-            const parts = line.substring(graphPart.length).trim().split('\x1f');
-            if (parts.length < 6) continue;
+            const [hash, parents, author, date, message, refs] = parts;
 
-            const [hash, parents, author, date, message, refs] = parts.filter(Boolean);
-
+            // 解析分支信息
             let branch = 'HEAD';
             if (refs) {
                 const refsList = refs.split(',').map(r => r.trim());
-                const localBranch = refsList.find(r => !r.includes('HEAD') && !r.includes('origin/'));
+                const localBranch = refsList.find(r => !r.includes('HEAD') && !r.includes('origin/') && !r.includes('tag:'));
                 if (localBranch) {
                     branch = localBranch;
                 } else {
@@ -359,26 +357,58 @@ export async function getCommitHistory(folderPath: string, limit: number = 50): 
                 }
             }
 
-            const graphStructure = graphPart.split('').map(char => {
-                switch (char) {
-                    case '*': return 'commit';
-                    case '|': return 'line';
-                    case '/': return 'merge-left';
-                    case '\\': return 'merge-right';
-                    case '_': return 'line-across';
-                    case ' ': return 'empty';
-                    default: return 'empty';
+            // 获取该提交的文件统计
+            let fileChanges = undefined;
+            try {
+                const {stdout: statOutput} = await execFileAsync('git', [
+                    'show',
+                    '--stat',
+                    '--format=',
+                    hash
+                ], {
+                    cwd: folderPath,
+                    timeout: 3000
+                });
+
+                if (statOutput.trim()) {
+                    const statLines = statOutput.trim().split('\n');
+                    const files: string[] = [];
+                    let additions = 0;
+                    let deletions = 0;
+
+                    for (const statLine of statLines) {
+                        // 解析类似 " file.txt | 10 ++++------" 的行
+                        const match = statLine.match(/^\s*(.+?)\s*\|\s*(\d+)\s*([+-]*)/);
+                        if (match) {
+                            const fileName = match[1].trim();
+                            files.push(fileName);
+
+                            const changes = match[3];
+                            const plusCount = (changes.match(/\+/g) || []).length;
+                            const minusCount = (changes.match(/-/g) || []).length;
+                            additions += plusCount;
+                            deletions += minusCount;
+                        }
+                    }
+
+                    if (files.length > 0) {
+                        fileChanges = { additions, deletions, files };
+                    }
                 }
-            }) as ('commit' | 'line' | 'merge-left' | 'merge-right' | 'line-across' | 'empty')[];
+            } catch (statError) {
+                // 忽略统计错误，继续处理
+                console.warn('[Git] Failed to get stats for commit', hash.substring(0, 7));
+            }
 
             commits.push({
                 hash,
-                parentHashes: parents ? parents.split(' ') : [],
+                parentHashes: parents ? parents.split(' ').filter(Boolean) : [],
                 message,
                 author,
                 date,
                 branch,
-                graph: graphStructure
+                graph: [], // 我们不再使用 git log --graph 的输出
+                fileChanges
             });
         }
 
