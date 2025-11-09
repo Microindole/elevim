@@ -6,168 +6,275 @@
 
 .git-commit-item {
     display: flex;
-    padding: 10px 12px;
+    padding: 0;
     cursor: pointer;
     position: relative;
-    border-left: none;
     background-color: transparent;
     transition: background-color 0.12s;
-    align-items: flex-start;
+    align-items: stretch;
+    min-height: 48px;
 }
 
-.git-commit-item.selected,
+.git-commit-item.selected {
+    background-color: rgba(255,255,255,0.06);
+}
+
 .git-commit-item:hover {
-    background-color: rgba(255,255,255,0.02);
+    background-color: rgba(255,255,255,0.03);
+}
+
+/* Graph 容器 - 使用固定宽度并自动拉伸高度 */
+.git-commit-graph-container {
+    flex-shrink: 0;
+    padding: 0 12px 0 8px;
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    align-items: stretch;
 }
 
 .commit-graph {
-    display: flex;
-    align-items: center;
-    height: 48px;                /* 高度统一，便于竖线对齐 */
-    padding-left: 8px;
-    padding-right: 12px;
-    box-sizing: border-box;
-}
-
-.graph-element {
-    position: relative;
-    width: 18px;                 /* 稍微加宽，让线和点舒展 */
+    display: block;
+    min-height: 64px;
     height: 100%;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-.commit-line {
-    position: absolute;
-    top: 0;                      /* 从顶部到底部，确保连线可见 */
-    bottom: 0;
-    left: 50%;
-    width: 2px;
-    transform: translateX(-50%);
-    opacity: 0.9;
-    border-radius: 1px;
-    z-index: 1;
-}
-
-.commit-dot {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    box-shadow: 0 0 0 3px rgba(0,0,0,0.25) inset;
-    border: 2px solid rgba(255,255,255,0.03);
-    z-index: 2;                   /* 点在竖线之上 */
-}
-
-.merge-left, .merge-right {
-    position: absolute;
-    width: 2px;
-    height: 100%;
-    opacity: 0.95;
-    transform-origin: bottom center;
-    border-radius: 1px;
-    z-index: 1;
-}
-
-.line-across {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    right: 0;
-    height: 2px;
-    opacity: 0.9;
-    z-index: 1;
 }
 
 /* 内容区 */
-.git-commit-content { flex: 1; min-width: 0; }
+.git-commit-content {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 16px 12px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
 
-.git-commit-header { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.git-commit-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+}
 
 .git-commit-message {
     flex: 1;
-    font-size: 13px;
-    color: var(--text-color-light);
+    font-size: 14px;
+    color: #e8e8e8;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.4;
 }
 
 .git-commit-sub {
-    margin-top: 6px;
     display: flex;
     gap: 12px;
     align-items: center;
-    color: var(--text-color-subtle);
+    color: #999;
     font-size: 12px;
 }
 
-.git-commit-meta { display:flex; align-items:center; gap:8px; }
+.git-commit-author {
+    font-weight: 500;
+}
+
+.git-commit-date {
+    opacity: 0.7;
+}
+
+.git-commit-stats {
+    opacity: 0.6;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 11px;
+}
+
+.git-commit-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
 
 .git-commit-branch {
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    display:inline-block;
-    box-shadow: none;
-    border: 1px solid rgba(255,255,255,0.03);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    display: inline-block;
+    border: 1.5px solid;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
 }
 
 .git-commit-merge {
-    background: transparent;
-    color: var(--text-color-subtle);
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: 3px;
+    background: rgba(255,180,80,0.15);
+    color: #ffb450;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(255,180,80,0.3);
 }
 
-.git-commit-hash { color: var(--text-color-subtle); font-family: monospace; font-size: 12px; }
+.git-commit-hash {
+    color: #888;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.04);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.06);
+}
 
 /* 展开详情 */
 .git-commit-expanded {
-    margin-top: 8px;
-    padding: 12px;
-    background-color: rgba(0,0,0,0.06);
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.02);
+    margin-top: 16px;
+    padding: 16px;
+    background: linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.08) 100%);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    animation: expandIn 0.2s ease-out;
 }
 
-.git-commit-details { color: var(--text-color-subtle); font-size: 13px; line-height:1.5; }
+@keyframes expandIn {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+        max-height: 0;
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        max-height: 1000px;
+    }
+}
 
-.git-commit-files { margin-top:8px; }
+.git-commit-details {
+    color: #aaa;
+    font-size: 13px;
+    line-height: 1.8;
+}
 
-.git-commit-files-summary { color: var(--text-color-subtle); margin-bottom:6px; }
+.git-commit-details > div {
+    padding: 4px 0;
+    display: flex;
+    align-items: baseline;
+}
 
-.git-commit-files-list { max-height: 160px; overflow:auto; border-top: 1px dashed rgba(255,255,255,0.02); padding-top:8px; }
+.git-commit-details strong {
+    color: #ddd;
+    margin-right: 12px;
+    font-weight: 600;
+    min-width: 80px;
+    display: inline-block;
+}
 
-.git-changed-file { font-size: 13px; padding: 2px 0; color: var(--text-color); }
+.git-commit-files {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed rgba(255,255,255,0.1);
+}
+
+.git-commit-files-summary {
+    color: #ddd;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.git-commit-files-list {
+    max-height: 240px;
+    overflow: auto;
+    padding: 10px;
+    background: rgba(0,0,0,0.25);
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.git-changed-file {
+    font-size: 12px;
+    padding: 6px 8px;
+    color: #ccc;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    border-radius: 4px;
+    transition: background-color 0.15s;
+    line-height: 1.4;
+}
+
+.git-changed-file:hover {
+    background: rgba(255,255,255,0.08);
+}
 
 /* 操作按钮 */
-.git-commit-actions { display:flex; gap:8px; margin-top:8px; }
+.git-commit-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed rgba(255,255,255,0.1);
+    flex-wrap: wrap;
+}
 
 .git-action-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.03);
-    color: var(--text-color);
-    padding: 12px 40px;
-    border-radius: 15px;
-    font-size: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #ddd;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
+    transition: all 0.2s ease;
+    letter-spacing: 0.3px;
 }
 
 .git-action-btn:hover {
-    background: rgba(255,255,255,0.04);
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    color: #fff;
 }
 
-/* small helpers */
-.graph-empty { width:14px; height:32px; display:inline-block; }
+.git-action-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+/* Empty state */
+.git-empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    font-style: italic;
+}
+
+/* Scrollbar styling */
+.git-commit-files-list::-webkit-scrollbar {
+    width: 10px;
+}
+
+.git-commit-files-list::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.3);
+    border-radius: 5px;
+}
+
+.git-commit-files-list::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 5px;
+    border: 2px solid rgba(0,0,0,0.3);
+}
+
+.git-commit-files-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.25);
+}

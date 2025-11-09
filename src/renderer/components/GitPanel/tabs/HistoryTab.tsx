@@ -1,38 +1,168 @@
 // src/renderer/components/GitPanel/tabs/HistoryTab.tsx
 import React, { useState, useMemo } from 'react';
-import { GitCommit } from '../../../../main/lib/git-service';
+import { GitCommit } from '../../../../main/lib/git/types';
 import './HistoryTab.css';
-
-interface CommitNode extends GitCommit {
-    column: number;     // 在图中的列位置
-    connections: {     // 与其他提交的连接线
-        from: number;  // 起始列
-        to: number;    // 目标列
-        color: string; // 线条颜色
-    }[];
-}
 
 interface HistoryTabProps {
     commits: GitCommit[];
 }
 
-const CommitGraph: React.FC<{ graph: GitCommit['graph'], color?: string, maxColumns: number }> = ({ graph = [], color, maxColumns }) => {
-    // 按照最大列数渲染，缺失位置填 empty，保证每一行列对齐
-    const cols = Array.from({ length: Math.max(1, maxColumns) }, (_, i) => graph[i] ?? 'empty');
+// 为每一列分配固定颜色
+const COLUMN_COLORS = [
+    'hsl(210, 75%, 60%)',  // 蓝色
+    'hsl(140, 75%, 55%)',  // 绿色
+    'hsl(30, 85%, 60%)',   // 橙色
+    'hsl(280, 70%, 65%)',  // 紫色
+    'hsl(350, 75%, 60%)',  // 红色
+    'hsl(180, 70%, 55%)',  // 青色
+    'hsl(50, 85%, 60%)',   // 黄色
+    'hsl(310, 70%, 65%)',  // 粉色
+];
+
+const CommitGraph: React.FC<{
+    commit: GitCommit;
+    nextCommit?: GitCommit;
+    maxColumns: number;
+}> = ({ commit, nextCommit, maxColumns }) => {
+    const graph = commit.graph ?? [];
+    const nextGraph = nextCommit?.graph ?? [];
+
+    // 找到当前提交点的列索引
+    const commitColumnIndex = graph.findIndex(g => g === 'commit');
+
+    // 确保长度一致
+    const cols = Array.from({ length: maxColumns }, (_, i) => ({
+        current: graph[i] ?? 'empty',
+        next: nextGraph[i] ?? 'empty',
+        color: COLUMN_COLORS[i % COLUMN_COLORS.length]
+    }));
 
     return (
-        <div className="commit-graph" role="img" aria-label="commit-graph" style={{ width: `${cols.length * 18}px` }}>
-            {cols.map((type, index) => (
-                <span key={index} className={`graph-element ${type}`}>
-                    {type === 'commit' && <div className="commit-dot" style={{ backgroundColor: color }} />}
-                    {type === 'line' && <div className="commit-line" style={{ backgroundColor: color }} />}
-                    {type === 'merge-left' && <div className="merge-left" style={{ backgroundColor: color }} />}
-                    {type === 'merge-right' && <div className="merge-right" style={{ backgroundColor: color }} />}
-                    {type === 'line-across' && <div className="line-across" style={{ backgroundColor: color }} />}
-                    {type === 'empty' && <div className="graph-empty" />}
-                </span>
-            ))}
-        </div>
+        <svg className="commit-graph" width={maxColumns * 24} height="100%" preserveAspectRatio="none">
+            <defs>
+                {COLUMN_COLORS.map((color, i) => (
+                    <React.Fragment key={i}>
+                        <linearGradient id={`line-gradient-${i}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                            <stop offset="0%" stopColor={color} stopOpacity="0.85" />
+                            <stop offset="100%" stopColor={color} stopOpacity="0.85" />
+                        </linearGradient>
+                    </React.Fragment>
+                ))}
+            </defs>
+
+            {cols.map((col, index) => {
+                const x = index * 24 + 12; // 中心点
+                const type = col.current;
+                const nextType = col.next;
+
+                // 判断是否需要绘制连接到下一行的线
+                const needsLineToNext = (
+                    type === 'line' ||
+                    type === 'commit' ||
+                    type === 'merge-left' ||
+                    type === 'merge-right'
+                ) && (
+                    nextType === 'line' ||
+                    nextType === 'commit' ||
+                    nextType === 'merge-left' ||
+                    nextType === 'merge-right'
+                );
+
+                return (
+                    <g key={index}>
+                        {/* 上半部分：连接到上一行 */}
+                        {(type === 'line' || type === 'merge-left' || type === 'merge-right' || type === 'commit') && (
+                            <line
+                                x1={x}
+                                y1="0"
+                                x2={x}
+                                y2="50%"
+                                stroke={col.color}
+                                strokeWidth="3"
+                                opacity="0.85"
+                                strokeLinecap="round"
+                            />
+                        )}
+
+                        {/* 合并线 - 斜线 */}
+                        {type === 'merge-left' && index > 0 && (
+                            <line
+                                x1={(index - 1) * 24 + 12}
+                                y1="0"
+                                x2={x}
+                                y2="50%"
+                                stroke={col.color}
+                                strokeWidth="3"
+                                opacity="0.75"
+                                strokeLinecap="round"
+                            />
+                        )}
+                        {type === 'merge-right' && index < maxColumns - 1 && (
+                            <line
+                                x1={(index + 1) * 24 + 12}
+                                y1="0"
+                                x2={x}
+                                y2="50%"
+                                stroke={col.color}
+                                strokeWidth="3"
+                                opacity="0.75"
+                                strokeLinecap="round"
+                            />
+                        )}
+
+                        {/* 横线 */}
+                        {type === 'line-across' && (
+                            <line
+                                x1={0}
+                                y1="50%"
+                                x2={maxColumns * 24}
+                                y2="50%"
+                                stroke={col.color}
+                                strokeWidth="3"
+                                opacity="0.85"
+                                strokeLinecap="round"
+                            />
+                        )}
+
+                        {/* 提交点 */}
+                        {type === 'commit' && (
+                            <>
+                                <circle
+                                    cx={x}
+                                    cy="50%"
+                                    r="7"
+                                    fill={col.color}
+                                    stroke="rgba(0,0,0,0.4)"
+                                    strokeWidth="3"
+                                />
+                                <circle
+                                    cx={x}
+                                    cy="50%"
+                                    r="7"
+                                    fill="none"
+                                    stroke="rgba(255,255,255,0.15)"
+                                    strokeWidth="1"
+                                />
+                            </>
+                        )}
+
+                        {/* 下半部分：连接到下一行 */}
+                        {needsLineToNext && (
+                            <line
+                                x1={x}
+                                y1="50%"
+                                x2={x}
+                                y2="100%"
+                                stroke={col.color}
+                                strokeWidth="3"
+                                opacity="0.85"
+                                strokeLinecap="round"
+                            />
+                        )}
+                    </g>
+                );
+            })}
+        </svg>
     );
 };
 
@@ -44,14 +174,17 @@ export default function HistoryTab({ commits }: HistoryTabProps) {
         const map = new Map<string, string>();
         commits.forEach(c => {
             const name = c.branch || 'HEAD';
-            if (!map.has(name)) map.set(name, getRandomColor(name));
+            if (!map.has(name)) {
+                const index = map.size;
+                map.set(name, COLUMN_COLORS[index % COLUMN_COLORS.length]);
+            }
         });
         return map;
     }, [commits]);
 
-    // 计算最大列数（确保每行 graph 列对齐）
+    // 计算最大列数
     const maxColumns = useMemo(() => {
-        return commits.reduce((m, c) => Math.max(m, (c.graph?.length ?? 0)), 0);
+        return Math.max(1, ...commits.map(c => c.graph?.length ?? 0));
     }, [commits]);
 
     // 格式化日期显示
@@ -69,10 +202,10 @@ export default function HistoryTab({ commits }: HistoryTabProps) {
 
     return (
         <div className="git-history">
-            {commits.map((commit) => {
-                const graph = commit.graph ?? [];
+            {commits.map((commit, idx) => {
                 const color = branchColors.get(commit.branch || 'HEAD')!;
                 const isMerge = (commit.parentHashes?.length || 0) > 1;
+                const nextCommit = commits[idx + 1];
 
                 return (
                     <div
@@ -81,14 +214,20 @@ export default function HistoryTab({ commits }: HistoryTabProps) {
                         onClick={() => setSelectedCommit(commit.hash === selectedCommit ? null : commit.hash)}
                         title={commit.message}
                     >
-                        <CommitGraph graph={graph} color={color} maxColumns={maxColumns} />
+                        <div className="git-commit-graph-container">
+                            <CommitGraph
+                                commit={commit}
+                                nextCommit={nextCommit}
+                                maxColumns={maxColumns}
+                            />
+                        </div>
 
                         <div className="git-commit-content">
                             <div className="git-commit-header">
                                 <div className="git-commit-message">{commit.message}</div>
 
                                 <div className="git-commit-meta">
-                                    <span className="git-commit-branch" style={{ backgroundColor: alpha(color, 0.08), color }}>
+                                    <span className="git-commit-branch" style={{ backgroundColor: alpha(color, 0.15), color, borderColor: color }}>
                                         {commit.branch}
                                     </span>
                                     {isMerge && <span className="git-commit-merge">merge</span>}
@@ -148,19 +287,8 @@ export default function HistoryTab({ commits }: HistoryTabProps) {
     );
 }
 
-// 根据分支名生成固定的随机颜色
-function getRandomColor(seed: string): string {
-    let hash = 0;
-    for (let i = 0; i < seed.length; i++) {
-        hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const hue = hash % 360;
-    return `hsl(${hue}, 70%, 50%)`;
-}
-
 // 小工具：给颜色加透明
 function alpha(hsl: string, a: number) {
-    // hsl(...) -> hsla(...)
     if (hsl.startsWith('hsl(')) {
         return hsl.replace('hsl(', 'hsla(').replace(')', `, ${a})`);
     }

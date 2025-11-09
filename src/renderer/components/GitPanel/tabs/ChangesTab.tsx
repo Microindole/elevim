@@ -1,6 +1,6 @@
 // src/renderer/components/GitPanel/tabs/ChangesTab.tsx
 import React, { useState } from 'react';
-import { GitFileChange } from '../../../../main/lib/git-service';
+import { GitFileChange } from '../../../../main/lib/git/types';
 import FileChangesList from './FileChangesList';
 import CommitBox from './CommitBox';
 import StashButtons from './StashButtons';

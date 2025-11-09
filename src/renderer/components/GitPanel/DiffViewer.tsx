@@ -1,6 +1,6 @@
 // src/renderer/components/GitPanel/DiffViewer.tsx
 import React, { useEffect, useState } from 'react';
-import { GitDiff } from '../../../main/lib/git-service';
+import { GitDiff } from '../../../main/lib/git/types';
 import './DiffViewer.css';
 
 interface DiffViewerProps {

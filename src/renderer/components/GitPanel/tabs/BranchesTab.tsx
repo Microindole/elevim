@@ -1,6 +1,6 @@
 // src/renderer/components/GitPanel/tabs/BranchesTab.tsx
 import React from 'react';
-import { GitBranch } from '../../../../main/lib/git-service';
+import { GitBranch } from '../../../../main/lib/git/types';
 import './BranchesTab.css';
 
 interface BranchesTabProps {

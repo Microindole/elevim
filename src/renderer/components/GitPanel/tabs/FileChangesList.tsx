@@ -1,6 +1,6 @@
 // src/renderer/components/GitPanel/tabs/FileChangesList.tsx
 import React, { useState } from 'react';
-import { GitFileChange } from '../../../../main/lib/git-service';
+import { GitFileChange } from '../../../../main/lib/git/types';
 import ContextMenu from '../ContextMenu';
 
 interface FileChangesListProps {
