@@ -2,12 +2,7 @@
 import { IpcMain } from 'electron';
 import * as pty from 'node-pty';
 import { IpcHandlerSharedState } from './state';
-
-export const terminalChannels = {
-    INIT: 'terminal:init',
-    IN: 'terminal:in',
-    RESIZE: 'terminal:resize',
-};
+import { terminalChannels, IPC_CHANNELS } from '../../shared/constants'; // <-- 关键修改
 
 export const registerTerminalHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedState) => void = (
     ipcMain,
@@ -45,7 +40,7 @@ export const registerTerminalHandlers: (ipcMain: IpcMain, state: IpcHandlerShare
 
             newPty.onData((data: string) => {
                 if (!mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send('terminal-out', data); // <-- 使用保留的事件
+                    mainWindow.webContents.send(IPC_CHANNELS.TERMINAL_OUT, data); // <-- 使用保留的事件
                 }
             });
 

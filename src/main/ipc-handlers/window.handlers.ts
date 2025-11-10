@@ -1,14 +1,7 @@
 // src/main/ipc-handlers/window.handlers.ts
 import { IpcMain, dialog } from 'electron';
 import { IpcHandlerSharedState } from './state';
-
-export const windowChannels = {
-    MINIMIZE: 'window:minimize',
-    MAXIMIZE: 'window:maximize',
-    CLOSE: 'window:close',
-    SHOW_SAVE_DIALOG: 'window:show-save-dialog',
-    SET_TITLE: 'window:set-title',
-};
+import { windowChannels } from '../../shared/constants'; // <-- 关键修改
 
 export const registerWindowHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedState) => void = (
     ipcMain,

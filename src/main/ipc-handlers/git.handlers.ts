@@ -2,29 +2,9 @@
 import { IpcMain } from 'electron';
 import * as gitService from '../lib/git-service';
 import { IpcHandlerSharedState } from './state';
+import { gitChannels, IPC_CHANNELS } from '../../shared/constants'; // <-- 关键修改
 
-// 1. 自行定义通道
-export const gitChannels = {
-    START_GIT_WATCHER: 'git:start-watcher',
-    STOP_GIT_WATCHER: 'git:stop-watcher',
-    GET_GIT_STATUS: 'git:get-status',
-    GET_CHANGES: 'git:get-changes',
-    STAGE_FILE: 'git:stage-file',
-    UNSTAGE_FILE: 'git:unstage-file',
-    DISCARD_CHANGES: 'git:discard-changes',
-    COMMIT: 'git:commit',
-    GET_BRANCHES: 'git:get-branches',
-    CHECKOUT_BRANCH: 'git:checkout-branch',
-    CREATE_BRANCH: 'git:create-branch',
-    GET_COMMITS: 'git:get-commits',
-    GET_DIFF: 'git:get-diff',
-    GET_CURRENT_BRANCH: 'git:get-current-branch',
-    STASH: 'git:stash',
-    STASH_POP: 'git:stash-pop',
-    CHECKOUT_COMMIT: 'git:checkout-commit',
-    CREATE_BRANCH_FROM_COMMIT: 'git:create-branch-from-commit',
-    OPEN_COMMIT_DIFF: 'git:open-commit-diff',
-};
+// 1. (已删除本地定义)
 
 // 2. 导出注册函数
 export const registerGitHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedState) => void = (
@@ -36,7 +16,7 @@ export const registerGitHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedStat
     gitService.onGitStatusChange((statusMap) => {
         const mainWindow = state.getMainWindow();
         if (!mainWindow.isDestroyed()) {
-            mainWindow.webContents.send('git-status-change', statusMap); // <-- 使用保留的事件
+            mainWindow.webContents.send(IPC_CHANNELS.GIT_STATUS_CHANGE, statusMap); // <-- 使用保留的事件
         }
     });
 

@@ -3,11 +3,7 @@ import { IpcMain } from 'electron';
 import { readSettings, writeSettings } from '../lib/settings';
 import { AppSettings } from '../../shared/types';
 import { IpcHandlerSharedState } from './state';
-
-export const settingsChannels = {
-    GET_SETTINGS: 'settings:get',
-    SET_SETTING: 'settings:set',
-};
+import { settingsChannels } from '../../shared/constants'; // <-- 关键修改
 
 export const registerSettingsHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedState) => void = (
     ipcMain

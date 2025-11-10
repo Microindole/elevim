@@ -5,17 +5,9 @@ import * as path from 'path';
 import { readDirectory, searchInDirectory, replaceInDirectory } from '../lib/file-system';
 import { SearchOptions, ReplaceOptions } from '../../shared/types';
 import { IpcHandlerSharedState } from './state';
+import { fileChannels, IPC_CHANNELS } from '../../shared/constants'; // <-- 关键修改
 
-// 1. 自行定义通道
-export const fileChannels = {
-    SHOW_OPEN_DIALOG: 'file:show-open-dialog',
-    SAVE_FILE: 'file:save-file',
-    OPEN_FOLDER: 'file:open-folder',
-    OPEN_FILE: 'file:open-file',
-    READ_DIRECTORY: 'file:read-directory',
-    GLOBAL_SEARCH: 'file:global-search',
-    GLOBAL_REPLACE: 'file:global-replace',
-};
+// 1. (已删除本地定义)
 
 // 2. 导出注册函数
 export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedState) => void = (
@@ -37,7 +29,7 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
             state.setFile(filePaths[0]);
             try {
                 const content = await fs.readFile(state.getFile()!, 'utf-8');
-                state.getMainWindow().webContents.send('file-opened', { // <-- 使用保留的事件
+                state.getMainWindow().webContents.send(IPC_CHANNELS.FILE_OPENED, { // <-- 使用保留的事件
                     content: content,
                     filePath: state.getFile()
                 });
@@ -99,7 +91,7 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
         try {
             const content = await fs.readFile(filePath, 'utf-8');
             state.setFile(filePath);
-            state.getMainWindow().webContents.send('file-opened', { // <-- 使用保留的事件
+            state.getMainWindow().webContents.send(IPC_CHANNELS.FILE_OPENED, { // <-- 使用保留的事件
                 content,
                 filePath,
             });

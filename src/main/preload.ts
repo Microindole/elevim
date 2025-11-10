@@ -1,14 +1,15 @@
 // src/main/preload.ts
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-// 导入精简后的“事件”通道
-import { IPC_CHANNELS } from '../shared/constants';
-// 导入所有模块的“调用”通道
-import { fileChannels } from './ipc-handlers/file.handlers';
-import { gitChannels } from './ipc-handlers/git.handlers';
-import { menuChannels } from './ipc-handlers/menu.handlers';
-import { settingsChannels } from './ipc-handlers/settings.handlers';
-import { terminalChannels } from './ipc-handlers/terminal.handlers';
-import { windowChannels } from './ipc-handlers/window.handlers';
+// 导入所有通道
+import {
+    IPC_CHANNELS,
+    fileChannels,
+    gitChannels,
+    menuChannels,
+    settingsChannels,
+    terminalChannels,
+    windowChannels
+} from '../shared/constants'; // <-- 关键修改
 import { GitStatusMap } from "./lib/git/types";
 import { AppSettings, SearchOptions, ReplaceOptions } from "../shared/types";
 
