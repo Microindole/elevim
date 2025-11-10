@@ -24,7 +24,7 @@ export default function SettingsPanel() {
 
     useEffect(() => {
         const fetchSettings = async () => {
-            const loadedSettings = await window.electronAPI.getSettings();
+            const loadedSettings = await window.electronAPI.settings.getSettings(); // MODIFIED
             setSettings(loadedSettings);
         };
         fetchSettings();
@@ -37,7 +37,7 @@ export default function SettingsPanel() {
         setSettings(newSettings);
 
         // 2. 保存到主进程
-        window.electronAPI.setSetting(key, value);
+        window.electronAPI.settings.setSetting(key, value); // MODIFIED
 
         // 3. 广播事件
         window.dispatchEvent(new CustomEvent('settings-changed', {

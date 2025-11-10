@@ -27,8 +27,8 @@ export function useCliHandlers({
                 setFileTree(tree);
                 currentOpenFolderPath.current = tree.path;
 
-                window.electronAPI.stopGitWatcher().then(() => {
-                    window.electronAPI.startGitWatcher(tree.path);
+                window.electronAPI.git.stopGitWatcher().then(() => { // MODIFIED
+                    window.electronAPI.git.startGitWatcher(tree.path); // MODIFIED
                 });
 
                 window.dispatchEvent(new Event('folder-changed'));
@@ -44,7 +44,7 @@ export function useCliHandlers({
             }
         };
 
-        const unregister = window.electronAPI.onOpenFolderFromCli(handleOpenFromCli);
+        const unregister = window.electronAPI.cli.onOpenFolderFromCli(handleOpenFromCli); // MODIFIED
         return () => unregister();
     }, [setFileTree, currentOpenFolderPath, setActiveSidebarView, setOpenFiles, setActiveIndex]);
 
@@ -67,7 +67,7 @@ export function useCliHandlers({
             });
         };
 
-        const unregister = window.electronAPI.onOpenFileFromCli(handleOpenFileFromCli);
+        const unregister = window.electronAPI.cli.onOpenFileFromCli(handleOpenFileFromCli); // MODIFIED
         return () => unregister();
     }, [openFile, setOpenFiles, setActiveIndex]);
 
@@ -80,7 +80,7 @@ export function useCliHandlers({
             window.dispatchEvent(event);
         };
 
-        const unregister = window.electronAPI.onOpenDiffFromCli(handleOpenDiffFromCli);
+        const unregister = window.electronAPI.cli.onOpenDiffFromCli(handleOpenDiffFromCli); // MODIFIED
         return () => unregister();
     }, [setActiveSidebarView]);
 }

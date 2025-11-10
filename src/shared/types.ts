@@ -42,9 +42,9 @@ export interface ReplaceOptions extends SearchOptions {
 }
 
 // --- Preload 暴露的 API 接口 ---
-export interface IElectronAPI {
 
-    // --- 文件 & 文件夹操作 ---
+// --- 文件 & 文件夹 API ---
+interface IFileAPI {
     onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => () => void;
     onNewFile: (callback: () => void) => () => void;
     saveFile: (content: string) => Promise<string | null>;
@@ -52,31 +52,43 @@ export interface IElectronAPI {
     openFolder: () => Promise<any | null>;
     readDirectory: (folderPath: string) => Promise<any | null>;
     showOpenDialog: () => void;
+    globalSearch: (options: SearchOptions) => Promise<SearchResult[]>;
+    globalReplace: (options: ReplaceOptions) => Promise<string[]>;
+}
 
-    // --- 窗口 & 对话框 ---
+// --- 窗口 & 对话框 API ---
+interface IWindowAPI {
     setTitle: (title: string) => void;
     minimizeWindow: () => void;
     maximizeWindow: () => void;
     closeWindow: () => void;
     showSaveDialog: () => Promise<'save' | 'dont-save' | 'cancel'>;
+}
 
-    // --- 菜单/快捷键触发 (渲染进程监听) ---
+// --- 菜单/快捷键 API ---
+interface IMenuAPI {
     onTriggerSave: (callback: () => void) => () => void;
     triggerNewFile: () => void;
     triggerSaveFile: () => void;
     triggerSaveAsFile: () => void;
+}
 
-    // --- 设置 ---
+// --- 设置 API ---
+interface ISettingsAPI {
     getSettings: () => Promise<AppSettings>;
     setSetting: (key: string, value: any) => void;
+}
 
-    // --- 终端 ---
+// --- 终端 API ---
+interface ITerminalAPI {
     terminalInit: () => void;
     terminalWrite: (data: string) => void;
     terminalResize: (size: { cols: number, rows: number }) => void;
     onTerminalData: (callback: (data: string) => void) => () => void;
+}
 
-    // --- Git ---
+// --- Git API ---
+interface IGitAPI {
     getGitStatus: () => Promise<Record<string, string>>;
     startGitWatcher: (folderPath: string) => void;
     stopGitWatcher: () => void;
@@ -97,15 +109,25 @@ export interface IElectronAPI {
     gitCheckoutCommit: (commitHash: string) => Promise<boolean>;
     gitCreateBranchFromCommit: (commitHash: string, branchName?: string) => Promise<string | null>;
     openCommitDiff: (commitHash: string) => Promise<string | null>;
+}
 
-    // --- 搜索 ---
-    globalSearch: (options: SearchOptions) => Promise<SearchResult[]>;
-    globalReplace: (options: ReplaceOptions) => Promise<string[]>;
-
-    // --- 命令行 (CLI) 启动 ---
+// --- CLI API ---
+interface ICliAPI {
     onOpenFolderFromCli: (callback: (tree: any) => void) => () => void;
     onOpenFileFromCli: (callback: (data: { content: string; filePath: string }) => void) => () => void;
     onOpenDiffFromCli: (callback: (filePath: string) => void) => () => void;
+}
+
+
+// --- 组合的最终 API ---
+export interface IElectronAPI {
+    file: IFileAPI;
+    window: IWindowAPI;
+    menu: IMenuAPI;
+    settings: ISettingsAPI;
+    terminal: ITerminalAPI;
+    git: IGitAPI;
+    cli: ICliAPI;
 }
 
 declare global {

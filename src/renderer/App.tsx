@@ -81,11 +81,11 @@ export default function App() {
     // Git 状态
     const { gitStatus, setGitStatus } = useGitStatus(currentOpenFolderPath, setFileTree);
 
-    // 菜单处理器
+    // 菜单处理器 (使用新的命名空间)
     const handleMenuNewFile = useCallback(() => safeAction(handleNewFile), [safeAction, handleNewFile]);
-    const handleMenuOpenFile = useCallback(() => safeAction(() => window.electronAPI.showOpenDialog()), [safeAction]);
-    const handleMenuSaveAsFile = useCallback(() => window.electronAPI.triggerSaveAsFile(), []);
-    const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.closeWindow()), [safeAction]);
+    const handleMenuOpenFile = useCallback(() => safeAction(() => window.electronAPI.file.showOpenDialog()), [safeAction]); // MODIFIED
+    const handleMenuSaveAsFile = useCallback(() => window.electronAPI.menu.triggerSaveAsFile(), []); // MODIFIED
+    const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.window.closeWindow()), [safeAction]); // MODIFIED
     const handleFileTreeSelectWrapper = useCallback((filePath: string) => handleFileTreeSelect(filePath, safeAction), [handleFileTreeSelect, safeAction]);
 
     const openFileToLine = (filePath: string, line: number) => {
@@ -98,7 +98,7 @@ export default function App() {
         } else {
             // 2. 文件未打开：
             safeAction(async () => {
-                const content = await window.electronAPI.openFile(filePath);
+                const content = await window.electronAPI.file.openFile(filePath); // MODIFIED
                 if (content !== null) {
                     openFile(filePath, content, line);
                 }
@@ -118,7 +118,7 @@ export default function App() {
             // 重新读取这些文件的内容
             const updatedFileContents = await Promise.all(
                 openFilesToReload.map(async f => {
-                    const content = await window.electronAPI.openFile(f.path!);
+                    const content = await window.electronAPI.file.openFile(f.path!); // MODIFIED
                     return { path: f.path, content };
                 })
             );
@@ -141,10 +141,10 @@ export default function App() {
         setJumpToLine(null);
     }, []); // setJumpToLine 是稳定的，不需要加入依赖
 
-    // 加载设置
+    // 加载设置 (使用新的命名空间)
     useEffect(() => {
         const fetchSettings = async () => {
-            const loadedSettings = await window.electronAPI.getSettings();
+            const loadedSettings = await window.electronAPI.settings.getSettings(); // MODIFIED
             setSettings(loadedSettings);
         };
         fetchSettings();

@@ -65,7 +65,7 @@ export function useFileOperations() {
         const currentActiveFile = openFiles[activeIndex];
         if (!currentActiveFile || currentActiveFile.name === "Welcome") return;
 
-        const savedPath = await window.electronAPI.saveFile(currentActiveFile.content);
+        const savedPath = await window.electronAPI.file.saveFile(currentActiveFile.content); // MODIFIED
         if (savedPath) {
             setOpenFiles(prev => prev.map((file, index) => {
                 if (index === appStateRef.current.activeIndex) {
@@ -90,7 +90,7 @@ export function useFileOperations() {
             return;
         }
 
-        const choice = await window.electronAPI.showSaveDialog();
+        const choice = await window.electronAPI.window.showSaveDialog(); // MODIFIED
 
         if (choice === 'save') {
             await handleSave();
@@ -133,9 +133,9 @@ export function useFileOperations() {
                     closeAction();
                     return;
                 }
-                const choice = await window.electronAPI.showSaveDialog();
+                const choice = await window.electronAPI.window.showSaveDialog(); // MODIFIED
                 if (choice === 'save') {
-                    await window.electronAPI.saveFile(fileToClose.content);
+                    await window.electronAPI.file.saveFile(fileToClose.content); // MODIFIED
                     closeAction();
                 } else if (choice === 'dont-save') {
                     closeAction();

@@ -14,19 +14,19 @@ export const useGitData = () => {
     const [currentBranch, setCurrentBranch] = useState<string | null>(null);
 
     const loadChanges = useCallback(async () => {
-        const result = await window.electronAPI.gitGetChanges();
+        const result = await window.electronAPI.git.gitGetChanges(); // MODIFIED
         setChanges(result);
     }, []);
 
     const loadBranches = useCallback(async () => {
-        const result = await window.electronAPI.gitGetBranches();
+        const result = await window.electronAPI.git.gitGetBranches(); // MODIFIED
         setBranches(result);
-        const current = await window.electronAPI.gitGetCurrentBranch();
+        const current = await window.electronAPI.git.gitGetCurrentBranch(); // MODIFIED
         setCurrentBranch(current);
     }, []);
 
     const loadCommits = useCallback(async () => {
-        const result = await window.electronAPI.gitGetCommits(50);
+        const result = await window.electronAPI.git.gitGetCommits(50); // MODIFIED
         setCommits(result);
     }, []);
 
@@ -43,7 +43,7 @@ export const useGitData = () => {
 
     // Git 状态变化监听
     useEffect(() => {
-        const unsubscribe = window.electronAPI.onGitStatusChange(() => {
+        const unsubscribe = window.electronAPI.git.onGitStatusChange(() => { // MODIFIED
             loadChanges();
         });
         return unsubscribe;

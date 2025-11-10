@@ -23,8 +23,8 @@ export default function TitleBar(props: TitleBarProps) {
 
     const titleText = `${isDirty ? '*' : ''}${currentFileName} - ${defaultTitle}`;
 
-    const handleMinimize = () => window.electronAPI.minimizeWindow();
-    const handleMaximize = () => window.electronAPI.maximizeWindow();
+    const handleMinimize = () => window.electronAPI.window.minimizeWindow(); // MODIFIED
+    const handleMaximize = () => window.electronAPI.window.maximizeWindow(); // MODIFIED
 
     return (
         <div id="title-bar">

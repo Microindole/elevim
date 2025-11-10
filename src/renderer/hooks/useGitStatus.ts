@@ -12,10 +12,10 @@ export function useGitStatus(
         const currentFolder = currentOpenFolderPath.current;
         if (currentFolder) {
             try {
-                const status = await window.electronAPI.getGitStatus();
+                const status = await window.electronAPI.git.getGitStatus(); // MODIFIED
                 setGitStatus(status);
 
-                const updatedTree = await window.electronAPI.readDirectory(currentFolder);
+                const updatedTree = await window.electronAPI.file.readDirectory(currentFolder); // MODIFIED
                 if (updatedTree) {
                     console.log("Directory structure updated.");
                     setFileTree(updatedTree);
@@ -32,14 +32,14 @@ export function useGitStatus(
     }, [currentOpenFolderPath, setFileTree]);
 
     useEffect(() => {
-        const unsubscribe = window.electronAPI.onGitStatusChange((status: GitStatusMap) => {
+        const unsubscribe = window.electronAPI.git.onGitStatusChange((status: GitStatusMap) => { // MODIFIED
             console.log('[Renderer] Git status updated');
             setGitStatus(status);
         });
 
         return () => {
             unsubscribe();
-            window.electronAPI.stopGitWatcher();
+            window.electronAPI.git.stopGitWatcher(); // MODIFIED
         };
     }, []);
 

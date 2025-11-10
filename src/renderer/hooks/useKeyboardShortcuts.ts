@@ -34,17 +34,17 @@ function checkKey(e: KeyboardEvent, shortcut: string): boolean {
 }
 
 export function useKeyboardShortcuts({
-    keymap,
-    setIsPaletteOpen,
-    setIsTerminalVisible,
-    handleViewChange,
-    handleMenuNewFile,
-    handleMenuOpenFile,
-    handleMenuOpenFolder,
-    handleSave,
-    handleMenuSaveAsFile,
-    handleMenuCloseWindow
-}: UseKeyboardShortcutsProps) {
+                                         keymap,
+                                         setIsPaletteOpen,
+                                         setIsTerminalVisible,
+                                         handleViewChange,
+                                         handleMenuNewFile,
+                                         handleMenuOpenFile,
+                                         handleMenuOpenFolder,
+                                         handleSave,
+                                         handleMenuSaveAsFile,
+                                         handleMenuCloseWindow
+                                     }: UseKeyboardShortcutsProps) {
     useEffect(() => {
         if (!keymap) return;
 
@@ -90,7 +90,7 @@ export function useKeyboardShortcuts({
             }
             if (checkKey(e, keymap['app.quit'])) {
                 e.preventDefault();
-                handleMenuCloseWindow();
+                handleMenuCloseWindow(); // (此函数内部已调用 window.electronAPI.window.closeWindow())
             }
         };
 

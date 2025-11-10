@@ -20,7 +20,7 @@ export default function DiffViewer({ filePath, staged, onClose }: DiffViewerProp
             setError(null);
             try {
                 console.log(`[DiffViewer] Loading diff for: ${filePath}, staged: ${staged}`);
-                const result = await window.electronAPI.gitGetDiff(filePath, staged);
+                const result = await window.electronAPI.git.gitGetDiff(filePath, staged); // MODIFIED
                 console.log(`[DiffViewer] Got result:`, result);
                 setDiff(result);
             } catch (err) {

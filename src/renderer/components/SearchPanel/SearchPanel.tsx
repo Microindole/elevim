@@ -39,7 +39,7 @@ export default function SearchPanel({ folderPath, onResultClick, onReplaceComple
                 isRegex,
                 isWholeWord
             };
-            const searchResults = await window.electronAPI.globalSearch(options);
+            const searchResults = await window.electronAPI.file.globalSearch(options); // MODIFIED
             setResults(searchResults);
         } catch (error) {
             console.error("Global search failed:", error);
@@ -66,7 +66,7 @@ export default function SearchPanel({ folderPath, onResultClick, onReplaceComple
                 isRegex,
                 isWholeWord
             };
-            const modifiedFiles = await window.electronAPI.globalReplace(options); // <-- 传递 options
+            const modifiedFiles = await window.electronAPI.file.globalReplace(options); // MODIFIED
 
             if (modifiedFiles.length > 0) {
                 alert(`成功替换了 ${modifiedFiles.length} 个文件。`);

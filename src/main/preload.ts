@@ -1,198 +1,215 @@
 // src/main/preload.ts
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+// 导入精简后的“事件”通道
 import { IPC_CHANNELS } from '../shared/constants';
-import { GitStatusMap } from "./lib/git-service";
+// 导入所有模块的“调用”通道
+import { fileChannels } from './ipc-handlers/file.handlers';
+import { gitChannels } from './ipc-handlers/git.handlers';
+import { menuChannels } from './ipc-handlers/menu.handlers';
+import { settingsChannels } from './ipc-handlers/settings.handlers';
+import { terminalChannels } from './ipc-handlers/terminal.handlers';
+import { windowChannels } from './ipc-handlers/window.handlers';
+import { GitStatusMap } from "./lib/git/types";
 import { AppSettings, SearchOptions, ReplaceOptions } from "../shared/types";
 
 contextBridge.exposeInMainWorld('electronAPI', {
 
-    // --- 文件 & 文件夹操作 ---
-    onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => {
-        const handler = (_event: IpcRendererEvent, data: { content: string; filePath: string }) => callback(data);
-        ipcRenderer.on(IPC_CHANNELS.FILE_OPENED, handler);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.FILE_OPENED, handler);
-        };
-    },
-    onNewFile: (callback: () => void) => {
-        const handler = () => callback();
-        ipcRenderer.on(IPC_CHANNELS.NEW_FILE, handler);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.NEW_FILE, handler);
-        };
-    },
-    saveFile: (content: string): Promise<string | null> => {
-        return ipcRenderer.invoke(IPC_CHANNELS.SAVE_FILE, content);
-    },
-    openFile: (filePath: string): Promise<string | null> => {
-        return ipcRenderer.invoke(IPC_CHANNELS.OPEN_FILE, filePath);
-    },
-    openFolder: (): Promise<any | null> => {
-        return ipcRenderer.invoke(IPC_CHANNELS.OPEN_FOLDER);
-    },
-    readDirectory: (folderPath: string): Promise<any | null> => {
-        return ipcRenderer.invoke(IPC_CHANNELS.READ_DIRECTORY, folderPath);
-    },
-    showOpenDialog: () => {
-        ipcRenderer.send(IPC_CHANNELS.SHOW_OPEN_DIALOG);
-    },
-
-    // --- 窗口 & 对话框 ---
-    setTitle: (title: string) => {
-        ipcRenderer.send(IPC_CHANNELS.SET_TITLE, title);
-    },
-    minimizeWindow: () => {
-        ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE);
-    },
-    maximizeWindow: () => {
-        ipcRenderer.send(IPC_CHANNELS.WINDOW_MAXIMIZE);
-    },
-    closeWindow: () => {
-        ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE);
-    },
-    showSaveDialog: (): Promise<'save' | 'dont-save' | 'cancel'> => {
-        return ipcRenderer.invoke(IPC_CHANNELS.SHOW_SAVE_DIALOG);
+    // --- 命名空间: file ---
+    file: {
+        onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => {
+            const handler = (_event: IpcRendererEvent, data: { content: string; filePath: string }) => callback(data);
+            ipcRenderer.on(IPC_CHANNELS.FILE_OPENED, handler);
+            return () => {
+                ipcRenderer.removeListener(IPC_CHANNELS.FILE_OPENED, handler);
+            };
+        },
+        onNewFile: (callback: () => void) => {
+            const handler = () => callback();
+            ipcRenderer.on(IPC_CHANNELS.NEW_FILE, handler);
+            return () => {
+                ipcRenderer.removeListener(IPC_CHANNELS.NEW_FILE, handler);
+            };
+        },
+        saveFile: (content: string): Promise<string | null> => {
+            return ipcRenderer.invoke(fileChannels.SAVE_FILE, content);
+        },
+        openFile: (filePath: string): Promise<string | null> => {
+            return ipcRenderer.invoke(fileChannels.OPEN_FILE, filePath);
+        },
+        openFolder: (): Promise<any | null> => {
+            return ipcRenderer.invoke(fileChannels.OPEN_FOLDER);
+        },
+        readDirectory: (folderPath: string): Promise<any | null> => {
+            return ipcRenderer.invoke(fileChannels.READ_DIRECTORY, folderPath);
+        },
+        showOpenDialog: () => {
+            ipcRenderer.send(fileChannels.SHOW_OPEN_DIALOG);
+        },
+        globalSearch: (options: SearchOptions) => {
+            return ipcRenderer.invoke(fileChannels.GLOBAL_SEARCH, options);
+        },
+        globalReplace: (options: ReplaceOptions) => {
+            return ipcRenderer.invoke(fileChannels.GLOBAL_REPLACE, options);
+        },
     },
 
-    // --- 菜单/快捷键触发 (渲染进程监听) ---
-    onTriggerSave: (callback: () => void) => {
-        const handler = () => callback();
-        // (修正) 使用常量
-        ipcRenderer.on(IPC_CHANNELS.TRIGGER_SAVE_FILE, handler);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.TRIGGER_SAVE_FILE, handler);
-        };
-    },
-    triggerNewFile: () => {
-        ipcRenderer.send(IPC_CHANNELS.NEW_FILE);
-    },
-    triggerSaveFile: () => {
-        // (修正) 使用常量
-        ipcRenderer.send(IPC_CHANNELS.TRIGGER_SAVE_FILE);
-    },
-    triggerSaveAsFile: () => {
-        // (修正) 使用常量
-        ipcRenderer.send(IPC_CHANNELS.TRIGGER_SAVE_AS_FILE);
+    // --- 命名空间: window ---
+    window: {
+        setTitle: (title: string) => {
+            ipcRenderer.send(windowChannels.SET_TITLE, title);
+        },
+        minimizeWindow: () => {
+            ipcRenderer.send(windowChannels.MINIMIZE);
+        },
+        maximizeWindow: () => {
+            ipcRenderer.send(windowChannels.MAXIMIZE);
+        },
+        closeWindow: () => {
+            ipcRenderer.send(windowChannels.CLOSE);
+        },
+        showSaveDialog: (): Promise<'save' | 'dont-save' | 'cancel'> => {
+            return ipcRenderer.invoke(windowChannels.SHOW_SAVE_DIALOG);
+        },
     },
 
-    // --- 设置 ---
-    getSettings: (): Promise<AppSettings> => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GET_SETTINGS);
-    },
-    setSetting: (key: string, value: any) => {
-        ipcRenderer.send(IPC_CHANNELS.SET_SETTING, key, value);
-    },
-
-    // --- 终端 ---
-    terminalInit: () => {
-        ipcRenderer.send(IPC_CHANNELS.TERMINAL_INIT);
-    },
-    terminalWrite: (data: string) => {
-        ipcRenderer.send(IPC_CHANNELS.TERMINAL_IN, data);
-    },
-    terminalResize: (size: { cols: number, rows: number }) => {
-        ipcRenderer.send(IPC_CHANNELS.TERMINAL_RESIZE, size);
-    },
-    onTerminalData: (callback: (data: string) => void) => {
-        const handler = (_event: IpcRendererEvent, data: string) => callback(data);
-        ipcRenderer.on(IPC_CHANNELS.TERMINAL_OUT, handler);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_OUT, handler);
-        };
+    // --- 命名空间: menu ---
+    menu: {
+        onTriggerSave: (callback: () => void) => {
+            const handler = () => callback();
+            ipcRenderer.on(IPC_CHANNELS.TRIGGER_SAVE_FILE, handler);
+            return () => {
+                ipcRenderer.removeListener(IPC_CHANNELS.TRIGGER_SAVE_FILE, handler);
+            };
+        },
+        triggerNewFile: () => {
+            ipcRenderer.send(menuChannels.NEW_FILE);
+        },
+        triggerSaveFile: () => {
+            ipcRenderer.send(menuChannels.TRIGGER_SAVE_FILE);
+        },
+        triggerSaveAsFile: () => {
+            ipcRenderer.send(menuChannels.TRIGGER_SAVE_AS_FILE);
+        },
     },
 
-    // --- Git ---
-    getGitStatus: (): Promise<Record<string, string>> => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GET_GIT_STATUS);
-    },
-    startGitWatcher: (folderPath: string) => {
-        ipcRenderer.invoke(IPC_CHANNELS.START_GIT_WATCHER, folderPath);
-    },
-    stopGitWatcher: () => {
-        ipcRenderer.invoke(IPC_CHANNELS.STOP_GIT_WATCHER);
-    },
-    onGitStatusChange: (callback: (status: GitStatusMap) => void) => {
-        const subscription = (_event: any, status: GitStatusMap) => callback(status);
-        ipcRenderer.on(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
-        return () => ipcRenderer.removeListener(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
-    },
-    gitGetChanges: () => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_CHANGES);
-    },
-    gitStageFile: (filePath: string) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_STAGE_FILE, filePath);
-    },
-    gitUnstageFile: (filePath: string) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_UNSTAGE_FILE, filePath);
-    },
-    gitDiscardChanges: (filePath: string) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_DISCARD_CHANGES, filePath);
-    },
-    gitCommit: (message: string) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_COMMIT, message);
-    },
-    gitGetBranches: () => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_BRANCHES);
-    },
-    gitCheckoutBranch: (branchName: string) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_CHECKOUT_BRANCH, branchName);
-    },
-    gitCreateBranch: (branchName: string) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_CREATE_BRANCH, branchName);
-    },
-    gitGetCommits: (limit?: number) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_COMMITS, limit);
-    },
-    gitGetDiff: (filePath: string, staged: boolean) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_DIFF, filePath, staged);
-    },
-    gitGetCurrentBranch: () => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_GET_CURRENT_BRANCH);
-    },
-    gitStash: () => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_STASH);
-    },
-    gitStashPop: () => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_STASH_POP);
-    },
-    gitCheckoutCommit: (commitHash: string) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_CHECKOUT_COMMIT, commitHash);
-    },
-    gitCreateBranchFromCommit: (commitHash: string, branchName?: string) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_CREATE_BRANCH_FROM_COMMIT, commitHash, branchName);
-    },
-    openCommitDiff: (commitHash: string) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GIT_OPEN_COMMIT_DIFF, commitHash);
+    // --- 命名空间: settings ---
+    settings: {
+        getSettings: (): Promise<AppSettings> => {
+            return ipcRenderer.invoke(settingsChannels.GET_SETTINGS);
+        },
+        setSetting: (key: string, value: any) => {
+            ipcRenderer.send(settingsChannels.SET_SETTING, key, value);
+        },
     },
 
-    // --- 搜索 ---
-    globalSearch: (options: SearchOptions) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GLOBAL_SEARCH, options);
-    },
-    globalReplace: (options: ReplaceOptions) => {
-        return ipcRenderer.invoke(IPC_CHANNELS.GLOBAL_REPLACE, options);
+    // --- 命名空间: terminal ---
+    terminal: {
+        terminalInit: () => {
+            ipcRenderer.send(terminalChannels.INIT);
+        },
+        terminalWrite: (data: string) => {
+            ipcRenderer.send(terminalChannels.IN, data);
+        },
+        terminalResize: (size: { cols: number, rows: number }) => {
+            ipcRenderer.send(terminalChannels.RESIZE, size);
+        },
+        onTerminalData: (callback: (data: string) => void) => {
+            const handler = (_event: IpcRendererEvent, data: string) => callback(data);
+            ipcRenderer.on(IPC_CHANNELS.TERMINAL_OUT, handler);
+            return () => {
+                ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_OUT, handler);
+            };
+        },
     },
 
-    // --- 命令行 (CLI) 启动 ---
-    onOpenFolderFromCli: (callback: (tree: any) => void) => {
-        const handler = (_event: IpcRendererEvent, tree: any) => callback(tree);
-        ipcRenderer.on(IPC_CHANNELS.OPEN_FOLDER_FROM_CLI, handler);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.OPEN_FOLDER_FROM_CLI, handler);
-        };
+    // --- 命名空间: git ---
+    git: {
+        getGitStatus: (): Promise<Record<string, string>> => {
+            return ipcRenderer.invoke(gitChannels.GET_GIT_STATUS);
+        },
+        startGitWatcher: (folderPath: string) => {
+            ipcRenderer.invoke(gitChannels.START_GIT_WATCHER, folderPath);
+        },
+        stopGitWatcher: () => {
+            ipcRenderer.invoke(gitChannels.STOP_GIT_WATCHER);
+        },
+        onGitStatusChange: (callback: (status: GitStatusMap) => void) => {
+            const subscription = (_event: any, status: GitStatusMap) => callback(status);
+            ipcRenderer.on(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
+            return () => ipcRenderer.removeListener(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
+        },
+        gitGetChanges: () => {
+            return ipcRenderer.invoke(gitChannels.GET_CHANGES);
+        },
+        gitStageFile: (filePath: string) => {
+            return ipcRenderer.invoke(gitChannels.STAGE_FILE, filePath);
+        },
+        gitUnstageFile: (filePath: string) => {
+            return ipcRenderer.invoke(gitChannels.UNSTAGE_FILE, filePath);
+        },
+        gitDiscardChanges: (filePath: string) => {
+            return ipcRenderer.invoke(gitChannels.DISCARD_CHANGES, filePath);
+        },
+        gitCommit: (message: string) => {
+            return ipcRenderer.invoke(gitChannels.COMMIT, message);
+        },
+        gitGetBranches: () => {
+            return ipcRenderer.invoke(gitChannels.GET_BRANCHES);
+        },
+        gitCheckoutBranch: (branchName: string) => {
+            return ipcRenderer.invoke(gitChannels.CHECKOUT_BRANCH, branchName);
+        },
+        gitCreateBranch: (branchName: string) => {
+            return ipcRenderer.invoke(gitChannels.CREATE_BRANCH, branchName);
+        },
+        gitGetCommits: (limit?: number) => {
+            return ipcRenderer.invoke(gitChannels.GET_COMMITS, limit);
+        },
+        gitGetDiff: (filePath: string, staged: boolean) => {
+            return ipcRenderer.invoke(gitChannels.GET_DIFF, filePath, staged);
+        },
+        gitGetCurrentBranch: () => {
+            return ipcRenderer.invoke(gitChannels.GET_CURRENT_BRANCH);
+        },
+        gitStash: () => {
+            return ipcRenderer.invoke(gitChannels.STASH);
+        },
+        gitStashPop: () => {
+            return ipcRenderer.invoke(gitChannels.STASH_POP);
+        },
+        gitCheckoutCommit: (commitHash: string) => {
+            return ipcRenderer.invoke(gitChannels.CHECKOUT_COMMIT, commitHash);
+        },
+        gitCreateBranchFromCommit: (commitHash: string, branchName?: string) => {
+            return ipcRenderer.invoke(gitChannels.CREATE_BRANCH_FROM_COMMIT, commitHash, branchName);
+        },
+        openCommitDiff: (commitHash: string) => {
+            return ipcRenderer.invoke(gitChannels.OPEN_COMMIT_DIFF, commitHash);
+        },
     },
-    onOpenFileFromCli: (callback: (data: { content: string; filePath: string }) => void) => {
-        const handler = (_event: IpcRendererEvent, data: { content: string; filePath: string }) => callback(data);
-        ipcRenderer.on(IPC_CHANNELS.OPEN_FILE_FROM_CLI, handler);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.OPEN_FILE_FROM_CLI, handler);
-        };
-    },
-    onOpenDiffFromCli: (callback: (filePath: string) => void) => {
-        const handler = (_event: IpcRendererEvent, filePath: string) => callback(filePath);
-        ipcRenderer.on(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, handler);
-        return () => {
-            ipcRenderer.removeListener(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, handler);
-        };
-    },
+
+    // --- 命名空间: cli ---
+    cli: {
+        onOpenFolderFromCli: (callback: (tree: any) => void) => {
+            const handler = (_event: IpcRendererEvent, tree: any) => callback(tree);
+            ipcRenderer.on(IPC_CHANNELS.OPEN_FOLDER_FROM_CLI, handler);
+            return () => {
+                ipcRenderer.removeListener(IPC_CHANNELS.OPEN_FOLDER_FROM_CLI, handler);
+            };
+        },
+        onOpenFileFromCli: (callback: (data: { content: string; filePath: string }) => void) => {
+            const handler = (_event: IpcRendererEvent, data: { content: string; filePath: string }) => callback(data);
+            ipcRenderer.on(IPC_CHANNELS.OPEN_FILE_FROM_CLI, handler);
+            return () => {
+                ipcRenderer.removeListener(IPC_CHANNELS.OPEN_FILE_FROM_CLI, handler);
+            };
+        },
+        onOpenDiffFromCli: (callback: (filePath: string) => void) => {
+            const handler = (_event: IpcRendererEvent, filePath: string) => callback(filePath);
+            ipcRenderer.on(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, handler);
+            return () => {
+                ipcRenderer.removeListener(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, handler);
+            };
+        },
+    }
 });

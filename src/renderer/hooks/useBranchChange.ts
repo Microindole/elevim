@@ -24,7 +24,7 @@ export function useBranchChange({
         const handleBranchChange = async () => {
             if (currentOpenFolderPath.current) {
                 // 重新读取文件树
-                const updatedTree = await window.electronAPI.readDirectory(
+                const updatedTree = await window.electronAPI.file.readDirectory( // MODIFIED
                     currentOpenFolderPath.current
                 );
                 if (updatedTree) {
@@ -32,13 +32,13 @@ export function useBranchChange({
                 }
 
                 // 刷新 Git 状态
-                const newStatus = await window.electronAPI.getGitStatus();
+                const newStatus = await window.electronAPI.git.getGitStatus(); // MODIFIED
                 setGitStatus(newStatus);
 
                 // 可选：重新加载当前打开的文件
                 const currentFile = openFiles[activeIndex];
                 if (currentFile?.path) {
-                    const content = await window.electronAPI.openFile(currentFile.path);
+                    const content = await window.electronAPI.file.openFile(currentFile.path); // MODIFIED
                     if (content !== null) {
                         setOpenFiles(prev => prev.map((f, i) =>
                             i === activeIndex ? { ...f, content, isDirty: false } : f

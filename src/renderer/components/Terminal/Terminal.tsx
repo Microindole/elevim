@@ -35,17 +35,17 @@ export default function TerminalComponent() {
 
         if (!initIpcSent.current) {
             console.log('[Renderer] Calling terminalInit via IPC');
-            window.electronAPI.terminalInit();
+            window.electronAPI.terminal.terminalInit(); // MODIFIED
             initIpcSent.current = true;
         }
 
         term.onData((data) => {
             if (terminalInstance.current) {
-                window.electronAPI.terminalWrite(data);
+                window.electronAPI.terminal.terminalWrite(data); // MODIFIED
             }
         });
 
-        const unregisterOnData = window.electronAPI.onTerminalData((data) => {
+        const unregisterOnData = window.electronAPI.terminal.onTerminalData((data) => { // MODIFIED
             if (terminalInstance.current) {
                 terminalInstance.current?.write(data);
             }
@@ -60,7 +60,7 @@ export default function TerminalComponent() {
                     // 通知主进程的 PTY 终端尺寸变了
                     const { cols, rows } = terminalInstance.current;
                     if (cols > 0 && rows > 0) {
-                        window.electronAPI.terminalResize({ cols, rows });
+                        window.electronAPI.terminal.terminalResize({ cols, rows }); // MODIFIED
                     }
                 } catch (e) {
                     console.error('[Renderer] Error during terminal fit/resize:', e);

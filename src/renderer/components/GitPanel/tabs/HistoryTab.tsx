@@ -345,10 +345,10 @@ export default function HistoryTab({ commits }: HistoryTabProps) {
                                     )}
 
                                     <div className="git-commit-actions">
-                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); window.electronAPI.gitCheckoutCommit(commit.hash); }}>Checkout</button>
-                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); window.electronAPI.gitCreateBranchFromCommit(commit.hash); }}>Create Branch</button>
+                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); window.electronAPI.git.gitCheckoutCommit(commit.hash); }}>Checkout</button>
+                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); window.electronAPI.git.gitCreateBranchFromCommit(commit.hash); }}>Create Branch</button>
                                         <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(commit.hash); }}>Copy Hash</button>
-                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); window.electronAPI.openCommitDiff(commit.hash); }}>Show Diff</button>
+                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); window.electronAPI.git.openCommitDiff(commit.hash); }}>Show Diff</button>
                                     </div>
                                 </div>
                             )}

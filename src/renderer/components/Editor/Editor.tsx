@@ -21,23 +21,23 @@ interface EditorProps {
 }
 
 export default function Editor({
-    content,
-    filename,
-    filePath,
-    onDocChange,
-    onSave,
-    programmaticChangeRef,
-    onCursorChange,
-    jumpToLine,
-    onJumpComplete,
-    initialFontSize
-}: EditorProps) {
+                                   content,
+                                   filename,
+                                   filePath,
+                                   onDocChange,
+                                   onSave,
+                                   programmaticChangeRef,
+                                   onCursorChange,
+                                   jumpToLine,
+                                   onJumpComplete,
+                                   initialFontSize
+                               }: EditorProps) {
     const [fontSize, setFontSize] = useState(initialFontSize);
     const [keymap, setKeymap] = useState<Keymap | null>(null);
 
     // 延迟加载 keymap
     useEffect(() => {
-        window.electronAPI.getSettings().then(settings => {
+        window.electronAPI.settings.getSettings().then(settings => { // MODIFIED
             setKeymap(settings.keymap);
         });
     }, []);

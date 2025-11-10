@@ -19,12 +19,12 @@ export const useGitOperations = ({
                                      loadAll,
                                  }: UseGitOperationsProps) => {
     const handleStage = async (filePath: string) => {
-        const success = await window.electronAPI.gitStageFile(filePath);
+        const success = await window.electronAPI.git.gitStageFile(filePath); // MODIFIED
         if (success) await loadChanges();
     };
 
     const handleUnstage = async (filePath: string) => {
-        const success = await window.electronAPI.gitUnstageFile(filePath);
+        const success = await window.electronAPI.git.gitUnstageFile(filePath); // MODIFIED
         if (success) await loadChanges();
     };
 
@@ -32,7 +32,7 @@ export const useGitOperations = ({
         if (!confirm(`Are you sure you want to discard changes to ${filePath}?`)) {
             return;
         }
-        const success = await window.electronAPI.gitDiscardChanges(filePath);
+        const success = await window.electronAPI.git.gitDiscardChanges(filePath); // MODIFIED
         if (success) await loadChanges();
     };
 
@@ -54,7 +54,7 @@ export const useGitOperations = ({
             return false;
         }
 
-        const success = await window.electronAPI.gitCommit(trimmedMessage);
+        const success = await window.electronAPI.git.gitCommit(trimmedMessage); // MODIFIED
         if (success) {
             await loadChanges();
             await loadCommits();
@@ -67,7 +67,7 @@ export const useGitOperations = ({
     };
 
     const handleCheckoutBranch = async (branchName: string) => {
-        const currentChanges = await window.electronAPI.gitGetChanges();
+        const currentChanges = await window.electronAPI.git.gitGetChanges(); // MODIFIED
         const hasModifications = currentChanges.filter(c => c.status !== 'untracked').length > 0;
 
         if (hasModifications) {
@@ -79,7 +79,7 @@ export const useGitOperations = ({
             return;
         }
 
-        const success = await window.electronAPI.gitCheckoutBranch(branchName);
+        const success = await window.electronAPI.git.gitCheckoutBranch(branchName); // MODIFIED
         if (success) {
             loadAll();
             alert(`Switched to branch: ${branchName}`);
@@ -93,7 +93,7 @@ export const useGitOperations = ({
         const branchName = prompt('Enter new branch name:');
         if (!branchName) return;
 
-        const success = await window.electronAPI.gitCreateBranch(branchName);
+        const success = await window.electronAPI.git.gitCreateBranch(branchName); // MODIFIED
         if (success) {
             await loadBranches();
         } else {
@@ -112,7 +112,7 @@ export const useGitOperations = ({
             return;
         }
 
-        const success = await window.electronAPI.gitStash();
+        const success = await window.electronAPI.git.gitStash(); // MODIFIED
         if (success) {
             await loadChanges();
             alert("Changes stashed.");
@@ -126,7 +126,7 @@ export const useGitOperations = ({
             return;
         }
 
-        const success = await window.electronAPI.gitStashPop();
+        const success = await window.electronAPI.git.gitStashPop(); // MODIFIED
         if (success) {
             await loadChanges();
             alert("Stash applied.");
