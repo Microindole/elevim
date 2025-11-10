@@ -6,10 +6,10 @@ import { getGitStatus } from './commands'; // 导入分离出去的命令
 
 // ========== 全局状态管理 ==========
 let lastFolderPath: string | null = null;
-let lastStatusMap: GitStatusMap = {};
+let lastStatusMap: GitStatusMap | null = {};
 let gitWatcher: chokidar.FSWatcher | null = null;
 
-type StatusChangeCallback = (statusMap: GitStatusMap) => void;
+type StatusChangeCallback = (statusMap: GitStatusMap | null) => void;
 let statusChangeCallbacks: Set<StatusChangeCallback> = new Set();
 
 export function onGitStatusChange(callback: StatusChangeCallback) {
@@ -17,7 +17,7 @@ export function onGitStatusChange(callback: StatusChangeCallback) {
     return () => statusChangeCallbacks.delete(callback);
 }
 
-export function notifyStatusChange(statusMap: GitStatusMap) {
+export function notifyStatusChange(statusMap: GitStatusMap | null) {
     lastStatusMap = statusMap;
     statusChangeCallbacks.forEach(callback => callback(statusMap));
 }
@@ -29,9 +29,13 @@ export async function startGitWatcher(folderPath: string): Promise<void> {
 
     lastFolderPath = folderPath;
 
-    // 使用导入的 getGitStatus
     const initialStatus = await getGitStatus(folderPath);
     notifyStatusChange(initialStatus);
+
+    if (initialStatus === null) {
+        console.log('[Git Watcher] No .git directory found. Watcher not started.');
+        return;
+    }
 
     gitWatcher = chokidar.watch([
         path.join(folderPath, '.git', 'index'),

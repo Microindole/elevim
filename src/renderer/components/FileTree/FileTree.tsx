@@ -13,7 +13,7 @@ export interface FileNode {
 interface FileTreeProps {
     treeData: FileNode;
     onFileSelect: (filePath: string) => void;
-    gitStatus: GitStatusMap;
+    gitStatus: GitStatusMap | null;
 }
 
 const FileTree: React.FC<FileTreeProps> = ({ treeData, onFileSelect, gitStatus }) => {
@@ -29,7 +29,7 @@ const FileTree: React.FC<FileTreeProps> = ({ treeData, onFileSelect, gitStatus }
             <TreeNode
                 node={treeData}
                 onFileSelect={handleNodeClick}
-                gitStatus={gitStatus}
+                gitStatus={gitStatus || {}}
                 activeFile={activeFile}
             />
         </div>

@@ -6,7 +6,7 @@ export function useGitStatus(
     currentOpenFolderPath: React.MutableRefObject<string | null>,
     setFileTree: (tree: any) => void
 ) {
-    const [gitStatus, setGitStatus] = useState<GitStatusMap>({});
+    const [gitStatus, setGitStatus] = useState<GitStatusMap | null>({});
 
     const fetchGitStatus = useCallback(async () => {
         const currentFolder = currentOpenFolderPath.current;
@@ -32,7 +32,7 @@ export function useGitStatus(
     }, [currentOpenFolderPath, setFileTree]);
 
     useEffect(() => {
-        const unsubscribe = window.electronAPI.git.onGitStatusChange((status: GitStatusMap) => { // MODIFIED
+        const unsubscribe = window.electronAPI.git.onGitStatusChange((status: GitStatusMap | null) => { // MODIFIED
             console.log('[Renderer] Git status updated');
             setGitStatus(status);
         });

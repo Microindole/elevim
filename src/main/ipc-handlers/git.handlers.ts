@@ -20,6 +20,19 @@ export const registerGitHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedStat
         }
     });
 
+    ipcMain.handle(gitChannels.INIT_REPO, async () => {
+        const folder = state.getFolder();
+        if (!folder) return false;
+
+        const result = await gitService.initRepo(folder);
+        if (result) {
+            // 初始化成功后，必须启动 watcher
+            // startGitWatcher 会自动调用 getGitStatus 并 notify 渲染进程
+            await gitService.startGitWatcher(folder);
+        }
+        return result;
+    });
+
     ipcMain.handle(gitChannels.START_GIT_WATCHER, async (_event, folderPath: string) => {
         await gitService.startGitWatcher(folderPath);
     });

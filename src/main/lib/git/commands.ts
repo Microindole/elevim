@@ -27,13 +27,13 @@ function parseFilePath(line: string): string {
 
 // ========== 导出的 Git 命令函数 ==========
 
-export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
+export async function getGitStatus(folderPath: string): Promise<GitStatusMap | null> {
     try {
         const gitDir = path.join(folderPath, '.git');
         try {
             await fs.access(gitDir);
         } catch {
-            return {};
+            return null;
         }
 
         const {stdout} = await execFileAsync('git', ['status', '--porcelain=v1', '-uall'], {
@@ -76,7 +76,7 @@ export async function getGitStatus(folderPath: string): Promise<GitStatusMap> {
         return statusMap;
     } catch (error: any) {
         console.error('[Git] Failed to get status:', error.message);
-        return {};
+        return null;
     }
 }
 
@@ -558,5 +558,20 @@ export async function getCommitDiff(folderPath: string, commitHash: string): Pro
     } catch (err) {
         console.error('[Git] getCommitDiff failed', err);
         return null;
+    }
+}
+
+export async function initRepo(folderPath: string): Promise<boolean> {
+    try {
+        console.log(`[Git] Initializing repository in: ${folderPath}`);
+        await execFileAsync('git', ['init'], {
+            cwd: folderPath,
+            timeout: 5000
+        });
+        console.log(`[Git] Repository initialized successfully.`);
+        return true;
+    } catch (error: any) {
+        console.error('[Git] Failed to init repo:', error.message);
+        return false;
     }
 }

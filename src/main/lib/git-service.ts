@@ -29,5 +29,6 @@ export {
     popStash,
     checkoutCommit,
     createBranchFromCommit,
-    getCommitDiff
+    getCommitDiff,
+    initRepo,
 } from './git/commands';

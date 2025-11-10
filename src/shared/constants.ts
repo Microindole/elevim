@@ -62,6 +62,7 @@ export const gitChannels = {
     CHECKOUT_COMMIT: 'git:checkout-commit',
     CREATE_BRANCH_FROM_COMMIT: 'git:create-branch-from-commit',
     OPEN_COMMIT_DIFF: 'git:open-commit-diff',
+    INIT_REPO: 'git:init-repo',
 };
 
 // (从 menu.handlers.ts 移动过来)

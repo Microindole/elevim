@@ -125,7 +125,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // --- 命名空间: git ---
     git: {
-        getGitStatus: (): Promise<Record<string, string>> => {
+        getGitStatus: (): Promise<Record<string, string> | null> => {
             return ipcRenderer.invoke(gitChannels.GET_GIT_STATUS);
         },
         startGitWatcher: (folderPath: string) => {
@@ -134,8 +134,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         stopGitWatcher: () => {
             ipcRenderer.invoke(gitChannels.STOP_GIT_WATCHER);
         },
-        onGitStatusChange: (callback: (status: GitStatusMap) => void) => {
-            const subscription = (_event: any, status: GitStatusMap) => callback(status);
+        onGitStatusChange: (callback: (status: GitStatusMap | null) => void) => {
+            const subscription = (_event: any, status: GitStatusMap | null) => callback(status);
             ipcRenderer.on(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
             return () => ipcRenderer.removeListener(IPC_CHANNELS.GIT_STATUS_CHANGE, subscription);
         },
@@ -186,6 +186,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         },
         openCommitDiff: (commitHash: string) => {
             return ipcRenderer.invoke(gitChannels.OPEN_COMMIT_DIFF, commitHash);
+        },
+        gitInitRepo: () => {
+            return ipcRenderer.invoke(gitChannels.INIT_REPO);
         },
     },
 

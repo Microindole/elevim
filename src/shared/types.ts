@@ -89,10 +89,10 @@ interface ITerminalAPI {
 
 // --- Git API ---
 interface IGitAPI {
-    getGitStatus: () => Promise<Record<string, string>>;
+    getGitStatus: () => Promise<Record<string, string> | null>;
     startGitWatcher: (folderPath: string) => void;
     stopGitWatcher: () => void;
-    onGitStatusChange: (callback: (status: GitStatusMap) => void) => () => void;
+    onGitStatusChange: (callback: (status: GitStatusMap | null) => void) => () => void;
     gitGetChanges: () => Promise<GitFileChange[]>;
     gitStageFile: (filePath: string) => Promise<boolean>;
     gitUnstageFile: (filePath: string) => Promise<boolean>;
@@ -109,6 +109,7 @@ interface IGitAPI {
     gitCheckoutCommit: (commitHash: string) => Promise<boolean>;
     gitCreateBranchFromCommit: (commitHash: string, branchName?: string) => Promise<string | null>;
     openCommitDiff: (commitHash: string) => Promise<string | null>;
+    gitInitRepo: () => Promise<boolean>;
 }
 
 // --- CLI API ---
