@@ -8,8 +8,8 @@ import {
     menuChannels,
     settingsChannels,
     terminalChannels,
-    windowChannels
-} from '../shared/constants'; // <-- 关键修改
+    windowChannels, GITHUB_EVENTS, githubChannels
+} from '../shared/constants';
 import { GitStatusMap } from "./lib/git/types";
 import { AppSettings, SearchOptions, ReplaceOptions } from "../shared/types";
 
@@ -70,6 +70,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         },
         showSaveDialog: (): Promise<'save' | 'dont-save' | 'cancel'> => {
             return ipcRenderer.invoke(windowChannels.SHOW_SAVE_DIALOG);
+        },
+        showMessageBox: (options: any): Promise<any> => {
+            return ipcRenderer.invoke(windowChannels.SHOW_MESSAGE_BOX, options);
+        },
+        showConfirmBox: (options: any): Promise<boolean> => {
+            return ipcRenderer.invoke(windowChannels.SHOW_CONFIRM_BOX, options);
         },
     },
 
@@ -189,6 +195,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
         },
         gitInitRepo: () => {
             return ipcRenderer.invoke(gitChannels.INIT_REPO);
+        },
+        gitGetRemotes: (): Promise<string[]> => {
+            return ipcRenderer.invoke(gitChannels.GET_REMOTES);
+        },
+    },
+
+    github: {
+        startAuth: (): Promise<boolean> => {
+            return ipcRenderer.invoke(githubChannels.START_AUTH);
+        },
+        publishRepo: (options: { repoName: string, isPrivate: boolean }): Promise<{ success: boolean, error: string | null }> => {
+            return ipcRenderer.invoke(githubChannels.PUBLISH_REPO, options);
+        },
+        getTokenStatus: (): Promise<boolean> => {
+            return ipcRenderer.invoke(githubChannels.GET_TOKEN_STATUS);
+        },
+        onPublishSuccess: (callback: () => void) => {
+            const handler = () => callback();
+            ipcRenderer.on(GITHUB_EVENTS.PUBLISH_SUCCESS, handler);
+            return () => {
+                ipcRenderer.removeListener(GITHUB_EVENTS.PUBLISH_SUCCESS, handler);
+            };
         },
     },
 

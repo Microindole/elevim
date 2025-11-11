@@ -29,10 +29,16 @@ export const useGitOperations = ({
     };
 
     const handleDiscard = async (filePath: string) => {
-        if (!confirm(`Are you sure you want to discard changes to ${filePath}?`)) {
-            return;
-        }
-        const success = await window.electronAPI.git.gitDiscardChanges(filePath); // MODIFIED
+        const confirmed = await window.electronAPI.window.showConfirmBox({
+            type: 'warning',
+            title: '确认丢弃',
+            message: `您确定要丢弃 ${filePath} 的所有更改吗？`,
+            detail: '此操作不可撤销。'
+        });
+
+        if (!confirmed) return;
+
+        const success = await window.electronAPI.git.gitDiscardChanges(filePath);
         if (success) await loadChanges();
     };
 
@@ -40,7 +46,11 @@ export const useGitOperations = ({
         const trimmedMessage = commitMessage.trim();
 
         if (!trimmedMessage) {
-            alert('Please enter a commit message');
+            await window.electronAPI.window.showMessageBox({
+                type: 'info',
+                title: '提交',
+                message: '请输入提交信息。'
+            });
             return false;
         }
 
@@ -58,11 +68,14 @@ export const useGitOperations = ({
         if (success) {
             await loadChanges();
             await loadCommits();
-            alert('Committed successfully!');
             return true;
         } else {
-            alert('Failed to commit. Check if Git user.name and user.email are configured.');
-            return false;
+            await window.electronAPI.window.showMessageBox({
+                type: 'error',
+                title: '提交失败',
+                message: '提交失败。',
+                detail: '请检查 Git user.name 和 user.email 是否已配置。'
+            });return false;
         }
     };
 
@@ -108,23 +121,29 @@ export const useGitOperations = ({
             return;
         }
 
-        if (!confirm("Are you sure you want to stash your current changes?")) {
-            return;
-        }
+        const confirmed = await window.electronAPI.window.showConfirmBox({
+            type: 'question',
+            title: '确认贮藏',
+            message: '您确定要贮藏当前的工作区更改吗？'
+        });
+        if (!confirmed) return;
 
         const success = await window.electronAPI.git.gitStash(); // MODIFIED
         if (success) {
             await loadChanges();
-            alert("Changes stashed.");
+            await window.electronAPI.window.showMessageBox({ type: 'info', title: '贮藏', message: '更改已贮藏。' });
         } else {
-            alert("Failed to stash changes.");
+            await window.electronAPI.window.showMessageBox({ type: 'error', title: '贮藏', message: '贮藏失败。' });
         }
     };
 
     const handleStashPop = async () => {
-        if (!confirm("Are you sure you want to apply the latest stash? This might cause conflicts.")) {
-            return;
-        }
+        const confirmed = await window.electronAPI.window.showConfirmBox({
+            type: 'warning',
+            title: '确认应用贮藏',
+            message: '您确定要应用最新的贮藏吗？',
+            detail: '这可能会导致冲突。'
+        });
 
         const success = await window.electronAPI.git.gitStashPop(); // MODIFIED
         if (success) {

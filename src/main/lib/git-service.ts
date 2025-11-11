@@ -31,4 +31,7 @@ export {
     createBranchFromCommit,
     getCommitDiff,
     initRepo,
+    getRemotes,
+    addRemote,
+    pushToRemote
 } from './git/commands';

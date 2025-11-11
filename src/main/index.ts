@@ -32,6 +32,9 @@ function createWindow(mainWindow: BrowserWindow) {
 
 if (cliAction.type.startsWith('start-gui')) {
   app.whenReady().then(() => {
+    protocol.registerStringProtocol('elevim', (request, callback) => {
+      console.log('[Protocol] Received auth callback:', request.url);
+    });
 
     const mainWindow = new BrowserWindow({
       width: 1200,

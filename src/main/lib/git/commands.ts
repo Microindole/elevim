@@ -575,3 +575,44 @@ export async function initRepo(folderPath: string): Promise<boolean> {
         return false;
     }
 }
+
+export async function getRemotes(folderPath: string): Promise<string[]> {
+    try {
+        const { stdout } = await execFileAsync('git', ['remote', '-v'], {
+            cwd: folderPath,
+            timeout: 5000
+        });
+        return stdout.trim().split('\n').filter(Boolean);
+    } catch (error: any) {
+        // "git remote -v" 在没有 remote 时会返回空, 但如果出错则返回空数组
+        console.warn('[Git] Failed to get remotes:', error.message);
+        return [];
+    }
+}
+
+export async function addRemote(folderPath: string, remoteName: string, remoteUrl: string): Promise<boolean> {
+    try {
+        await execFileAsync('git', ['remote', 'add', remoteName, remoteUrl], {
+            cwd: folderPath,
+            timeout: 5000
+        });
+        return true;
+    } catch (error: any) {
+        console.error('[Git] Failed to add remote:', error.message);
+        return false;
+    }
+}
+
+export async function pushToRemote(folderPath: string, remoteName: string, branchName: string): Promise<boolean> {
+    try {
+        // 使用 -u 设置上游
+        await execFileAsync('git', ['push', '-u', remoteName, branchName], {
+            cwd: folderPath,
+            timeout: 30000 // 推送可能需要更长时间
+        });
+        return true;
+    } catch (error: any) {
+        console.error('[Git] Failed to push to remote:', error.message);
+        return false;
+    }
+}

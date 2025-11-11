@@ -63,6 +63,8 @@ interface IWindowAPI {
     maximizeWindow: () => void;
     closeWindow: () => void;
     showSaveDialog: () => Promise<'save' | 'dont-save' | 'cancel'>;
+    showMessageBox: (options: any) => Promise<any>;
+    showConfirmBox: (options: any) => Promise<boolean>;
 }
 
 // --- 菜单/快捷键 API ---
@@ -110,6 +112,14 @@ interface IGitAPI {
     gitCreateBranchFromCommit: (commitHash: string, branchName?: string) => Promise<string | null>;
     openCommitDiff: (commitHash: string) => Promise<string | null>;
     gitInitRepo: () => Promise<boolean>;
+    gitGetRemotes: () => Promise<string[]>;
+}
+
+interface IGitHubAPI {
+    startAuth: () => Promise<boolean>;
+    publishRepo: (options: { repoName: string, isPrivate: boolean }) => Promise<{ success: boolean, error: string | null }>;
+    getTokenStatus: () => Promise<boolean>;
+    onPublishSuccess: (callback: () => void) => () => void;
 }
 
 // --- CLI API ---
@@ -129,6 +139,7 @@ export interface IElectronAPI {
     terminal: ITerminalAPI;
     git: IGitAPI;
     cli: ICliAPI;
+    github: IGitHubAPI;
 }
 
 declare global {

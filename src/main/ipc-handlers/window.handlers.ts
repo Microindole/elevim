@@ -1,7 +1,7 @@
 // src/main/ipc-handlers/window.handlers.ts
-import { IpcMain, dialog } from 'electron';
+import { IpcMain, dialog, MessageBoxOptions } from 'electron';
 import { IpcHandlerSharedState } from './state';
-import { windowChannels } from '../../shared/constants'; // <-- 关键修改
+import { windowChannels } from '../../shared/constants';
 
 export const registerWindowHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedState) => void = (
     ipcMain,
@@ -33,6 +33,21 @@ export const registerWindowHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedS
         if (response === 0) return 'save';
         if (response === 1) return 'dont-save';
         return 'cancel';
+    });
+
+    ipcMain.handle(windowChannels.SHOW_MESSAGE_BOX, async (_event, options: MessageBoxOptions) => {
+        return await dialog.showMessageBox(state.getMainWindow(), options);
+    });
+
+    ipcMain.handle(windowChannels.SHOW_CONFIRM_BOX, async (_event, options: MessageBoxOptions) => {
+        const { response } = await dialog.showMessageBox(state.getMainWindow(), {
+            ...options,
+            buttons: ['取消', '确定'], // 确保按钮顺序
+            defaultId: 1,
+            cancelId: 0
+        });
+        // "确定" 按钮的索引是 1
+        return response === 1;
     });
 
     ipcMain.on(windowChannels.SET_TITLE, (_event, title: string) => {

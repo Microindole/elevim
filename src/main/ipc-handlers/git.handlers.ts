@@ -171,4 +171,10 @@ export const registerGitHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedStat
         }
         return await gitService.getCommitDiff(folder, commitHash);
     });
+
+    ipcMain.handle(gitChannels.GET_REMOTES, async () => {
+        const folder = state.getFolder();
+        if (!folder) return [];
+        return await gitService.getRemotes(folder);
+    });
 };

@@ -1,5 +1,4 @@
 // src/shared/constants.ts
-
 /**
  * 包含所有 IPC 通道。
  * 1. 主进程 -> 渲染进程的 (推送事件)
@@ -26,6 +25,11 @@ export const IPC_CHANNELS = {
     OPEN_FOLDER_FROM_CLI: 'open-folder-from-cli',
     OPEN_FILE_FROM_CLI: 'open-file-from-cli',
     OPEN_DIFF_FROM_CLI: 'open-diff-from-cli',
+};
+
+// --- GitHub Events (Main -> Renderer) ---
+export const GITHUB_EVENTS = {
+    PUBLISH_SUCCESS: 'github:publish-success'
 };
 
 // --- 2. Renderer -> Main 调用 (请求/调用) ---
@@ -63,6 +67,13 @@ export const gitChannels = {
     CREATE_BRANCH_FROM_COMMIT: 'git:create-branch-from-commit',
     OPEN_COMMIT_DIFF: 'git:open-commit-diff',
     INIT_REPO: 'git:init-repo',
+    GET_REMOTES:'git:get-remotes'
+};
+
+export const githubChannels = {
+    START_AUTH: 'github:start-auth',
+    PUBLISH_REPO: 'github:publish-repo',
+    GET_TOKEN_STATUS: 'github:get-token-status'
 };
 
 // (从 menu.handlers.ts 移动过来)
@@ -92,4 +103,6 @@ export const windowChannels = {
     CLOSE: 'window:close',
     SHOW_SAVE_DIALOG: 'window:show-save-dialog',
     SET_TITLE: 'window:set-title',
+    SHOW_MESSAGE_BOX: 'window:show-message-box',
+    SHOW_CONFIRM_BOX: 'window:show-confirm-box'
 };

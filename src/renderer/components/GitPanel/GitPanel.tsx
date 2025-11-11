@@ -1,5 +1,5 @@
 // src/renderer/components/GitPanel/GitPanel.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './GitPanel.css';
 import DiffViewer from './DiffViewer';
 import ChangesTab from './tabs/ChangesTab';
@@ -7,6 +7,7 @@ import BranchesTab from './tabs/BranchesTab';
 import HistoryTab from './tabs/HistoryTab';
 import { useGitData } from './hooks/useGitData';
 import { useGitOperations } from './hooks/useGitOperations';
+import PublishRepoModal from './PublishRepoModal';
 
 const GIT_PANEL_TABS = {
     CHANGES: 'changes',
@@ -23,9 +24,11 @@ interface GitPanelProps {
 export default function GitPanel({ onClose }: GitPanelProps) {
     const [activeTab, setActiveTab] = useState<TabType>(GIT_PANEL_TABS.CHANGES);
     const [diffViewerFile, setDiffViewerFile] = useState<{path: string, staged: boolean} | null>(null);
+    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
     const {
         repoExists,
+        hasRemote,
         changes,
         branches,
         commits,
@@ -43,6 +46,14 @@ export default function GitPanel({ onClose }: GitPanelProps) {
         loadAll,
     });
 
+    useEffect(() => {
+        const unsubscribe = window.electronAPI.github.onPublishSuccess(() => {
+            console.log('[GitPanel] Publish successful! Refreshing state.');
+            loadAll(); // 刷新所有 Git 数据
+        });
+        return unsubscribe;
+    }, [loadAll]);
+
     const handleInitRepo = async () => {
         const success = await window.electronAPI.git.gitInitRepo();
         if (success) {
@@ -52,23 +63,54 @@ export default function GitPanel({ onClose }: GitPanelProps) {
         }
     };
 
+    const handlePublishClick = () => {
+        setIsPublishModalOpen(true);
+    };
+
+    const handleConfirmPublish = async ({ repoName, isPrivate }: { repoName: string, isPrivate: boolean }) => {
+        try {
+            const result = await window.electronAPI.github.publishRepo({ repoName, isPrivate });
+            if (!result.success) {
+                // 稍后我们会把这个 alert 也换掉
+                alert(`发布失败: ${result.error}`);
+            }
+            // 成功时，onPublishSuccess 监听器会处理刷新
+        } catch (e: any) {
+            alert(`发布时发生错误: ${e.message}`);
+        }
+    };
+
+    const showWelcomeScreen = !repoExists || (repoExists && !hasRemote);
+    const showInitButton = !repoExists;
+
     return (
         <div className="git-panel">
             <div className="git-panel-header">
                 <h3>Source Control</h3>
                 <button className="git-close-btn" onClick={onClose}>×</button>
             </div>
-            {!repoExists ? (
+            {showWelcomeScreen ? (
                 <div className="git-content">
                     <div className="git-init-container">
-                        <p>当前文件夹中没有 Git 仓库。</p>
-                        <button className="git-init-btn" onClick={handleInitRepo}>
-                            初始化仓库
+                        <p>
+                            {repoExists ?
+                                "此仓库未配置远程仓库。" :
+                                "当前文件夹中没有 Git 仓库。"
+                            }
+                        </p>
+
+                        {showInitButton && (
+                            <button className="git-init-btn" onClick={handleInitRepo}>
+                                初始化仓库
+                            </button>
+                        )}
+                        <button
+                            className="git-init-btn"
+                            style={{ marginTop: '10px', backgroundColor: '#555' }}
+                            onClick={handlePublishClick}
+                        >
+                            发布到 GitHub
                         </button>
-                        {/* "发布到 GitHub" 按钮是一个更复杂的功能，
-                          涉及 OAuth 和 GitHub API，
-                          我们暂时只实现初始化功能。
-                        */}
                     </div>
                 </div>
             ) : (
@@ -131,6 +173,11 @@ export default function GitPanel({ onClose }: GitPanelProps) {
                     </div>
                 </>
             )}
+            <PublishRepoModal
+                isOpen={isPublishModalOpen}
+                onClose={() => setIsPublishModalOpen(false)}
+                onPublish={handleConfirmPublish}
+            />
         </div>
     );
 }

@@ -9,6 +9,7 @@ const APP_EVENTS = {
 
 export const useGitData = () => {
     const [repoExists, setRepoExists] = useState(true);
+    const [hasRemote, setHasRemote] = useState(false);
     const [changes, setChanges] = useState<GitFileChange[]>([]);
     const [branches, setBranches] = useState<GitBranch[]>([]);
     const [commits, setCommits] = useState<GitCommit[]>([]);
@@ -31,6 +32,11 @@ export const useGitData = () => {
         setCommits(result);
     }, []);
 
+    const loadRemotes = useCallback(async () => {
+        const remotes = await window.electronAPI.git.gitGetRemotes();
+        setHasRemote(remotes.length > 0);
+    }, []);
+
     const loadAll = useCallback(() => {
         // 立即检查状态，以防万一
         window.electronAPI.git.getGitStatus().then(status => {
@@ -40,15 +46,18 @@ export const useGitData = () => {
                 setBranches([]);
                 setCommits([]);
                 setCurrentBranch(null);
+                setHasRemote(false);
             } else {
                 setRepoExists(true);
+                setHasRemote(true);
                 // 仅在仓库存在时加载
                 loadChanges();
                 loadBranches();
                 loadCommits();
+                loadRemotes();
             }
         });
-    }, [loadChanges, loadBranches, loadCommits]);
+    }, [loadChanges, loadBranches, loadCommits, loadRemotes]);
 
     // 初始加载
     useEffect(() => {
@@ -65,14 +74,16 @@ export const useGitData = () => {
                 setBranches([]);
                 setCommits([]);
                 setCurrentBranch(null);
+                setHasRemote(false);
             } else {
                 // 仓库存在 (可能是刚 init，或文件发生变化)
                 setRepoExists(true);
                 loadChanges(); // 重新加载变更
+                loadRemotes();
             }
         });
         return unsubscribe;
-    }, [loadChanges]);
+    }, [loadChanges, loadRemotes]);
 
     // 文件夹变化监听
     useEffect(() => {
@@ -82,6 +93,7 @@ export const useGitData = () => {
 
     return {
         repoExists,
+        hasRemote,
         changes,
         branches,
         commits,

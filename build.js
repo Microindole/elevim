@@ -9,7 +9,7 @@ async function build() {
             outdir: 'dist/main',
             bundle: true,
             platform: 'node',
-            external: ['electron', 'node-pty'],
+            external: ['electron', 'node-pty', 'keytar'],
         });
         console.log('✅ Main process built successfully!');
 
