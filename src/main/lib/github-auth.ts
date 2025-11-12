@@ -5,32 +5,20 @@ import * as keytar from 'keytar';
 import fetch from 'node-fetch';
 import * as crypto from 'crypto';
 
-const GITHUB_CLIENT_ID = 'Ov23lizlusHj4HWf8Eli';
-
+// ⚠️ 确保这是你的 GitHub App Client ID
+const GITHUB_CLIENT_ID = 'Iv23liZMFGNyDRocYCXW';
 const SERVICE_NAME = 'Elevim';
 const ACCOUNT_NAME = 'github-token';
 
-// ... (文件的其余部分保持不变) ...
-
-/**
- * 辅助函数：生成 PKCE 所需的 verifier 和 challenge
- */
 function generatePKCE() {
-    // 1. 创建一个高强度的随机字符串
     const verifier = crypto.randomBytes(32).toString('base64url');
-
-    // 2. 对 verifier 进行 SHA256 哈希，生成 challenge
     const challenge = crypto
         .createHash('sha256')
         .update(verifier)
         .digest('base64url');
-
     return { verifier, challenge };
 }
 
-/**
- * 从钥匙串安全地获取 Token
- */
 export async function getGitHubToken(): Promise<string | null> {
     try {
         return await keytar.getPassword(SERVICE_NAME, ACCOUNT_NAME);
@@ -40,117 +28,220 @@ export async function getGitHubToken(): Promise<string | null> {
     }
 }
 
-/**
- * 启动 OAuth 流程 (PKCE 安全版本)
- */
 export function startGitHubAuth(parentWindow: BrowserWindow): Promise<string> {
     return new Promise((resolve, reject) => {
         let isResolved = false;
-        // 1. 立即生成 PKCE 码
+        let authWindow: BrowserWindow | null = null;
         const { verifier, challenge } = generatePKCE();
 
-        const authWindow = new BrowserWindow({
-            width: 800,
-            height: 600,
-            modal: true,
-            parent: parentWindow,
-            webPreferences: {
-                nodeIntegration: false,
-                contextIsolation: true
-            }
-        });
+        try {
+            authWindow = new BrowserWindow({
+                width: 800,
+                height: 600,
+                modal: true,
+                parent: parentWindow,
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true
+                }
+            });
 
-        const authUrl = `https://github.com/login/oauth/authorize`;
-        const params = new URLSearchParams({
-            client_id: GITHUB_CLIENT_ID,
-            scope: 'repo,user', // 'repo' 权限用于创建仓库
-            redirect_uri: 'elevim://auth/callback',
-            code_challenge: challenge, // <--- 关键: 发送 challenge
-            code_challenge_method: 'S256' // <--- 关键: 告知使用 S256
-        });
+            const authUrl = `https://github.com/login/oauth/authorize`;
+            const params = new URLSearchParams({
+                client_id: GITHUB_CLIENT_ID,
+                scope: 'repo,user',
+                redirect_uri: 'elevim://auth/callback',
+                code_challenge: challenge,
+                code_challenge_method: 'S256'
+            });
 
-        authWindow.loadURL(`${authUrl}?${params.toString()}`);
+            console.log('[Auth] Opening auth window with URL:', `${authUrl}?${params.toString()}`);
+            authWindow.loadURL(`${authUrl}?${params.toString()}`);
 
-        const onCallback = async (url: string) => {
-            if (isResolved) return;
-            isResolved = true;
-            try {
-                const urlParams = new URLSearchParams(url.split('?')[1]);
-                const code = urlParams.get('code');
-                if (!code) throw new Error('No code found in callback URL');
+            const handleCallback = async (url: string) => {
+                if (isResolved) {
+                    console.log('[Auth] Callback already handled, ignoring');
+                    return;
+                }
 
-                // 2. 用 code + verifier 换取 token
-                // (注意：这里完全不需要 CLIENT_SECRET)
-                const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        client_id: GITHUB_CLIENT_ID,
-                        code: code,
-                        code_verifier: verifier, // <--- 关键: 发送 verifier 作为证明
-                        redirect_uri: 'elevim://auth/callback'
-                    })
-                });
-
-                const tokenData: any = await tokenResponse.json();
-                const accessToken = tokenData.access_token;
-
-                if (!accessToken) throw new Error('No access_token received');
-
-                // 3. 安全存储 Token
-                await keytar.setPassword(SERVICE_NAME, ACCOUNT_NAME, accessToken);
-
-                authWindow.close();
-                resolve(accessToken);
-
-            } catch (e) {
-                authWindow.close();
-                reject(e);
-            }
-        };
-
-        // 监听重定向 (保持不变)
-        authWindow.webContents.on('will-redirect', (event, url) => {
-            if (url.startsWith('elevim://auth/callback')) {
-                event.preventDefault();
-                onCallback(url);
-            }
-        });
-
-        authWindow.on('closed', () => {
-            if (!isResolved) { // 如果窗口被关闭，并且没有成功回调
+                console.log('[Auth] Processing callback:', url);
                 isResolved = true;
-                reject(new Error('GitHub authorization was cancelled.'));
-            }
-        });
+
+                // 立即清理监听器
+                if (authWindow && !authWindow.isDestroyed()) {
+                    authWindow.webContents.removeAllListeners('will-redirect');
+                    authWindow.webContents.removeAllListeners('did-navigate');
+                    authWindow.webContents.removeAllListeners('will-navigate');
+                    authWindow.removeAllListeners('closed');
+                }
+
+                try {
+                    const urlObj = new URL(url);
+                    const code = urlObj.searchParams.get('code');
+                    const error = urlObj.searchParams.get('error');
+                    const errorDesc = urlObj.searchParams.get('error_description');
+
+                    if (error) {
+                        throw new Error(`GitHub OAuth error: ${errorDesc || error}`);
+                    }
+
+                    if (!code) {
+                        throw new Error('No authorization code received from GitHub');
+                    }
+
+                    console.log('[Auth] Got authorization code, exchanging for token...');
+
+                    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            client_id: GITHUB_CLIENT_ID,
+                            code: code,
+                            code_verifier: verifier,
+                            redirect_uri: 'elevim://auth/callback'
+                        })
+                    });
+
+                    if (!tokenResponse.ok) {
+                        const errorText = await tokenResponse.text();
+                        throw new Error(`Token exchange failed: ${tokenResponse.status} ${errorText}`);
+                    }
+
+                    const tokenData: any = await tokenResponse.json();
+                    console.log('[Auth] Token response received:', {
+                        hasToken: !!tokenData.access_token,
+                        error: tokenData.error
+                    });
+
+                    if (tokenData.error) {
+                        throw new Error(`GitHub error: ${tokenData.error_description || tokenData.error}`);
+                    }
+
+                    const accessToken = tokenData.access_token;
+                    if (!accessToken) {
+                        throw new Error('No access_token in response from GitHub');
+                    }
+
+                    await keytar.setPassword(SERVICE_NAME, ACCOUNT_NAME, accessToken);
+                    console.log('[Auth] Token saved successfully');
+
+                    if (authWindow && !authWindow.isDestroyed()) {
+                        authWindow.close();
+                    }
+                    resolve(accessToken);
+
+                } catch (e: any) {
+                    console.error('[Auth] Callback handling error:', e.message);
+                    if (authWindow && !authWindow.isDestroyed()) {
+                        authWindow.close();
+                    }
+                    reject(e);
+                }
+            };
+
+            // 监听多个导航事件以确保捕获回调
+            authWindow.webContents.on('will-redirect', (event, url) => {
+                console.log('[Auth] will-redirect event:', url);
+                if (url.startsWith('elevim://')) {
+                    event.preventDefault();
+                    handleCallback(url);
+                }
+            });
+
+            authWindow.webContents.on('will-navigate', (event, url) => {
+                console.log('[Auth] will-navigate event:', url);
+                if (url.startsWith('elevim://')) {
+                    event.preventDefault();
+                    handleCallback(url);
+                }
+            });
+
+            authWindow.webContents.on('did-navigate', (event, url) => {
+                console.log('[Auth] did-navigate event:', url);
+                if (url.startsWith('elevim://')) {
+                    handleCallback(url);
+                }
+            });
+
+            // 窗口关闭处理
+            authWindow.on('closed', () => {
+                console.log('[Auth] Auth window closed');
+                if (!isResolved) {
+                    isResolved = true;
+                    reject(new Error('GitHub authorization window was closed'));
+                }
+                authWindow = null;
+            });
+
+        } catch (e: any) {
+            console.error('[Auth] Failed to create auth window:', e);
+            reject(e);
+        }
     });
 }
 
-/**
- * 使用 Token 创建 GitHub 仓库 (此函数保持不变)
- */
 export async function createGitHubRepo(token: string, repoName: string, isPrivate: boolean): Promise<string> {
     try {
+        console.log('[Auth] Creating GitHub repo:', { repoName, isPrivate });
         const octokit = new Octokit({ auth: token });
+
         const response = await octokit.repos.createForAuthenticatedUser({
             name: repoName,
-            private: isPrivate
+            private: isPrivate,
+            auto_init: false // 不自动初始化，因为本地已有仓库
         });
+
+        console.log('[Auth] Repo created:', response.data.html_url);
 
         if (response.data.clone_url) {
             return response.data.clone_url;
         } else {
-            throw new Error('Failed to create repo, no clone_url returned');
+            throw new Error('No clone_url in response');
         }
     } catch (e: any) {
-        console.error('[Auth] Failed to create GitHub repo:', e.message);
-        // 捕获仓库已存在的错误
-        if (e.message?.includes('name already exists')) {
-            throw new Error(`仓库 "${repoName}" 在你的 GitHub 账户中已存在。`);
+        console.error('[Auth] Failed to create repo:', e.message);
+
+        // 更友好的错误提示
+        if (e.status === 422) {
+            throw new Error(`仓库 "${repoName}" 已存在于你的 GitHub 账户中`);
+        } else if (e.status === 401) {
+            throw new Error('GitHub 授权已过期，请重新授权');
+        } else if (e.message?.includes('name already exists')) {
+            throw new Error(`仓库 "${repoName}" 已存在`);
         }
+
+        throw new Error(`创建仓库失败: ${e.message}`);
+    }
+}
+
+export async function listUserRepos(token: string): Promise<Array<{name: string, url: string, private: boolean}>> {
+    try {
+        const octokit = new Octokit({ auth: token });
+        const { data } = await octokit.repos.listForAuthenticatedUser({
+            per_page: 100,
+            sort: 'updated',
+            affiliation: 'owner' // 只显示用户自己的仓库
+        });
+
+        return data.map(repo => ({
+            name: repo.full_name,
+            url: repo.clone_url || repo.html_url,
+            private: repo.private
+        }));
+    } catch (e: any) {
+        console.error('[Auth] Failed to list repos:', e.message);
         throw e;
     }
+}
+
+export async function authAndListRepos(parentWindow: BrowserWindow): Promise<{
+    token: string;
+    repos: Array<{name: string, url: string, private: boolean}>;
+}> {
+    const token = await startGitHubAuth(parentWindow);
+    const repos = await listUserRepos(token);
+    return { token, repos };
 }
