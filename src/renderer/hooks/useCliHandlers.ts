@@ -1,5 +1,5 @@
 // src/renderer/hooks/useCliHandlers.ts
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { FileNode } from '../components/FileTree/FileTree';
 import { OpenFile } from '../components/Tabs/Tabs';
 
@@ -9,7 +9,7 @@ interface UseCliHandlersProps {
     setActiveSidebarView: (view: any) => void;
     setOpenFiles: React.Dispatch<React.SetStateAction<OpenFile[]>>;
     setActiveIndex: React.Dispatch<React.SetStateAction<number>>;
-    openFile: (filePath: string, fileContent: string) => void;
+    openFile: (filePath: string, fileContent: string, encoding: string) => void;
 }
 
 export function useCliHandlers({
@@ -27,8 +27,8 @@ export function useCliHandlers({
                 setFileTree(tree);
                 currentOpenFolderPath.current = tree.path;
 
-                window.electronAPI.git.stopGitWatcher().then(() => { // MODIFIED
-                    window.electronAPI.git.startGitWatcher(tree.path); // MODIFIED
+                window.electronAPI.git.stopGitWatcher().then(() => {
+                    window.electronAPI.git.startGitWatcher(tree.path);
                 });
 
                 window.dispatchEvent(new Event('folder-changed'));
@@ -44,7 +44,7 @@ export function useCliHandlers({
             }
         };
 
-        const unregister = window.electronAPI.cli.onOpenFolderFromCli(handleOpenFromCli); // MODIFIED
+        const unregister = window.electronAPI.cli.onOpenFolderFromCli(handleOpenFromCli);
         return () => unregister();
     }, [setFileTree, currentOpenFolderPath, setActiveSidebarView, setOpenFiles, setActiveIndex]);
 
@@ -57,22 +57,25 @@ export function useCliHandlers({
                         path: data.filePath,
                         name: data.filePath.split(/[\\/]/).pop() ?? "Untitled",
                         content: data.content,
-                        isDirty: false
+                        isDirty: false,
+                        encoding: 'UTF-8'
                     };
                     setActiveIndex(0);
                     return [newFile];
                 }
-                openFile(data.filePath, data.content);
+                // --- 传递默认编码 ---
+                openFile(data.filePath, data.content, 'UTF-8');
                 return prev;
             });
         };
 
-        const unregister = window.electronAPI.cli.onOpenFileFromCli(handleOpenFileFromCli); // MODIFIED
+        const unregister = window.electronAPI.cli.onOpenFileFromCli(handleOpenFileFromCli);
         return () => unregister();
     }, [openFile, setOpenFiles, setActiveIndex]);
 
     // 处理从 CLI 打开 Diff
     useEffect(() => {
+        // (此函数保持不变)
         const handleOpenDiffFromCli = (filePath: string) => {
             console.log('CLI 请求打开 Diff: ', filePath);
             setActiveSidebarView('git');
@@ -80,7 +83,7 @@ export function useCliHandlers({
             window.dispatchEvent(event);
         };
 
-        const unregister = window.electronAPI.cli.onOpenDiffFromCli(handleOpenDiffFromCli); // MODIFIED
+        const unregister = window.electronAPI.cli.onOpenDiffFromCli(handleOpenDiffFromCli);
         return () => unregister();
     }, [setActiveSidebarView]);
 }

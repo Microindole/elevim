@@ -8,6 +8,7 @@ export interface OpenFile {
     name: string;
     content: string;
     isDirty: boolean;
+    encoding: string;
 }
 
 interface TabProps {

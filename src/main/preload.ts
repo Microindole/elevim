@@ -17,8 +17,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     // --- 命名空间: file ---
     file: {
-        onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => {
-            const handler = (_event: IpcRendererEvent, data: { content: string; filePath: string }) => callback(data);
+        onFileOpen: (callback: (data: { content: string; filePath: string; encoding: string }) => void) => {
+            const handler = (_event: IpcRendererEvent, data: { content: string; filePath: string; encoding: string }) => callback(data);
             ipcRenderer.on(IPC_CHANNELS.FILE_OPENED, handler);
             return () => {
                 ipcRenderer.removeListener(IPC_CHANNELS.FILE_OPENED, handler);

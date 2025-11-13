@@ -6,7 +6,8 @@ const welcomeFile: OpenFile = {
     path: null,
     name: "Welcome",
     content: "// Welcome to Elevim!\n// Use File > Open File... to open a file or folder.",
-    isDirty: false
+    isDirty: false,
+    encoding: 'UTF-8'
 };
 
 export function useFileOperations() {
@@ -20,36 +21,51 @@ export function useFileOperations() {
 
     const activeFile = openFiles[activeIndex];
 
-    // 更新 ref
     useEffect(() => {
         appStateRef.current = { openFiles, activeIndex };
     }, [openFiles, activeIndex]);
 
-    const openFile = useCallback((filePath: string, fileContent: string, line?: number) => {
+    const openFile = useCallback((
+        filePath: string,
+        fileContent: string,
+        encoding: string,
+        line?: number
+    ) => {
         setOpenFiles(prevFiles => {
+            // 关闭欢迎页
             if (prevFiles.length === 1 && prevFiles[0].name === "Welcome") {
                 const newFile: OpenFile = {
                     path: filePath,
                     name: filePath.split(/[\\/]/).pop() ?? "Untitled",
                     content: fileContent,
-                    isDirty: false
+                    isDirty: false,
+                    encoding: encoding // <-- 存储 encoding
                 };
                 setActiveIndex(0);
+                if (line) {
+                    setJumpToLine({ path: filePath, line: line });
+                }
                 return [newFile];
             }
+
+            // 检查是否已打开
             const alreadyOpenIndex = prevFiles.findIndex(f => f.path === filePath);
             if (alreadyOpenIndex > -1) {
                 setActiveIndex(alreadyOpenIndex);
                 if (line) {
                     setJumpToLine({ path: filePath, line: line });
                 }
+                // (可选) 也许我们应该在这里更新内容和编码？
+                // 暂时保持简单，只切换
                 return prevFiles;
             } else {
+                // 添加新文件
                 const newFile: OpenFile = {
                     path: filePath,
                     name: filePath.split(/[\\/]/).pop() ?? "Untitled",
                     content: fileContent,
-                    isDirty: false
+                    isDirty: false,
+                    encoding: encoding
                 };
                 setActiveIndex(prevFiles.length);
                 if (line) {
@@ -65,7 +81,7 @@ export function useFileOperations() {
         const currentActiveFile = openFiles[activeIndex];
         if (!currentActiveFile || currentActiveFile.name === "Welcome") return;
 
-        const savedPath = await window.electronAPI.file.saveFile(currentActiveFile.content); // MODIFIED
+        const savedPath = await window.electronAPI.file.saveFile(currentActiveFile.content);
         if (savedPath) {
             setOpenFiles(prev => prev.map((file, index) => {
                 if (index === appStateRef.current.activeIndex) {
@@ -90,7 +106,7 @@ export function useFileOperations() {
             return;
         }
 
-        const choice = await window.electronAPI.window.showSaveDialog(); // MODIFIED
+        const choice = await window.electronAPI.window.showSaveDialog();
 
         if (choice === 'save') {
             await handleSave();
@@ -101,7 +117,13 @@ export function useFileOperations() {
     }, [handleSave]);
 
     const handleNewFile = useCallback(() => {
-        const newFile: OpenFile = { path: null, name: "Untitled", content: "", isDirty: false };
+        const newFile: OpenFile = {
+            path: null,
+            name: "Untitled",
+            content: "",
+            isDirty: false,
+            encoding: 'UTF-8'
+        };
         setOpenFiles(prev => {
             setActiveIndex(prev.length);
             return [...prev, newFile];
@@ -133,9 +155,9 @@ export function useFileOperations() {
                     closeAction();
                     return;
                 }
-                const choice = await window.electronAPI.window.showSaveDialog(); // MODIFIED
+                const choice = await window.electronAPI.window.showSaveDialog();
                 if (choice === 'save') {
-                    await window.electronAPI.file.saveFile(fileToClose.content); // MODIFIED
+                    await window.electronAPI.file.saveFile(fileToClose.content);
                     closeAction();
                 } else if (choice === 'dont-save') {
                     closeAction();

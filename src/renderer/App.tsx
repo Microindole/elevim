@@ -24,6 +24,7 @@ import { useIpcListeners } from './hooks/useIpcListeners';
 import { useBranchChange } from './hooks/useBranchChange';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useCommands } from './hooks/useCommands';
+// --- 导入我们新加的 Hook ---
 import { useCurrentBranch } from './hooks/useCurrentBranch';
 
 import './App.css';
@@ -32,7 +33,7 @@ export default function App() {
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
     const [settings, setSettings] = useState<AppSettings | null>(null);
 
-    // 文件操作
+    // 文件操作 (确保 openFile 被解构)
     const {
         openFiles,
         setOpenFiles,
@@ -82,13 +83,15 @@ export default function App() {
     // Git 状态
     const { gitStatus, setGitStatus } = useGitStatus(currentOpenFolderPath, setFileTree);
 
+    // --- 使用新的 Git 分支 Hook ---
+    const currentBranch = useCurrentBranch(currentOpenFolderPath.current);
+
     // 菜单处理器 (使用新的命名空间)
     const handleMenuNewFile = useCallback(() => safeAction(handleNewFile), [safeAction, handleNewFile]);
-    const handleMenuOpenFile = useCallback(() => safeAction(() => window.electronAPI.file.showOpenDialog()), [safeAction]); // MODIFIED
-    const handleMenuSaveAsFile = useCallback(() => window.electronAPI.menu.triggerSaveAsFile(), []); // MODIFIED
-    const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.window.closeWindow()), [safeAction]); // MODIFIED
+    const handleMenuOpenFile = useCallback(() => safeAction(() => window.electronAPI.file.showOpenDialog()), [safeAction]);
+    const handleMenuSaveAsFile = useCallback(() => window.electronAPI.menu.triggerSaveAsFile(), []);
+    const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.window.closeWindow()), [safeAction]);
     const handleFileTreeSelectWrapper = useCallback((filePath: string) => handleFileTreeSelect(filePath, safeAction), [handleFileTreeSelect, safeAction]);
-    const currentBranch = useCurrentBranch(currentOpenFolderPath.current);
 
     const openFileToLine = (filePath: string, line: number) => {
         const alreadyOpenIndex = openFiles.findIndex(f => f.path === filePath);
@@ -100,9 +103,12 @@ export default function App() {
         } else {
             // 2. 文件未打开：
             safeAction(async () => {
-                const content = await window.electronAPI.file.openFile(filePath); // MODIFIED
+                // 我们调用 openFile，它会触发 main -> renderer 的 FILE_OPENED 事件
+                // useIpcListeners 会监听到该事件，并调用我们自己的 openFile hook
+                const content = await window.electronAPI.file.openFile(filePath);
                 if (content !== null) {
-                    openFile(filePath, content, line);
+                    // 确保跳转被设置
+                    setJumpToLine({ path: filePath, line: line });
                 }
             });
         }
@@ -110,26 +116,24 @@ export default function App() {
 
     const handleReplaceComplete = useCallback(async (modifiedFiles: string[]) => {
         if (modifiedFiles.length === 0) return;
-
-        // 检查是否有已打开的文件被修改了
         const openFilesToReload = openFiles.filter(
             f => f.path && modifiedFiles.includes(f.path)
         );
-
         if (openFilesToReload.length > 0) {
-            // 重新读取这些文件的内容
             const updatedFileContents = await Promise.all(
                 openFilesToReload.map(async f => {
-                    const content = await window.electronAPI.file.openFile(f.path!); // MODIFIED
+                    const content = await window.electronAPI.file.openFile(f.path!);
+                    // 注意：openFile 会触发 FILE_OPENED，这可能会导致重复更新
+                    // 但这里的逻辑是手 G 动更新 state，也许更可控
                     return { path: f.path, content };
                 })
             );
-
-            // 批量更新 openFiles state
             setOpenFiles(prevOpenFiles =>
                 prevOpenFiles.map(file => {
                     const updated = updatedFileContents.find(u => u.path === file.path);
                     if (updated && updated.content !== null) {
+                        // TODO: 我们没有重新检测编码，这里可能会导致编码显示不一致
+                        // 暂时保持 isDirty: false
                         return { ...file, content: updated.content, isDirty: false };
                     }
                     return file;
@@ -141,16 +145,15 @@ export default function App() {
 
     const handleJumpComplete = useCallback(() => {
         setJumpToLine(null);
-    }, []); // setJumpToLine 是稳定的，不需要加入依赖
+    }, []);
 
-    // 加载设置 (使用新的命名空间)
+    // 加载设置
     useEffect(() => {
         const fetchSettings = async () => {
-            const loadedSettings = await window.electronAPI.settings.getSettings(); // MODIFIED
+            const loadedSettings = await window.electronAPI.settings.getSettings();
             setSettings(loadedSettings);
         };
         fetchSettings();
-
         const handleSettingsChange = (event: Event) => {
             const { key, value } = (event as CustomEvent).detail;
             setSettings(prev => ({ ...prev!, [key]: value }));
@@ -161,7 +164,7 @@ export default function App() {
         };
     }, []);
 
-    // CLI 处理器
+    // --- CLI 处理器 ---
     useCliHandlers({
         setFileTree,
         currentOpenFolderPath,
@@ -171,7 +174,7 @@ export default function App() {
         openFile
     });
 
-    // IPC 监听器
+    // --- IPC 监听器 ---
     useIpcListeners({ openFile, handleSave, handleNewFile });
 
     // 分支变更监听
@@ -213,9 +216,9 @@ export default function App() {
         return <div className="main-layout">Loading Settings...</div>;
     }
 
-    // 确定文件编码 (目前我们只支持 UTF-8，所以可以先设为静态值)
-    //    (实现完整的编码检测非常复杂，我们先实现 UI)
-    const fileEncoding = activeFile ? "UTF-8" : null;
+    // --- 从 activeFile 获取编码 ---
+    // (activeFile 来自 useFileOperations hook)
+    const fileEncoding = activeFile ? activeFile.encoding : null;
 
     return (
         <div className="main-layout">
@@ -249,7 +252,7 @@ export default function App() {
                     {activeSidebarView && (
                         <>
                             <div className="sidebar" style={{ width: sidebarWidth }}>
-                                {activeSidebarView === 'explorer' && fileTree && ( // fileTree 仅用于 explorer
+                                {activeSidebarView === 'explorer' && fileTree && (
                                     <FileTree
                                         treeData={fileTree}
                                         onFileSelect={handleFileTreeSelectWrapper}
@@ -301,6 +304,8 @@ export default function App() {
                     </>
                 )}
             </div>
+
+            {/* --- 传递正确的 props --- */}
             <StatusBar
                 cursorLine={cursorLine}
                 cursorCol={cursorCol}

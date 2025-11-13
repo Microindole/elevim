@@ -2,14 +2,36 @@
 import { IpcMain, dialog } from 'electron';
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
+import * as jschardet from 'jschardet'; // <-- 导入
 import { readDirectory, searchInDirectory, replaceInDirectory } from '../lib/file-system';
 import { SearchOptions, ReplaceOptions } from '../../shared/types';
 import { IpcHandlerSharedState } from './state';
-import { fileChannels, IPC_CHANNELS } from '../../shared/constants'; // <-- 关键修改
+import { fileChannels, IPC_CHANNELS } from '../../shared/constants';
 
-// 1. (已删除本地定义)
+// 辅助函数：从 Buffer 检测编码并解码
+function decodeBuffer(buffer: Buffer): { content: string, encoding: string } {
+    const DEFAULT_ENCODING = 'utf-8';
+    try {
+        const detection = jschardet.detect(buffer);
+        let encoding = (detection && detection.encoding) ? detection.encoding.toLowerCase() : DEFAULT_ENCODING;
 
-// 2. 导出注册函数
+        if (encoding === 'ascii' || encoding === 'windows-1252') {
+            encoding = DEFAULT_ENCODING;
+        }
+
+        console.log(`[Encoding] Detected: ${encoding} (Confidence: ${detection?.confidence || 0})`);
+
+        const content = buffer.toString(encoding as BufferEncoding);
+        // 返回大写的编码名称以便显示
+        return { content, encoding: encoding.toUpperCase() };
+
+    } catch (e) {
+        console.error('[Encoding] Failed to decode buffer, falling back to UTF-8', e);
+        return { content: buffer.toString(DEFAULT_ENCODING), encoding: 'UTF-8' };
+    }
+}
+
+// 导出注册函数
 export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedState) => void = (
     ipcMain,
     state
@@ -28,10 +50,14 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
         if (!canceled && filePaths.length > 0) {
             state.setFile(filePaths[0]);
             try {
-                const content = await fs.readFile(state.getFile()!, 'utf-8');
-                state.getMainWindow().webContents.send(IPC_CHANNELS.FILE_OPENED, { // <-- 使用保留的事件
+                // --- 读取 Buffer ---
+                const buffer = await fs.readFile(state.getFile()!);
+                const { content, encoding } = decodeBuffer(buffer);
+
+                state.getMainWindow().webContents.send(IPC_CHANNELS.FILE_OPENED, {
                     content: content,
-                    filePath: state.getFile()
+                    filePath: state.getFile(),
+                    encoding: encoding
                 });
             } catch (error) {
                 console.error('Failed to read file:', error);
@@ -70,7 +96,6 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
             state.setFolder(null);
             return null;
         }
-
         const folderPath = filePaths[0];
         state.setFolder(folderPath);
         try {
@@ -89,11 +114,15 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
 
     ipcMain.handle(fileChannels.OPEN_FILE, async (_event, filePath: string): Promise<string | null> => {
         try {
-            const content = await fs.readFile(filePath, 'utf-8');
+            // --- 读取 Buffer ---
+            const buffer = await fs.readFile(filePath);
+            const { content, encoding } = decodeBuffer(buffer);
+
             state.setFile(filePath);
-            state.getMainWindow().webContents.send(IPC_CHANNELS.FILE_OPENED, { // <-- 使用保留的事件
+            state.getMainWindow().webContents.send(IPC_CHANNELS.FILE_OPENED, {
                 content,
                 filePath,
+                encoding: encoding
             });
             return content;
         } catch (error) {
@@ -118,7 +147,6 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
     });
 
     // --- 搜索 & 替换 ---
-
     ipcMain.handle(fileChannels.GLOBAL_SEARCH, async (_event, options: SearchOptions) => {
         const folder = state.getFolder();
         if (!folder) {

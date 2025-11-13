@@ -45,7 +45,7 @@ export interface ReplaceOptions extends SearchOptions {
 
 // --- 文件 & 文件夹 API ---
 interface IFileAPI {
-    onFileOpen: (callback: (data: { content: string; filePath: string }) => void) => () => void;
+    onFileOpen: (callback: (data: { content: string; filePath: string; encoding: string }) => void) => () => void;
     onNewFile: (callback: () => void) => () => void;
     saveFile: (content: string) => Promise<string | null>;
     openFile: (filePath: string) => Promise<string | null>;
