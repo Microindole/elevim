@@ -67,19 +67,6 @@ export default function GitPanel({ onClose }: GitPanelProps) {
         setIsPublishModalOpen(true);
     };
 
-    const handleConfirmPublish = async ({ repoName, isPrivate }: { repoName: string, isPrivate: boolean }) => {
-        try {
-            const result = await window.electronAPI.github.publishRepo({ repoName, isPrivate });
-            if (!result.success) {
-                // 稍后我们会把这个 alert 也换掉
-                alert(`发布失败: ${result.error}`);
-            }
-            // 成功时，onPublishSuccess 监听器会处理刷新
-        } catch (e: any) {
-            alert(`发布时发生错误: ${e.message}`);
-        }
-    };
-
     const showWelcomeScreen = !repoExists || (repoExists && !hasRemote);
     const showInitButton = !repoExists;
 
@@ -176,7 +163,6 @@ export default function GitPanel({ onClose }: GitPanelProps) {
             <PublishRepoModal
                 isOpen={isPublishModalOpen}
                 onClose={() => setIsPublishModalOpen(false)}
-                onPublish={handleConfirmPublish}
             />
         </div>
     );

@@ -120,6 +120,8 @@ interface IGitHubAPI {
     publishRepo: (options: { repoName: string, isPrivate: boolean }) => Promise<{ success: boolean, error: string | null }>;
     getTokenStatus: () => Promise<boolean>;
     onPublishSuccess: (callback: () => void) => () => void;
+    listRepos: () => Promise<Array<{name: string, url: string, private: boolean}>>;
+    linkRemote: (options: { repoUrl: string }) => Promise<{ success: boolean, error: string | null }>;
 }
 
 // --- CLI API ---

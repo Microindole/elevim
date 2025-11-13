@@ -218,6 +218,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
                 ipcRenderer.removeListener(GITHUB_EVENTS.PUBLISH_SUCCESS, handler);
             };
         },
+        listRepos: (): Promise<Array<{name: string, url: string, private: boolean}>> => {
+            return ipcRenderer.invoke(githubChannels.LIST_REPOS);
+        },
+        linkRemote: (options: { repoUrl: string }): Promise<{ success: boolean, error: string | null }> => {
+            return ipcRenderer.invoke(githubChannels.LINK_REMOTE, options);
+        },
     },
 
     // --- 命名空间: cli ---

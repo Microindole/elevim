@@ -73,7 +73,9 @@ export const gitChannels = {
 export const githubChannels = {
     START_AUTH: 'github:start-auth',
     PUBLISH_REPO: 'github:publish-repo',
-    GET_TOKEN_STATUS: 'github:get-token-status'
+    GET_TOKEN_STATUS: 'github:get-token-status',
+    LIST_REPOS: 'github:list-repos',
+    LINK_REMOTE: 'github:link-remote'
 };
 
 // (从 menu.handlers.ts 移动过来)
