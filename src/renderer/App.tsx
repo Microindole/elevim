@@ -24,6 +24,7 @@ import { useIpcListeners } from './hooks/useIpcListeners';
 import { useBranchChange } from './hooks/useBranchChange';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useCommands } from './hooks/useCommands';
+import { useCurrentBranch } from './hooks/useCurrentBranch';
 
 import './App.css';
 
@@ -87,6 +88,7 @@ export default function App() {
     const handleMenuSaveAsFile = useCallback(() => window.electronAPI.menu.triggerSaveAsFile(), []); // MODIFIED
     const handleMenuCloseWindow = useCallback(() => safeAction(() => window.electronAPI.window.closeWindow()), [safeAction]); // MODIFIED
     const handleFileTreeSelectWrapper = useCallback((filePath: string) => handleFileTreeSelect(filePath, safeAction), [handleFileTreeSelect, safeAction]);
+    const currentBranch = useCurrentBranch(currentOpenFolderPath.current);
 
     const openFileToLine = (filePath: string, line: number) => {
         const alreadyOpenIndex = openFiles.findIndex(f => f.path === filePath);
@@ -211,6 +213,10 @@ export default function App() {
         return <div className="main-layout">Loading Settings...</div>;
     }
 
+    // 确定文件编码 (目前我们只支持 UTF-8，所以可以先设为静态值)
+    //    (实现完整的编码检测非常复杂，我们先实现 UI)
+    const fileEncoding = activeFile ? "UTF-8" : null;
+
     return (
         <div className="main-layout">
             <CommandPalette
@@ -295,7 +301,12 @@ export default function App() {
                     </>
                 )}
             </div>
-            <StatusBar cursorLine={cursorLine} cursorCol={cursorCol} />
+            <StatusBar
+                cursorLine={cursorLine}
+                cursorCol={cursorCol}
+                currentBranch={currentBranch}
+                encoding={fileEncoding}
+            />
         </div>
     );
 }

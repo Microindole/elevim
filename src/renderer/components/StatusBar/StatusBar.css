@@ -2,16 +2,58 @@
 .status-bar-container {
     display: flex;
     align-items: center;
-    background-color: var(--accent-color); /* 使用变量 */
-    color: var(--bg-color-highlight); /* 文字用暗色，对比更强 */
+    justify-content: space-between;
+
+    /* * 修复 #1: 替换丑陋的蓝色背景
+     * 使用和标题栏一样的 --bg-titlebar
+     */
+    background-color: var(--bg-titlebar);
+
+    /* * 修复 #2: 替换错误的黑色文字
+     * 使用 --text-color (浅灰色)
+     */
+    color: var(--text-color);
+
     font-weight: 600;
     height: 22px;
-    padding: 0 15px;
+    padding: 0 10px;
     font-size: 12px;
     flex-shrink: 0;
-    border-top: 1px solid var(--border-color);
+
+    /* * 修复 #3: 修正无效的 --border-color
+     * 使用 --border-color-light
+     */
+    border-top: 1px solid var(--border-color-light);
 }
 
+/* 左右分组 */
+.status-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.status-group-left {
+    justify-content: flex-start;
+}
+
+.status-group-right {
+    justify-content: flex-end;
+}
+
+/* 状态项 */
 .status-item {
-    margin-right: 20px;
+    display: flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 5px;
+    border-radius: 3px;
+    transition: background-color 0.15s;
+}
+
+/* 悬停效果 */
+.status-item.hover-bright:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* 浅色悬停背景 */
+    color: var(--text-color-light); /* 悬停时文字变亮白色 */
+    cursor: default;
 }
