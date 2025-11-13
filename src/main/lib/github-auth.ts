@@ -4,11 +4,22 @@ import { Octokit } from '@octokit/rest';
 import * as keytar from 'keytar';
 import fetch from 'node-fetch';
 import * as crypto from 'crypto';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
-// ⚠️ 确保这是你的 GitHub App Client ID
-const GITHUB_CLIENT_ID = 'Iv23liZMFGNyDRocYCXW';
+// ✅ OAuth App Client ID
+const GITHUB_CLIENT_ID = 'Ov23liix5I9v3xtrt9v3';
 const SERVICE_NAME = 'Elevim';
 const ACCOUNT_NAME = 'github-token';
+
+// 获取代理配置
+function getProxyAgent() {
+    const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.ALL_PROXY;
+    if (proxyUrl) {
+        console.log('[Auth] Using proxy:', proxyUrl);
+        return new HttpsProxyAgent(proxyUrl);
+    }
+    return undefined;
+}
 
 function generatePKCE() {
     const verifier = crypto.randomBytes(32).toString('base64url');
@@ -32,7 +43,6 @@ export function startGitHubAuth(parentWindow: BrowserWindow): Promise<string> {
     return new Promise((resolve, reject) => {
         let isResolved = false;
         let authWindow: BrowserWindow | null = null;
-        const { verifier, challenge } = generatePKCE();
 
         try {
             authWindow = new BrowserWindow({
@@ -46,17 +56,18 @@ export function startGitHubAuth(parentWindow: BrowserWindow): Promise<string> {
                 }
             });
 
+            // 不使用 PKCE，使用标准 OAuth 流程
             const authUrl = `https://github.com/login/oauth/authorize`;
             const params = new URLSearchParams({
                 client_id: GITHUB_CLIENT_ID,
                 scope: 'repo,user',
-                redirect_uri: 'elevim://auth/callback',
-                code_challenge: challenge,
-                code_challenge_method: 'S256'
+                redirect_uri: 'elevim://auth/callback'
+                // 移除 PKCE 参数
             });
 
-            console.log('[Auth] Opening auth window with URL:', `${authUrl}?${params.toString()}`);
-            authWindow.loadURL(`${authUrl}?${params.toString()}`);
+            const fullUrl = `${authUrl}?${params.toString()}`;
+            console.log('[Auth] Opening auth window (without PKCE):', fullUrl);
+            authWindow.loadURL(fullUrl);
 
             const handleCallback = async (url: string) => {
                 if (isResolved) {
@@ -67,7 +78,7 @@ export function startGitHubAuth(parentWindow: BrowserWindow): Promise<string> {
                 console.log('[Auth] Processing callback:', url);
                 isResolved = true;
 
-                // 立即清理监听器
+                // 清理所有监听器
                 if (authWindow && !authWindow.isDestroyed()) {
                     authWindow.webContents.removeAllListeners('will-redirect');
                     authWindow.webContents.removeAllListeners('did-navigate');
@@ -89,32 +100,65 @@ export function startGitHubAuth(parentWindow: BrowserWindow): Promise<string> {
                         throw new Error('No authorization code received from GitHub');
                     }
 
-                    console.log('[Auth] Got authorization code, exchanging for token...');
+                    console.log('[Auth] Got authorization code:', code.substring(0, 8) + '...');
+                    console.log('[Auth] Exchanging code for token (without PKCE)...');
 
-                    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            client_id: GITHUB_CLIENT_ID,
-                            code: code,
-                            code_verifier: verifier,
-                            redirect_uri: 'elevim://auth/callback'
-                        })
-                    });
+                    // 带重试的 token 交换
+                    let tokenData: any = null;
+                    let lastError: Error | null = null;
 
-                    if (!tokenResponse.ok) {
-                        const errorText = await tokenResponse.text();
-                        throw new Error(`Token exchange failed: ${tokenResponse.status} ${errorText}`);
+                    for (let attempt = 1; attempt <= 3; attempt++) {
+                        try {
+                            console.log(`[Auth] Token exchange attempt ${attempt}/3...`);
+
+                            // 不使用 PKCE，只发送必需参数
+                            const params = new URLSearchParams({
+                                client_id: GITHUB_CLIENT_ID,
+                                code: code,
+                                redirect_uri: 'elevim://auth/callback'
+                                // 移除 code_verifier
+                            });
+
+                            const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'Accept': 'application/json',
+                                    'User-Agent': 'Elevim-Editor'
+                                },
+                                body: params.toString(),
+                                timeout: 30000,
+                                agent: getProxyAgent()
+                            } as any);
+
+                            const responseText = await tokenResponse.text();
+                            console.log('[Auth] Token response status:', tokenResponse.status);
+                            console.log('[Auth] Token response body:', responseText);
+
+                            if (!tokenResponse.ok) {
+                                throw new Error(`HTTP ${tokenResponse.status}: ${responseText}`);
+                            }
+
+                            tokenData = JSON.parse(responseText);
+                            lastError = null;
+                            break; // 成功，退出重试循环
+
+                        } catch (e: any) {
+                            lastError = e;
+                            console.error(`[Auth] Attempt ${attempt} failed:`, e.message);
+
+                            if (attempt < 3) {
+                                // 等待后重试（递增延迟）
+                                const delay = attempt * 1000;
+                                console.log(`[Auth] Retrying in ${delay}ms...`);
+                                await new Promise(resolve => setTimeout(resolve, delay));
+                            }
+                        }
                     }
 
-                    const tokenData: any = await tokenResponse.json();
-                    console.log('[Auth] Token response received:', {
-                        hasToken: !!tokenData.access_token,
-                        error: tokenData.error
-                    });
+                    if (lastError || !tokenData) {
+                        throw new Error(`Token exchange failed after 3 attempts: ${lastError?.message || 'Unknown error'}`);
+                    }
 
                     if (tokenData.error) {
                         throw new Error(`GitHub error: ${tokenData.error_description || tokenData.error}`);
@@ -142,9 +186,9 @@ export function startGitHubAuth(parentWindow: BrowserWindow): Promise<string> {
                 }
             };
 
-            // 监听多个导航事件以确保捕获回调
+            // 监听多个导航事件
             authWindow.webContents.on('will-redirect', (event, url) => {
-                console.log('[Auth] will-redirect event:', url);
+                console.log('[Auth] will-redirect:', url.substring(0, 100));
                 if (url.startsWith('elevim://')) {
                     event.preventDefault();
                     handleCallback(url);
@@ -152,7 +196,7 @@ export function startGitHubAuth(parentWindow: BrowserWindow): Promise<string> {
             });
 
             authWindow.webContents.on('will-navigate', (event, url) => {
-                console.log('[Auth] will-navigate event:', url);
+                console.log('[Auth] will-navigate:', url.substring(0, 100));
                 if (url.startsWith('elevim://')) {
                     event.preventDefault();
                     handleCallback(url);
@@ -160,13 +204,12 @@ export function startGitHubAuth(parentWindow: BrowserWindow): Promise<string> {
             });
 
             authWindow.webContents.on('did-navigate', (event, url) => {
-                console.log('[Auth] did-navigate event:', url);
+                console.log('[Auth] did-navigate:', url.substring(0, 100));
                 if (url.startsWith('elevim://')) {
                     handleCallback(url);
                 }
             });
 
-            // 窗口关闭处理
             authWindow.on('closed', () => {
                 console.log('[Auth] Auth window closed');
                 if (!isResolved) {
@@ -191,7 +234,7 @@ export async function createGitHubRepo(token: string, repoName: string, isPrivat
         const response = await octokit.repos.createForAuthenticatedUser({
             name: repoName,
             private: isPrivate,
-            auto_init: false // 不自动初始化，因为本地已有仓库
+            auto_init: false
         });
 
         console.log('[Auth] Repo created:', response.data.html_url);
@@ -204,7 +247,6 @@ export async function createGitHubRepo(token: string, repoName: string, isPrivat
     } catch (e: any) {
         console.error('[Auth] Failed to create repo:', e.message);
 
-        // 更友好的错误提示
         if (e.status === 422) {
             throw new Error(`仓库 "${repoName}" 已存在于你的 GitHub 账户中`);
         } else if (e.status === 401) {
@@ -223,7 +265,7 @@ export async function listUserRepos(token: string): Promise<Array<{name: string,
         const { data } = await octokit.repos.listForAuthenticatedUser({
             per_page: 100,
             sort: 'updated',
-            affiliation: 'owner' // 只显示用户自己的仓库
+            affiliation: 'owner'
         });
 
         return data.map(repo => ({

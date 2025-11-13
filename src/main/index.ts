@@ -75,6 +75,15 @@ function createWindow(mainWindow: BrowserWindow) {
   });
 }
 
+// 配置代理（仅在环境变量设置时使用）
+const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.ALL_PROXY;
+if (proxyUrl) {
+  console.log('[Proxy] Using proxy from environment:', proxyUrl);
+  app.commandLine.appendSwitch('proxy-server', proxyUrl);
+} else {
+  console.log('[Proxy] No proxy configured, using direct connection');
+}
+
 if (cliAction.type.startsWith('start-gui')) {
   app.whenReady().then(() => {
     // 注册自定义 protocol handler（在 ready 之后）
