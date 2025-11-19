@@ -13,6 +13,7 @@ export type CommandId =
     | 'view.toggleTerminal'
     | 'view.toggleGitPanel'
     | 'view.toggleSearchPanel'
+    | 'view.splitEditor'
     | 'editor.save';
 
 // --- 设置 ---

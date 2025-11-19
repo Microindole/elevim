@@ -1,10 +1,10 @@
 // src/renderer/hooks/useKeyboardShortcuts.ts
-import { useEffect } from 'react';
-import { SidebarView } from '../components/ActivityBar/ActivityBar';
-import { Keymap } from '../../shared/types';
+import {useEffect} from 'react';
+import {SidebarView} from '../components/ActivityBar/ActivityBar';
+import {Keymap} from '../../shared/types';
 
 interface UseKeyboardShortcutsProps {
-    keymap: Keymap;
+    keymap: Keymap | undefined; // 允许 undefined
     setIsPaletteOpen: React.Dispatch<React.SetStateAction<boolean>>;
     setIsTerminalVisible: React.Dispatch<React.SetStateAction<boolean>>;
     handleViewChange: (view: SidebarView) => void;
@@ -14,93 +14,89 @@ interface UseKeyboardShortcutsProps {
     handleSave: () => void;
     handleMenuSaveAsFile: () => void;
     handleMenuCloseWindow: () => void;
+    splitEditor: () => void; // <--- 新增
 }
 
 function checkKey(e: KeyboardEvent, shortcut: string): boolean {
-    if (!shortcut) return false
+    if (!shortcut) return false;
     const parts = shortcut.toLowerCase().split('+');
-    const key = parts.pop(); // 最后一部分是按键
+    const key = parts.pop();
 
+    // 处理特殊字符的映射 (比如 \ 键在 keydown 事件中可能不同)
+    // 这里简化处理，通常 e.key 就是用户按下的键
     if (e.key.toLowerCase() !== key) {
         return false;
     }
-    // 检查修饰键 (Ctrl, Shift, Alt, Meta)
-    if (parts.includes('ctrl') !== e.ctrlKey) return false;
-    if (parts.includes('shift') !== e.shiftKey) return false;
-    if (parts.includes('alt') !== e.altKey) return false;
-    if (parts.includes('meta') !== e.metaKey) return false; // Meta = Cmd on Mac
+
+    const ctrl = parts.includes('ctrl');
+    const shift = parts.includes('shift');
+    const alt = parts.includes('alt');
+    const meta = parts.includes('meta');
+
+    if (ctrl !== e.ctrlKey) return false;
+    if (shift !== e.shiftKey) return false;
+    if (alt !== e.altKey) return false;
+    if (meta !== e.metaKey) return false;
 
     return true;
 }
 
-export function useKeyboardShortcuts({
-                                         keymap,
-                                         setIsPaletteOpen,
-                                         setIsTerminalVisible,
-                                         handleViewChange,
-                                         handleMenuNewFile,
-                                         handleMenuOpenFile,
-                                         handleMenuOpenFolder,
-                                         handleSave,
-                                         handleMenuSaveAsFile,
-                                         handleMenuCloseWindow
-                                     }: UseKeyboardShortcutsProps) {
+export function useKeyboardShortcuts(props: UseKeyboardShortcutsProps) {
+    const {keymap} = props;
+
     useEffect(() => {
         if (!keymap) return;
 
         const handleGlobalKeyDown = (e: KeyboardEvent) => {
-
             if (checkKey(e, keymap['view.togglePalette'])) {
                 e.preventDefault();
-                setIsPaletteOpen(prev => !prev);
+                props.setIsPaletteOpen(prev => !prev);
             }
-
             if (checkKey(e, keymap['view.toggleTerminal'])) {
                 e.preventDefault();
-                setIsTerminalVisible(prev => !prev);
+                props.setIsTerminalVisible(prev => !prev);
             }
-
             if (checkKey(e, keymap['view.toggleGitPanel'])) {
                 e.preventDefault();
-                handleViewChange('git');
+                props.handleViewChange('git');
             }
             if (checkKey(e, keymap['view.toggleSearchPanel'])) {
                 e.preventDefault();
-                handleViewChange('search');
+                props.handleViewChange('search');
             }
             if (checkKey(e, keymap['file.new'])) {
                 e.preventDefault();
-                handleMenuNewFile();
+                props.handleMenuNewFile();
             }
             if (checkKey(e, keymap['file.open'])) {
                 e.preventDefault();
-                handleMenuOpenFile();
+                props.handleMenuOpenFile();
             }
             if (checkKey(e, keymap['file.openFolder'])) {
                 e.preventDefault();
-                handleMenuOpenFolder();
+                props.handleMenuOpenFolder();
             }
             if (checkKey(e, keymap['file.save'])) {
                 e.preventDefault();
-                handleSave();
+                props.handleSave();
             }
             if (checkKey(e, keymap['file.saveAs'])) {
                 e.preventDefault();
-                handleMenuSaveAsFile();
+                props.handleMenuSaveAsFile();
             }
             if (checkKey(e, keymap['app.quit'])) {
                 e.preventDefault();
-                handleMenuCloseWindow(); // (此函数内部已调用 window.electronAPI.window.closeWindow())
+                props.handleMenuCloseWindow();
+            }
+
+            // 新增：分屏
+            if (checkKey(e, keymap['view.splitEditor'])) {
+                e.preventDefault();
+                props.splitEditor();
             }
         };
 
         window.addEventListener('keydown', handleGlobalKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleGlobalKeyDown);
-        };
-    },[
-        keymap, setIsPaletteOpen, setIsTerminalVisible, handleViewChange,
-        handleMenuNewFile, handleMenuOpenFile, handleMenuOpenFolder,
-        handleSave, handleMenuSaveAsFile, handleMenuCloseWindow
-    ]);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [keymap, props]); // 简化依赖数组
 }

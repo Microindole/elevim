@@ -1,0 +1,42 @@
+/* src/renderer/components/EditorGroup/EditorGroup.css */
+.editor-group {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background-color: var(--bg-editor);
+    position: relative;
+    /* 当不激活时，可以稍微变暗一点，增加对比度 */
+    opacity: 0.8;
+    transition: opacity 0.1s;
+}
+
+.editor-group.active {
+    opacity: 1;
+}
+
+.editor-group-content {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 激活时的顶部高亮条 */
+.active-group-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background-color: var(--accent-color);
+    pointer-events: none;
+    z-index: 100;
+}
+
+.empty-group-placeholder {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: var(--text-color-subtle);
+}

@@ -17,6 +17,7 @@ const defaultKeymap: Keymap = {
     'view.toggleTerminal': 'Ctrl+`',
     'view.toggleGitPanel': 'Ctrl+Shift+G',
     'view.toggleSearchPanel': 'Ctrl+Shift+F',
+    'view.splitEditor': 'Ctrl+\\',
     'editor.save': 'Mod+S'
 };
 

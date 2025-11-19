@@ -4,42 +4,37 @@ import './SettingsPanel.css';
 import { AppSettings, CommandId } from '../../../shared/types';
 import KeybindingInput from './KeybindingInput';
 
-// 帮助文本，让 UI 更友好
 const commandLabels: Record<CommandId, string> = {
     'app.quit': '退出应用',
     'file.new': '新建文件',
     'file.open': '打开文件',
     'file.openFolder': '打开文件夹',
-    'file.save': '保存',
-    'file.saveAs': '另存为',
-    'view.togglePalette': '切换命令面板',
-    'view.toggleTerminal': '切换终端',
-    'view.toggleGitPanel': '切换 Git 面板',
+    'file.save': '保存文件',
+    'file.saveAs': '另存为...',
+    'view.togglePalette': '显示命令面板',
+    'view.toggleTerminal': '切换集成终端',
+    'view.toggleGitPanel': '切换源代码管理',
     'view.toggleSearchPanel': '切换搜索面板',
-    'editor.save': '保存 (编辑器)',
+    'view.splitEditor': '拆分编辑器',
+    'editor.save': '保存 (编辑器内部快捷键)',
 };
 
 export default function SettingsPanel() {
     const [settings, setSettings] = useState<AppSettings | null>(null);
+    const [searchTerm, setSearchTerm] = useState('');
 
     useEffect(() => {
         const fetchSettings = async () => {
-            const loadedSettings = await window.electronAPI.settings.getSettings(); // MODIFIED
+            const loadedSettings = await window.electronAPI.settings.getSettings();
             setSettings(loadedSettings);
         };
         fetchSettings();
     }, []);
 
-    // --- 统一的保存逻辑 ---
     const handleSave = (key: keyof AppSettings, value: any) => {
-        // 1. 更新本地 state
         const newSettings = { ...settings!, [key]: value };
         setSettings(newSettings);
-
-        // 2. 保存到主进程
-        window.electronAPI.settings.setSetting(key, value); // MODIFIED
-
-        // 3. 广播事件
+        window.electronAPI.settings.setSetting(key, value);
         window.dispatchEvent(new CustomEvent('settings-changed', {
             detail: { key, value }
         }));
@@ -50,49 +45,69 @@ export default function SettingsPanel() {
         handleSave('keymap', newKeymap);
     };
 
-    const handleFontSizeChange = (newSize: number) => {
-        handleSave('fontSize', newSize);
-    };
+    if (!settings) return <div className="settings-loading">Loading Settings...</div>;
 
-    if (!settings) {
-        return <div className="settings-panel">Loading...</div>;
-    }
+    // 简单的搜索过滤
+    const filteredCommands = Object.keys(settings.keymap).filter(cmd =>
+        cmd.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (commandLabels[cmd as CommandId] || '').toLowerCase().includes(searchTerm.toLowerCase())
+    ) as CommandId[];
 
     return (
-        <div className="settings-panel">
-            <div className="settings-header">
-                <h3>设置</h3>
-            </div>
-            <div className="settings-content">
-                {/* 1. 字体大小 */}
-                <div className="settings-group">
-                    <h4>编辑器</h4>
-                    <div className="settings-item">
-                        <label htmlFor="font-size">字体大小</label>
+        <div className="settings-page">
+            <div className="settings-container">
+                <div className="settings-header">
+                    <h1>User Settings</h1>
+                    <div className="settings-search-wrapper">
                         <input
-                            type="number"
-                            id="font-size"
-                            className="settings-input"
-                            value={settings.fontSize}
-                            onChange={(e) => handleFontSizeChange(parseInt(e.target.value, 10))}
+                            type="text"
+                            placeholder="Search settings..."
+                            className="settings-search-bar"
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
                         />
                     </div>
                 </div>
 
-                {/* 2. 快捷键 */}
-                <div className="settings-group">
-                    <h4>快捷键</h4>
-                    {Object.keys(settings.keymap).map((command) => (
-                        <div className="settings-item" key={command}>
-                            <label htmlFor={command}>
-                                {commandLabels[command as CommandId] || command}
-                            </label>
-                            <KeybindingInput
-                                value={settings.keymap[command as CommandId]}
-                                onChange={(newShortcut) => handleKeymapChange(command as CommandId, newShortcut)}
+                <div className="settings-section">
+                    <h2>Editor</h2>
+                    <div className="setting-row">
+                        <div className="setting-info">
+                            <label>Font Size</label>
+                            <span className="setting-desc">Controls the font size in pixels.</span>
+                        </div>
+                        <div className="setting-control">
+                            <input
+                                type="number"
+                                className="settings-number-input"
+                                value={settings.fontSize}
+                                onChange={(e) => handleSave('fontSize', parseInt(e.target.value, 10))}
                             />
                         </div>
-                    ))}
+                    </div>
+                </div>
+
+                <div className="settings-section">
+                    <h2>Keyboard Shortcuts</h2>
+                    <div className="shortcuts-list">
+                        {filteredCommands.map((command) => (
+                            <div className="setting-row shortcut-row" key={command}>
+                                <div className="setting-info">
+                                    <label>{commandLabels[command] || command}</label>
+                                    <span className="setting-code">{command}</span>
+                                </div>
+                                <div className="setting-control">
+                                    <KeybindingInput
+                                        value={settings.keymap[command]}
+                                        onChange={(newShortcut) => handleKeymapChange(command, newShortcut)}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                        {filteredCommands.length === 0 && (
+                            <div className="settings-empty">No matching settings found</div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
