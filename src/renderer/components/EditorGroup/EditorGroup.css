@@ -6,28 +6,28 @@
     width: 100%;
     background-color: var(--bg-editor);
     position: relative;
-    /* 当不激活时，可以稍微变暗一点，增加对比度 */
-    opacity: 0.8;
-    transition: opacity 0.1s;
+    outline: none;
 }
 
-.editor-group.active {
-    opacity: 1;
+.editor-group:not(.active) .editor-group-content {
+    opacity: 0.8;
+    filter: grayscale(0.3);
+    transition: all 0.2s;
 }
 
 .editor-group-content {
     flex: 1;
     overflow: hidden;
     position: relative;
+    background-color: var(--bg-editor);
 }
 
-/* 激活时的顶部高亮条 */
 .active-group-indicator {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 2px;
+    height: 1px;
     background-color: var(--accent-color);
     pointer-events: none;
     z-index: 100;
@@ -39,4 +39,45 @@
     align-items: center;
     height: 100%;
     color: var(--text-color-subtle);
+    user-select: none;
+    background-color: var(--bg-editor);
+}
+
+.empty-state-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+}
+
+.app-logo-watermark {
+    font-size: 80px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.03);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 5px;
+}
+
+.shortcut-hint {
+    font-size: 13px;
+    color: var(--text-color-subtle);
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    width: 300px;
+    justify-content: space-between;
+}
+
+.shortcut-hint .key {
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    min-width: 20px;
+    text-align: center;
+    color: var(--text-color);
 }

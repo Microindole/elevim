@@ -6,7 +6,7 @@ const ACTIVITY_BAR_WIDTH = 50;
 
 export function useSidebar() {
     const [sidebarWidth, setSidebarWidth] = useState(250);
-    const [activeSidebarView, setActiveSidebarView] = useState<SidebarView>('explorer');
+    const [activeSidebarView, setActiveSidebarView] = useState<SidebarView>(null);
     const isResizing = useRef(false);
 
     const handleViewChange = useCallback((view: SidebarView) => {
@@ -24,10 +24,10 @@ export function useSidebar() {
     const resize = useCallback((e: MouseEvent) => {
         if (isResizing.current) {
             const newWidth = e.clientX - ACTIVITY_BAR_WIDTH;
-
-            // if (newWidth > 0) {
-            setSidebarWidth(newWidth);
-            // }
+            // 限制最小宽度
+            if (newWidth > 150) {
+                setSidebarWidth(newWidth);
+            }
         }
     }, []);
 

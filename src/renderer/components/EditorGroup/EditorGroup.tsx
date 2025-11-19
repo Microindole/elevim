@@ -22,6 +22,19 @@ interface EditorGroupProps {
     onJumpComplete: () => void;
 }
 
+// 一个内部组件：空状态展示
+const EmptyState = () => (
+    <div className="empty-group-placeholder">
+        <div className="empty-state-content">
+            <div className="app-logo-watermark">Elevim</div>
+            <p className="shortcut-hint">Show All Commands <span className="key">Ctrl</span>+<span className="key">Shift</span>+<span className="key">P</span></p>
+            <p className="shortcut-hint">Go to File <span className="key">Ctrl</span>+<span className="key">P</span></p>
+            <p className="shortcut-hint">New File <span className="key">Ctrl</span>+<span className="key">N</span></p>
+            <p className="shortcut-hint">Open File <span className="key">Ctrl</span>+<span className="key">O</span></p>
+        </div>
+    </div>
+);
+
 export default function EditorGroup(props: EditorGroupProps) {
     const {
         files, activeIndex, isActiveGroup,
@@ -32,18 +45,16 @@ export default function EditorGroup(props: EditorGroupProps) {
 
     const activeFile = files[activeIndex];
 
-    // 渲染内容区的辅助函数
     const renderContent = () => {
+        // 没有文件时显示 EmptyState
         if (!activeFile) {
-            return <div className="empty-group-placeholder">No files open</div>;
+            return <EmptyState />;
         }
 
-        // 检查是否是设置页面
         if (activeFile.path === 'elevim://settings') {
             return <SettingsPanel />;
         }
 
-        // 默认渲染代码编辑器
         return (
             <Editor
                 key={activeFile.path || `untitled-${activeIndex}-${files.length}`}
@@ -66,16 +77,22 @@ export default function EditorGroup(props: EditorGroupProps) {
             className={`editor-group ${isActiveGroup ? 'active' : ''}`}
             onClick={onActivate}
             onFocus={onActivate}
+            tabIndex={0} // 允许 div 获得焦点
         >
-            <Tabs
-                files={files}
-                activeIndex={activeIndex}
-                onTabClick={onTabClick}
-                onTabClose={onTabClose}
-            />
+            {/* 只有在有文件时才显示 Tabs 栏 */}
+            {files.length > 0 && (
+                <Tabs
+                    files={files}
+                    activeIndex={activeIndex}
+                    onTabClick={onTabClick}
+                    onTabClose={onTabClose}
+                />
+            )}
+
             <div className="editor-group-content">
                 {renderContent()}
             </div>
+
             {isActiveGroup && <div className="active-group-indicator" />}
         </div>
     );
