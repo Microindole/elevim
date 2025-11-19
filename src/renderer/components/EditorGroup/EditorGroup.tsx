@@ -57,7 +57,7 @@ export default function EditorGroup(props: EditorGroupProps) {
 
         return (
             <Editor
-                key={activeFile.path || `untitled-${activeIndex}-${files.length}`}
+                key={activeFile.id}
                 content={activeFile.content}
                 filename={activeFile.name}
                 filePath={activeFile.path}

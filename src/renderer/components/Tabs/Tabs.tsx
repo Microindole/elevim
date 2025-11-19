@@ -4,6 +4,7 @@ import './Tabs.css';
 
 // 定义一个打开文件的对象接口，我们将在 App.tsx 中复用它
 export interface OpenFile {
+    id: string;
     path: string | null;
     name: string;
     content: string;

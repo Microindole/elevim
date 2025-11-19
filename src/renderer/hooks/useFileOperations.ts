@@ -4,8 +4,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { OpenFile } from '../components/Tabs/Tabs';
 import { EditorGroup } from '../types/layout';
 
+const welcomeFile: OpenFile = {
+    id: 'welcome',
+    path: null,
+    name: "Welcome",
+    content: "// Welcome to Elevim!\n// Use Ctrl+\\ to split editor.",
+    isDirty: false,
+    encoding: 'UTF-8'
+};
+
 export function useFileOperations() {
-    // 修改：初始化为空列表，不打开默认文件
     const [groups, setGroups] = useState<EditorGroup[]>([
         { id: uuidv4(), files: [], activeIndex: -1 }
     ]);
@@ -52,34 +60,43 @@ export function useFileOperations() {
             return prevGroups.map(group => {
                 if (group.id !== currentActiveId) return group;
 
-                // 移除旧的 "Welcome" 替换逻辑，现在只需要检查文件是否存在
+                // 如果是 Welcome 页，替换它
+                if (group.files.length === 1 && group.files[0].name === "Welcome") {
+                    const newFile: OpenFile = {
+                        id: uuidv4(),
+                        path: filePath,
+                        name: filePath.split(/[\\/]/).pop() ?? "Untitled",
+                        content: fileContent,
+                        isDirty: false,
+                        encoding
+                    };
+                    return { ...group, files: [newFile], activeIndex: 0 };
+                }
+
+                // 检查文件是否已存在
                 const existingIndex = group.files.findIndex(f => f.path === filePath);
                 if (existingIndex > -1) {
                     return { ...group, activeIndex: existingIndex };
                 }
 
+                // 新增文件
                 const newFile: OpenFile = {
+                    id: uuidv4(), // <--- 生成 ID
                     path: filePath,
                     name: filePath.split(/[\\/]/).pop() ?? "Untitled",
                     content: fileContent,
                     isDirty: false,
                     encoding
                 };
-
-                // 如果之前是空的，activeIndex 设为 0
-                const newIndex = group.files.length;
-
                 return {
                     ...group,
                     files: [...group.files, newFile],
-                    activeIndex: newIndex
+                    activeIndex: group.files.length
                 };
             });
         });
 
-        if (line) {
-            setJumpToLine({ path: filePath, line });
-        }
+        if (line) setJumpToLine({ path: filePath, line });
     }, []);
 
     const handleNewFile = useCallback(() => {
@@ -89,6 +106,7 @@ export function useFileOperations() {
                 if (group.id !== currentActiveId) return group;
 
                 const newFile: OpenFile = {
+                    id: uuidv4(),
                     path: null,
                     name: "Untitled",
                     content: "",
