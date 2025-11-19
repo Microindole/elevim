@@ -6,7 +6,7 @@ const ACTIVITY_BAR_WIDTH = 50;
 
 export function useSidebar() {
     const [sidebarWidth, setSidebarWidth] = useState(250);
-    const [activeSidebarView, setActiveSidebarView] = useState<SidebarView>(null);
+    const [activeSidebarView, setActiveSidebarView] = useState<SidebarView>(null); // 默认为空
     const isResizing = useRef(false);
 
     const handleViewChange = useCallback((view: SidebarView) => {
@@ -42,6 +42,7 @@ export function useSidebar() {
 
     return {
         sidebarWidth,
+        setSidebarWidth,
         activeSidebarView,
         setActiveSidebarView,
         handleViewChange,

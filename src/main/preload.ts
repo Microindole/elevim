@@ -249,5 +249,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
                 ipcRenderer.removeListener(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, handler);
             };
         },
-    }
+    },
+
+    session: {
+        getSession: () => ipcRenderer.invoke('session:get'),
+        saveSession: (session: any) => ipcRenderer.send('session:save', session),
+    },
 });

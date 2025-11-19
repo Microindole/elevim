@@ -108,3 +108,8 @@ export const windowChannels = {
     SHOW_MESSAGE_BOX: 'window:show-message-box',
     SHOW_CONFIRM_BOX: 'window:show-confirm-box'
 };
+
+export const sessionChannels = {
+    GET_SESSION: 'session:get',
+    SAVE_SESSION: 'session:save'
+};

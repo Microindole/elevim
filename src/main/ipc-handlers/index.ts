@@ -1,7 +1,7 @@
 // src/main/ipc-handlers/index.ts
 import { IpcMain } from 'electron';
 import { IpcHandlerRegistrar, IpcHandlerSharedState } from './state';
-import { registerGitHubHandlers, githubChannels, GITHUB_EVENTS } from './github.handlers';
+import { registerGitHubHandlers } from './github.handlers';
 
 // 1. 导入所有模块的注册函数
 import { registerFileHandlers } from './file.handlers';
@@ -10,6 +10,7 @@ import { registerMenuHandlers } from './menu.handlers';
 import { registerSettingsHandlers } from './settings.handlers';
 import { registerTerminalHandlers } from './terminal.handlers';
 import { registerWindowHandlers } from './window.handlers';
+import { registerSessionHandlers } from './session.handlers';
 
 // 2. 创建一个注册函数列表
 const registrars: IpcHandlerRegistrar[] = [
@@ -20,7 +21,7 @@ const registrars: IpcHandlerRegistrar[] = [
     registerTerminalHandlers,
     registerWindowHandlers,
     registerGitHubHandlers,
-    // <-- 对扩展开放：添加新模块时，在此处添加其 register 函数
+    registerSessionHandlers,
 ];
 
 // 3. 导出一个总注册函数

@@ -2,7 +2,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
+import { v4 as uuidv4 } from 'uuid'; // 引入 uuid
 
+// ... (Imports Components 保持不变) ...
 import TitleBar from './components/TitleBar/TitleBar';
 import EditorGroup from './components/EditorGroup/EditorGroup';
 import FileTree from './components/FileTree/FileTree';
@@ -32,8 +34,9 @@ import './App.css';
 export default function App() {
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
     const [settings, setSettings] = useState<AppSettings | null>(null);
+    const [isReady, setIsReady] = useState(false); // --- 1. 新增：加载状态 ---
 
-    // 文件操作 (确保 openFile 被解构)
+    // 文件操作
     const {
         groups,
         activeGroupId,
@@ -41,8 +44,6 @@ export default function App() {
         setGroupActiveIndex,
         splitEditor,
         closeTab,
-
-        // 兼容属性
         activeFile,
         cursorLine,
         cursorCol,
@@ -55,9 +56,7 @@ export default function App() {
         handleCursorChange,
         jumpToLine,
         setJumpToLine,
-
-        // 传递给其他 hook 的更新函数 (需要注意兼容性)
-        setGroups, // 替代 setOpenFiles
+        setGroups,
     } = useFileOperations();
 
     // 文件树
@@ -69,9 +68,10 @@ export default function App() {
         handleFileTreeSelect
     } = useFileTree();
 
-    // 侧边栏
+    // 侧边栏 (解构出 setSidebarWidth)
     const {
         sidebarWidth,
+        setSidebarWidth, // --- 2. 使用导出的 setter ---
         activeSidebarView,
         setActiveSidebarView,
         handleViewChange,
@@ -88,23 +88,112 @@ export default function App() {
 
     // Git 状态
     const { gitStatus, setGitStatus } = useGitStatus(currentOpenFolderPath, setFileTree);
-
-    // --- 使用新的 Git 分支 Hook ---
     const currentBranch = useCurrentBranch(currentOpenFolderPath.current);
+
+    // --- 3. 启动时恢复 Session ---
+    useEffect(() => {
+        const restoreSession = async () => {
+            try {
+                const session = await window.electronAPI.session.getSession();
+
+                // 恢复文件夹
+                if (session.currentFolderPath) {
+                    const tree = await window.electronAPI.file.readDirectory(session.currentFolderPath);
+                    if (tree) {
+                        setFileTree(tree);
+                        currentOpenFolderPath.current = session.currentFolderPath;
+                        window.electronAPI.git.startGitWatcher(session.currentFolderPath);
+                    }
+                }
+
+                // 恢复编辑器组
+                if (session.groups && session.groups.length > 0) {
+                    const restoredGroups = await Promise.all(session.groups.map(async (g: any) => {
+                        // 并行读取文件内容
+                        const files = await Promise.all(g.files.map(async (path: string) => {
+                            try {
+                                const content = await window.electronAPI.file.openFile(path);
+                                if (content === null) return null; // 文件可能被删除
+                                return {
+                                    id: uuidv4(),
+                                    path: path,
+                                    name: path.split(/[\\/]/).pop() || 'Untitled',
+                                    content: content,
+                                    isDirty: false,
+                                    encoding: 'UTF-8' // 暂时默认
+                                };
+                            } catch {
+                                return null;
+                            }
+                        }));
+
+                        // 过滤掉无效文件
+                        const validFiles = files.filter((f: any) => f !== null);
+
+                        return {
+                            id: g.id,
+                            files: validFiles,
+                            activeIndex: g.activeFileIndex
+                        };
+                    }));
+
+                    const validGroups = restoredGroups.filter((g: any) => g.files.length > 0);
+
+                    if (validGroups.length > 0) {
+                        setGroups(validGroups);
+                        if (session.activeGroupId) {
+                            activateGroup(session.activeGroupId);
+                        }
+                    }
+                }
+
+                // 恢复 UI 状态
+                if (session.sidebarWidth) setSidebarWidth(session.sidebarWidth);
+                if (session.sidebarView !== undefined) setActiveSidebarView(session.sidebarView);
+
+            } catch (e) {
+                console.error('Failed to restore session:', e);
+            } finally {
+                setIsReady(true); // 无论成功失败，结束加载状态
+            }
+        };
+
+        restoreSession();
+    }, []);
+
+    // --- 4. 自动保存 Session (防抖) ---
+    useEffect(() => {
+        if (!isReady) return;
+
+        const timer = setTimeout(() => {
+            const sessionData = {
+                groups: groups.map(g => ({
+                    id: g.id,
+                    activeFileIndex: g.activeIndex,
+                    files: g.files
+                        .filter(f => f.path) // 只保存已持久化(有路径)的文件
+                        .map(f => f.path)
+                })),
+                activeGroupId,
+                sidebarWidth,
+                sidebarView: activeSidebarView,
+                currentFolderPath: currentOpenFolderPath.current
+            };
+            window.electronAPI.session.saveSession(sessionData);
+        }, 1000); // 1秒内无变化才保存
+
+        return () => clearTimeout(timer);
+    }, [groups, activeGroupId, sidebarWidth, activeSidebarView, currentOpenFolderPath.current, isReady]);
 
     // 处理侧边栏视图切换
     const handleSidebarViewChange = (view: any) => {
         if (view === 'settings') {
-            // 点击设置图标 -> 打开设置 Tab
             openFile('elevim://settings', '', 'UTF-8');
-            // 如果当前已经在其他侧边栏视图，可以选择关闭它，或者保持不变
-            // 这里我们选择不关闭侧边栏，只在编辑器打开设置
         } else {
             handleViewChange(view);
         }
     };
 
-    // 菜单处理器 (使用新的命名空间)
     const handleMenuNewFile = useCallback(() => safeAction(handleNewFile), [safeAction, handleNewFile]);
     const handleMenuOpenFile = useCallback(() => safeAction(() => window.electronAPI.file.showOpenDialog()), [safeAction]);
     const handleMenuSaveAsFile = useCallback(() => window.electronAPI.menu.triggerSaveAsFile(), []);
@@ -112,7 +201,6 @@ export default function App() {
     const handleFileTreeSelectWrapper = useCallback((filePath: string) => handleFileTreeSelect(filePath, safeAction), [handleFileTreeSelect, safeAction]);
 
     const openFileToLine = (filePath: string, line: number) => {
-        // 简单处理：直接调用 openFile，它会处理“打开或激活”
         safeAction(async () => {
             const content = await window.electronAPI.file.openFile(filePath);
             if (content !== null) {
@@ -123,8 +211,6 @@ export default function App() {
 
     const handleReplaceComplete = useCallback(async (modifiedFiles: string[]) => {
         if (modifiedFiles.length === 0) return;
-        // 简化处理：重新加载所有文件可能会比较复杂，暂略
-        // 实际项目中需要遍历 groups 来更新内容
         console.log('Replace complete. TODO: Refresh open editors');
     }, []);
 
@@ -149,30 +235,27 @@ export default function App() {
         };
     }, []);
 
-    // --- CLI 处理器 ---
+    // Hooks 调用
     useCliHandlers({
         setFileTree,
         currentOpenFolderPath,
         setActiveSidebarView,
-        setOpenFiles: setGroups as any, // ⚠️ 临时类型转换，实际上这可能需要你在 CliHandler 里做适配
-        setActiveIndex: () => {}, // 不再需要这个全局 setter，openFile 内部会处理
+        setOpenFiles: setGroups as any,
+        setActiveIndex: () => {},
         openFile
     });
 
-    // --- IPC 监听器 ---
     useIpcListeners({ openFile, handleSave, handleNewFile });
 
-    // 分支变更监听
     useBranchChange({
         currentOpenFolderPath,
         setFileTree,
         setGitStatus,
-        openFiles: groups.flatMap(g => g.files), // 扁平化所有文件以供检查 (简单适配)
-        activeIndex: 0, // 这里的适配比较勉强
+        openFiles: groups.flatMap(g => g.files),
+        activeIndex: 0,
         setOpenFiles: setGroups as any
     });
 
-    // 键盘快捷键
     useKeyboardShortcuts({
         keymap: settings?.keymap,
         setIsPaletteOpen,
@@ -187,7 +270,6 @@ export default function App() {
         splitEditor
     });
 
-    // 命令面板命令
     const commands = useCommands({
         handleMenuNewFile,
         handleMenuOpenFile,
@@ -198,6 +280,7 @@ export default function App() {
         handleViewChange
     });
 
+    // Ctrl+\ 快捷键
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.key === '\\') {
@@ -209,12 +292,15 @@ export default function App() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [splitEditor]);
 
-    if (!settings) {
-        return <div className="main-layout">Loading Settings...</div>;
+    // --- 5. 渲染加载中状态 ---
+    if (!settings || !isReady) {
+        return (
+            <div className="main-layout" style={{ justifyContent: 'center', alignItems: 'center', color: '#888' }}>
+                Restoring Workspace...
+            </div>
+        );
     }
 
-    // --- 从 activeFile 获取编码 ---
-    // (activeFile 来自 useFileOperations hook)
     const fileEncoding = activeFile ? activeFile.encoding : null;
 
     return (
@@ -234,7 +320,7 @@ export default function App() {
                 <div className="app-container">
                     <ActivityBar
                         activeView={activeSidebarView}
-                        onViewChange={handleSidebarViewChange} // 使用新的 handler
+                        onViewChange={handleSidebarViewChange}
                     />
                     {activeSidebarView && (
                         <>
@@ -246,7 +332,6 @@ export default function App() {
                                 {activeSidebarView === 'search' && (
                                     <SearchPanel folderPath={currentOpenFolderPath.current} onResultClick={openFileToLine} onReplaceComplete={handleReplaceComplete} />
                                 )}
-                                {/* 移除 SettingsPanel 的侧边栏渲染 */}
                             </div>
                             <div className="resizer" onMouseDown={startResizing} />
                         </>
@@ -285,7 +370,7 @@ export default function App() {
                     </>
                 )}
             </div>
-            <StatusBar cursorLine={cursorLine} cursorCol={cursorCol} currentBranch={currentBranch} encoding={activeFile ? activeFile.encoding : null} />
+            <StatusBar cursorLine={cursorLine} cursorCol={cursorCol} currentBranch={currentBranch} encoding={fileEncoding} />
         </div>
     );
 }

@@ -7,6 +7,7 @@ import { readDirectory } from './lib/file-system';
 import { IPC_CHANNELS } from '../shared/constants';
 import { parseCliArguments } from './cli/cli-handler';
 import { CliAction } from './cli/cli-action.types';
+import { getWindowState, saveWindowState } from './lib/session';
 
 const cliAction: CliAction = parseCliArguments(process.argv);
 
@@ -75,6 +76,12 @@ function createWindow(mainWindow: BrowserWindow) {
   });
 }
 
+// 此函数只负责加载内容和注册 IPC
+function setupWindow(mainWindow: BrowserWindow) {
+  mainWindow.loadFile('index.html');
+  registerIpcHandlers(mainWindow);
+}
+
 // 配置代理（仅在环境变量设置时使用）
 const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.ALL_PROXY;
 if (proxyUrl) {
@@ -86,24 +93,41 @@ if (proxyUrl) {
 
 if (cliAction.type.startsWith('start-gui')) {
   app.whenReady().then(() => {
-    // 注册自定义 protocol handler（在 ready 之后）
     protocol.registerStringProtocol('elevim', (request, callback) => {
       console.log('[Protocol] Handler called:', request.url);
-      // 这里不需要做任何事，授权窗口会自己处理
       callback('OK');
     });
 
+    const state = getWindowState();
+
     const mainWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
+      x: state.x,
+      y: state.y,
+      width: state.width,
+      height: state.height,
       icon: path.join(app.getAppPath(), 'resources/logo.png'),
       frame: false,
       titleBarStyle: 'hidden',
+      show: false, // 先隐藏，准备好再显示，防止闪烁
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,
         nodeIntegration: false,
       }
+    });
+
+    // 如果之前是最大化状态，恢复最大化
+    if (state.isMaximized) {
+      mainWindow.maximize();
+    }
+
+    mainWindow.on('close', () => {
+      saveWindowState(mainWindow);
+    });
+
+    // 准备好后再显示
+    mainWindow.once('ready-to-show', () => {
+      mainWindow.show();
     });
 
     // Material Icon Protocol
@@ -159,11 +183,12 @@ if (cliAction.type.startsWith('start-gui')) {
       }
     });
 
-    createWindow(mainWindow);
+    setupWindow(mainWindow);
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow(mainWindow);
+        // 注意：如果在这里重新创建窗口，逻辑会稍微复杂一点，
+        // 简单起见这里可以留空或重新执行上面的创建逻辑
       }
     });
   });

@@ -132,6 +132,23 @@ interface ICliAPI {
     onOpenDiffFromCli: (callback: (filePath: string) => void) => () => void;
 }
 
+export interface EditorSessionData {
+    groups: Array<{
+        id: string;
+        activeFileIndex: number;
+        files: string[];
+    }>;
+    activeGroupId: string;
+    sidebarWidth: number;
+    sidebarView: string | null; // 改为 string | null 以匹配 SidebarView 类型
+    currentFolderPath: string | null;
+}
+
+interface ISessionAPI {
+    getSession: () => Promise<EditorSessionData>;
+    saveSession: (session: EditorSessionData) => void;
+}
+
 
 // --- 组合的最终 API ---
 export interface IElectronAPI {
@@ -143,6 +160,7 @@ export interface IElectronAPI {
     git: IGitAPI;
     cli: ICliAPI;
     github: IGitHubAPI;
+    session: ISessionAPI;
 }
 
 declare global {
