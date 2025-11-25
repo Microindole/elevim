@@ -5,351 +5,384 @@ import './HistoryTab.css';
 
 interface HistoryTabProps {
     commits: GitCommit[];
+    onLoadMore?: () => void;
+    hasMore?: boolean;
+    isLoading?: boolean;
 }
 
-// 为每一列分配固定颜色
-const COLUMN_COLORS = [
-    'hsl(210, 75%, 60%)',  // 蓝色
-    'hsl(140, 75%, 55%)',  // 绿色
-    'hsl(30, 85%, 60%)',   // 橙色
-    'hsl(280, 70%, 65%)',  // 紫色
-    'hsl(350, 75%, 60%)',  // 红色
-    'hsl(180, 70%, 55%)',  // 青色
-    'hsl(50, 85%, 60%)',   // 黄色
-    'hsl(310, 70%, 65%)',  // 粉色
-];
+// --- 定义会话级随机基础色相 ---
+// Math.random() 只会在应用加载这个 JS 文件时执行一次。
+// 只要你不刷新页面 (F5/重启应用)，这个值就会一直保持不变。
+// 切换 Tab 不会重新加载文件，所以颜色会保持稳定。
+const SESSION_BASE_HUE = Math.floor(Math.random() * 360);
+const SESSION_SATURATION = 40 + Math.floor(Math.random() * 15); // 40% ~ 55% 之间浮动
 
-interface CommitPosition {
+// 动态颜色生成器 (基于黄金角，支持无限分支颜色不重复)
+const getColorByIndex = (index: number): string => {
+    // 黄金角约等于 137.508 度，能让颜色在色环上分布最均匀，互不冲突
+    const goldenAngle = 137.508;
+
+    // 计算色相 (0-360)
+    // 加上随机基准色
+    // 这样 index=0 的分支可能是红色，下次启动可能是蓝色，但相对关系不变
+    const hue = (SESSION_BASE_HUE + index * goldenAngle) % 360;
+
+    // 饱和度随机, 亮度 60% (保证在深色模式下清晰且不刺眼)
+    return `hsl(${hue}, ${SESSION_SATURATION}%, 60%)`;
+};
+
+const ROW_HEIGHT = 32;
+const COL_WIDTH = 16;
+const MID_Y = ROW_HEIGHT / 2;
+
+// 绘图指令
+interface DrawCommand {
+    key: string;
+    d: string;
+    color: string;
+    width: number;
+}
+
+interface GraphRow {
     hash: string;
-    column: number;
-    parents: string[];
-    activeColumns: Set<number>; // 当前行活跃的列
+    nodeX: number;      // 当前提交点的 X 坐标
+    nodeColor: string;  // 当前提交点的颜色
+    commands: DrawCommand[]; // 连线指令
 }
 
-// 计算每个提交的列位置和活跃列
-function calculateCommitPositions(commits: GitCommit[]): Map<string, CommitPosition> {
-    const positions = new Map<string, CommitPosition>();
+// --- 核心算法：基于列保留的流式布局 ---
+// --- 核心算法：基于列保留的流式布局 ---
+function calculateGraph(commits: GitCommit[]): { rows: Map<string, GraphRow>, maxCol: number } {
+    const rows = new Map<string, GraphRow>();
 
-    // 跟踪每列当前期待的提交hash
-    const columnExpectedCommit: Map<number, string> = new Map();
+    // currentColumns 记录当前行上方“流”下来的线
+    let currentColumns: { hash: string; colorIndex: number }[] = [];
 
-    for (let i = 0; i < commits.length; i++) {
-        const commit = commits[i];
+    // 全局颜色计数器
+    let nextColorIndex = 0;
+    const branchColorMap = new Map<string, number>();
+
+    // 获取分支颜色索引 (保持同名分支颜色一致)
+    const getBranchColorIndex = (branchName: string) => {
+        if (branchName && branchName !== 'HEAD') {
+            if (!branchColorMap.has(branchName)) {
+                // 存入单纯的数字索引，不再取模
+                branchColorMap.set(branchName, nextColorIndex++);
+            }
+            return branchColorMap.get(branchName)!;
+        }
+        return nextColorIndex++;
+    };
+
+    commits.forEach((commit) => {
+        const commands: DrawCommand[] = [];
+
+        // --- 第一步：处理“入线” (Top -> Center) ---
+
+        const indicesOfMe: number[] = [];
+        currentColumns.forEach((col, idx) => {
+            if (col && col.hash === commit.hash) {
+                indicesOfMe.push(idx);
+            }
+        });
+
+        let myCol = -1;
+        let myColorIndex = 0;
+
+        if (indicesOfMe.length > 0) {
+            myCol = indicesOfMe[0];
+            myColorIndex = currentColumns[myCol].colorIndex;
+        } else {
+            myCol = currentColumns.findIndex(c => c === null);
+            if (myCol === -1) myCol = currentColumns.length;
+            myColorIndex = getBranchColorIndex(commit.branch);
+        }
+
+        // 【修改点1】直接生成颜色，不再查数组
+        const myColor = getColorByIndex(myColorIndex);
+        const nodeX = myCol * COL_WIDTH + COL_WIDTH / 2;
+
+        // 1. Pass-through (别人的线)
+        currentColumns.forEach((col, idx) => {
+            if (col && col.hash !== commit.hash) {
+                const x = idx * COL_WIDTH + COL_WIDTH / 2;
+                // 【修改点2】动态颜色
+                const color = getColorByIndex(col.colorIndex);
+                commands.push({
+                    key: `pass-${idx}`,
+                    d: `M ${x} 0 L ${x} 100%`,
+                    color: color,
+                    width: 2
+                });
+            }
+        });
+
+        // 2. Join (汇入我的线)
+        indicesOfMe.forEach((fromCol) => {
+            const startX = fromCol * COL_WIDTH + COL_WIDTH / 2;
+            // 【修改点3】动态颜色
+            const color = getColorByIndex(currentColumns[fromCol].colorIndex);
+
+            if (fromCol === myCol) {
+                commands.push({
+                    key: `in-straight-${fromCol}`,
+                    d: `M ${startX} 0 L ${startX} ${MID_Y}`,
+                    color: color,
+                    width: 2
+                });
+            } else {
+                const cpY = MID_Y / 2;
+                commands.push({
+                    key: `in-merge-${fromCol}`,
+                    d: `M ${startX} 0 C ${startX} ${cpY}, ${nodeX} ${cpY}, ${nodeX} ${MID_Y}`,
+                    color: color,
+                    width: 2
+                });
+            }
+        });
+
+        // --- 第二步：准备下一行的状态 (Out Lines) ---
+
+        const nextColumns = [...currentColumns];
+        indicesOfMe.forEach(idx => {
+            // @ts-ignore
+            nextColumns[idx] = null;
+        });
+
         const parents = commit.parentHashes || [];
 
-        // 找到当前提交应该在哪一列
-        let commitColumn = -1;
+        parents.forEach((parentHash, i) => {
+            let targetCol = -1;
+            let lineColorIndex = myColorIndex;
 
-        // 首先查找是否有列在等待这个提交
-        for (const [col, expectedHash] of columnExpectedCommit.entries()) {
-            if (expectedHash === commit.hash) {
-                commitColumn = col;
-                break;
+            if (i === 0) {
+                targetCol = myCol;
+            } else {
+                // 【修改点4】副父节点使用新颜色，直接++，不取模
+                lineColorIndex = nextColorIndex++;
+                targetCol = nextColumns.findIndex(c => c === null);
+                if (targetCol === -1) targetCol = nextColumns.length;
             }
-        }
 
-        // 如果没找到，分配新列
-        if (commitColumn === -1) {
-            commitColumn = 0;
-            while (columnExpectedCommit.has(commitColumn)) {
-                commitColumn++;
+            // 冲突检测
+            if (nextColumns[targetCol] && nextColumns[targetCol].hash === parentHash) {
+                // 复用
+            } else if (nextColumns[targetCol] !== null) {
+                let newCol = nextColumns.findIndex(c => c === null);
+                if (newCol === -1) newCol = nextColumns.length;
+                targetCol = newCol;
+                nextColumns[targetCol] = { hash: parentHash, colorIndex: lineColorIndex };
+            } else {
+                nextColumns[targetCol] = { hash: parentHash, colorIndex: lineColorIndex };
             }
-        }
 
-        // 移除当前列的期待
-        columnExpectedCommit.delete(commitColumn);
+            const targetX = targetCol * COL_WIDTH + COL_WIDTH / 2;
+            // 【修改点5】动态颜色
+            const lineColor = getColorByIndex(lineColorIndex);
 
-        // 为父提交分配列
-        if (parents.length > 0) {
-            // 第一个父提交继续在当前列
-            columnExpectedCommit.set(commitColumn, parents[0]);
+            if (targetCol === myCol) {
+                commands.push({
+                    key: `out-straight-${i}`,
+                    d: `M ${nodeX} ${MID_Y} L ${nodeX} 100%`,
+                    color: lineColor,
+                    width: 2
+                });
+            } else {
+                const cpY = MID_Y + (ROW_HEIGHT - MID_Y) / 2;
+                commands.push({
+                    key: `out-branch-${i}`,
+                    d: `M ${nodeX} ${MID_Y} C ${nodeX} ${cpY}, ${targetX} ${cpY}, ${targetX} ${ROW_HEIGHT}`,
+                    color: lineColor,
+                    width: 2
+                });
 
-            // 其他父提交（合并来源）分配新列
-            for (let j = 1; j < parents.length; j++) {
-                let newCol = 0;
-                while (columnExpectedCommit.has(newCol)) {
-                    newCol++;
-                }
-                columnExpectedCommit.set(newCol, parents[j]);
+                // 垂直尾巴 (自适应高度)
+                commands.push({
+                    key: `out-branch-tail-${i}`,
+                    d: `M ${targetX} ${ROW_HEIGHT} L ${targetX} 100%`,
+                    color: lineColor,
+                    width: 2
+                });
             }
-        }
-
-        // 记录当前行所有活跃的列
-        const activeColumns = new Set(columnExpectedCommit.keys());
-
-        positions.set(commit.hash, {
-            hash: commit.hash,
-            column: commitColumn,
-            parents: parents,
-            activeColumns: activeColumns
         });
-    }
 
-    return positions;
+        currentColumns = nextColumns;
+
+        rows.set(commit.hash, {
+            hash: commit.hash,
+            nodeX,
+            nodeColor: myColor,
+            commands
+        });
+    });
+
+    return { rows, maxCol: currentColumns.length };
 }
-
-const CommitGraph: React.FC<{
-    commit: GitCommit;
-    index: number;
-    commits: GitCommit[];
-    positions: Map<string, CommitPosition>;
-    maxColumns: number;
-}> = ({ commit, index, commits, positions, maxColumns }) => {
-    const rowHeight = 32;
-    const colWidth = 16;
-    const svgWidth = Math.max(maxColumns * colWidth, 100);
-
-    const currentPos = positions.get(commit.hash);
-    if (!currentPos) return null;
-
-    const currentColumn = currentPos.column;
-    const parents = currentPos.parents;
-    const activeColumns = currentPos.activeColumns;
-
-    const midY = rowHeight / 2;
-
-    // 获取上一行的活跃列（用于绘制进入当前行的线）
-    const prevCommit = index > 0 ? commits[index - 1] : null;
-    const prevPos = prevCommit ? positions.get(prevCommit.hash) : null;
-    const prevActiveColumns = prevPos ? prevPos.activeColumns : new Set<number>();
+// --- Graph 组件 ---
+const GraphCell: React.FC<{
+    row: GraphRow | undefined;
+    width: number;
+}> = ({ row, width }) => {
+    if (!row) return null;
 
     return (
         <svg
-            className="commit-graph"
-            width={svgWidth}
-            height={rowHeight}
-            viewBox={`0 0 ${svgWidth} ${rowHeight}`}
-            preserveAspectRatio="xMinYMin meet"
+            className="graph-svg"
+            style={{ width: width, height: '100%', position: 'absolute', top: 0, left: 0, overflow: 'visible' }}
         >
-            {/* 绘制从上一行延续下来的所有活跃列的线 */}
-            {Array.from(prevActiveColumns).map(col => {
-                const colX = col * colWidth + colWidth / 2;
-                const color = COLUMN_COLORS[col % COLUMN_COLORS.length];
+            {/* 1. 绘制所有线条 */}
+            {row.commands.map((cmd) => {
+                // 特殊处理：如果是直线 (Vertical)，使用 <line> 以支持 height: 100%
+                // 正则检测 d 属性是否是纯直线 M x 0 L x 100% 或者 M x 16 L x 100%
+                const isVertical = cmd.d.includes('L') && cmd.d.includes('100%') && !cmd.d.includes('C');
 
-                // 检查这条线是否连到当前提交
-                const connectsToCommit = col === currentColumn;
+                if (isVertical) {
+                    // 解析坐标
+                    const parts = cmd.d.split(' ');
+                    const x1 = parseFloat(parts[1]);
+                    const y1 = parseFloat(parts[2]);
+                    const x2 = parseFloat(parts[4]);
+                    // y2 是 '100%'
 
-                if (connectsToCommit) {
-                    // 从上方连到提交点
                     return (
                         <line
-                            key={`in-${col}`}
-                            x1={colX}
-                            y1={0}
-                            x2={colX}
-                            y2={midY}
-                            stroke={color}
-                            strokeWidth="2"
-                            opacity="0.8"
-                        />
-                    );
-                } else if (activeColumns.has(col)) {
-                    // 穿过当前行（不在当前提交列）
-                    return (
-                        <line
-                            key={`pass-${col}`}
-                            x1={colX}
-                            y1={0}
-                            x2={colX}
-                            y2={rowHeight}
-                            stroke={color}
-                            strokeWidth="2"
-                            opacity="0.8"
-                        />
-                    );
-                }
-                return null;
-            })}
-
-            {/* 绘制从当前提交到父提交的线 */}
-            {parents.map((parentHash, idx) => {
-                // 找到父提交的位置
-                let parentColumn = currentColumn; // 默认假设在同一列
-
-                // 查找父提交实际在哪一列
-                for (let j = index + 1; j < commits.length; j++) {
-                    if (commits[j].hash === parentHash) {
-                        const parentPos = positions.get(parentHash);
-                        if (parentPos) {
-                            parentColumn = parentPos.column;
-                        }
-                        break;
-                    }
-                }
-
-                const x = currentColumn * colWidth + colWidth / 2;
-                const parentX = parentColumn * colWidth + colWidth / 2;
-                const color = COLUMN_COLORS[currentColumn % COLUMN_COLORS.length];
-                const parentColor = COLUMN_COLORS[parentColumn % COLUMN_COLORS.length];
-
-                if (parentColumn === currentColumn) {
-                    // 直线向下
-                    return (
-                        <line
-                            key={`out-${idx}-${parentHash.substring(0,7)}`}
-                            x1={x}
-                            y1={midY}
-                            x2={x}
-                            y2={rowHeight}
-                            stroke={color}
-                            strokeWidth="2"
-                            opacity="0.8"
+                            key={cmd.key}
+                            x1={x1} y1={y1}
+                            x2={x2} y2="100%"
+                            stroke={cmd.color}
+                            strokeWidth={cmd.width}
+                            strokeLinecap="round"
                         />
                     );
                 } else {
-                    // 曲线连接到其他列（合并或分支）
+                    // 曲线
                     return (
                         <path
-                            key={`out-${idx}-${parentHash.substring(0,7)}`}
-                            d={`M ${x} ${midY} C ${x} ${midY + rowHeight / 2}, ${parentX} ${rowHeight / 2}, ${parentX} ${rowHeight}`}
-                            stroke={idx === 0 ? color : parentColor}
-                            strokeWidth="2"
+                            key={cmd.key}
+                            d={cmd.d}
+                            stroke={cmd.color}
+                            strokeWidth={cmd.width}
                             fill="none"
-                            opacity="0.7"
+                            strokeLinecap="round"
                         />
                     );
                 }
             })}
 
-            {/* 提交点 */}
+            {/* 2. 绘制节点圆点 */}
             <circle
-                cx={currentColumn * colWidth + colWidth / 2}
-                cy={midY}
-                r="4"
-                fill={COLUMN_COLORS[currentColumn % COLUMN_COLORS.length]}
-                stroke="rgba(0,0,0,0.6)"
-                strokeWidth="1.5"
-            />
-            <circle
-                cx={currentColumn * colWidth + colWidth / 2}
-                cy={midY}
-                r="4"
-                fill="none"
-                stroke="rgba(255,255,255,0.3)"
-                strokeWidth="0.5"
+                cx={row.nodeX}
+                cy={MID_Y}
+                r="3.5"
+                fill={row.nodeColor}
+                stroke="var(--bg-sidebar)" // 镂空效果
+                strokeWidth="2"
             />
         </svg>
     );
 };
 
-export default function HistoryTab({ commits }: HistoryTabProps) {
+export default function HistoryTab({ commits, onLoadMore, hasMore, isLoading }: HistoryTabProps) {
     const [selectedCommit, setSelectedCommit] = useState<string | null>(null);
+    const [detailsCache, setDetailsCache] = useState<Record<string, any>>({});
+    const [loadingDetails, setLoadingDetails] = useState(false);
 
-    // 计算提交位置
-    const positions = useMemo(() => calculateCommitPositions(commits), [commits]);
+    // 重新计算
+    const { rows, maxCol } = useMemo(() => calculateGraph(commits), [commits]);
 
-    // 计算最大列数
-    const maxColumns = useMemo(() => {
-        let max = 0;
-        positions.forEach(pos => {
-            if (pos.column > max) max = pos.column;
-            pos.activeColumns.forEach(col => {
-                if (col > max) max = col;
-            });
-        });
-        return max + 1;
-    }, [positions]);
+    const handleCommitClick = async (hash: string) => {
+        if (selectedCommit === hash) {
+            setSelectedCommit(null);
+            return;
+        }
+        setSelectedCommit(hash);
 
-    // 分配每个分支固定颜色
-    const branchColors = useMemo(() => {
-        const map = new Map<string, string>();
-        commits.forEach(c => {
-            const name = c.branch || 'HEAD';
-            if (!map.has(name)) {
-                const index = map.size;
-                map.set(name, COLUMN_COLORS[index % COLUMN_COLORS.length]);
+        if (!detailsCache[hash]) {
+            setLoadingDetails(true);
+            try {
+                const details = await window.electronAPI.git.gitGetCommitDetails(hash);
+                if (details) {
+                    setDetailsCache(prev => ({ ...prev, [hash]: details }));
+                }
+            } finally {
+                setLoadingDetails(false);
             }
-        });
-        return map;
-    }, [commits]);
-
-    // 格式化日期显示
-    const formatDate = (dateStr: string) => {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        const now = new Date();
-        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) return 'today';
-        if (diffDays === 1) return 'yesterday';
-        if (diffDays < 7) return `${diffDays} days ago`;
-        return date.toLocaleString();
+        }
     };
+
+    const formatDate = (dateStr: string) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+
+    const graphWidth = Math.max((maxCol + 2) * COL_WIDTH, 40);
 
     return (
         <div className="git-history">
-            {commits.map((commit, idx) => {
-                const color = branchColors.get(commit.branch || 'HEAD')!;
-                const isMerge = (commit.parentHashes?.length || 0) > 1;
+            {commits.map((commit) => {
+                const row = rows.get(commit.hash);
+                const isSelected = selectedCommit === commit.hash;
+                const details = detailsCache[commit.hash];
 
                 return (
                     <div
                         key={commit.hash}
-                        className={`git-commit-item ${selectedCommit === commit.hash ? 'selected' : ''}`}
-                        onClick={() => setSelectedCommit(commit.hash === selectedCommit ? null : commit.hash)}
-                        title={commit.message}
+                        className={`git-commit-item ${isSelected ? 'selected' : ''}`}
+                        onClick={() => handleCommitClick(commit.hash)}
                     >
-                        <div className="git-commit-graph-container">
-                            <CommitGraph
-                                commit={commit}
-                                index={idx}
-                                commits={commits}
-                                positions={positions}
-                                maxColumns={maxColumns}
-                            />
+                        {/* Graph Column */}
+                        <div className="git-graph-col" style={{ width: graphWidth, minWidth: graphWidth }}>
+                            <GraphCell row={row} width={graphWidth} />
                         </div>
 
+                        {/* Content Column */}
                         <div className="git-commit-content">
-                            <div className="git-commit-header">
-                                <div className="git-commit-message">{commit.message}</div>
-
+                            <div className="git-commit-row-main">
+                                <div className="git-commit-message" title={commit.message}>
+                                    {commit.message}
+                                </div>
                                 <div className="git-commit-meta">
-                                    <span className="git-commit-branch" style={{ backgroundColor: alpha(color, 0.15), color, borderColor: color }}>
-                                        {commit.branch}
-                                    </span>
-                                    {isMerge && <span className="git-commit-merge">merge</span>}
                                     <span className="git-commit-hash">{commit.hash.substring(0, 7)}</span>
+                                    <span className="git-commit-date">{formatDate(commit.date)}</span>
                                 </div>
                             </div>
-
-                            <div className="git-commit-sub">
+                            <div className="git-commit-author-row">
                                 <span className="git-commit-author">{commit.author}</span>
-                                <span className="git-commit-date">{formatDate(commit.date)}</span>
-                                {commit.fileChanges && (
-                                    <span className="git-commit-stats">
-                                        {commit.fileChanges.files.length} files • +{commit.fileChanges.additions} -{commit.fileChanges.deletions}
+                                {commit.branch && (
+                                    <span className="git-commit-branch-label"
+                                          style={{
+                                              color: row?.nodeColor,
+                                              borderColor: row?.nodeColor,
+                                              backgroundColor: `${row?.nodeColor}15`
+                                          }}>
+                                        {commit.branch}
                                     </span>
                                 )}
                             </div>
 
-                            {selectedCommit === commit.hash && (
-                                <div className="git-commit-expanded">
-                                    <div className="git-commit-details">
-                                        <div><strong>Author:</strong> {commit.author}</div>
-                                        <div><strong>Date:</strong> {new Date(commit.date).toLocaleString()}</div>
-                                        <div><strong>Hash:</strong> {commit.hash}</div>
-                                        <div><strong>Parents:</strong> {(commit.parentHashes || []).map(p => p.substring(0,7)).join(', ') || '—'}</div>
-                                    </div>
-
-                                    {commit.fileChanges && (
-                                        <div className="git-commit-files">
-                                            <div className="git-commit-files-summary">
-                                                <strong>Changes:</strong> {commit.fileChanges.additions} additions, {commit.fileChanges.deletions} deletions
+                            {/* Expanded Details */}
+                            {isSelected && (
+                                <div className="git-commit-details-panel" onClick={e => e.stopPropagation()}>
+                                    {loadingDetails && !details && <div className="loading-text">Loading...</div>}
+                                    {details && (
+                                        <>
+                                            <div className="stats-bar">
+                                                <span className="stat-add">+{details.additions}</span>
+                                                <span className="stat-del">-{details.deletions}</span>
+                                                <span className="stat-files">{details.files.length} files</span>
                                             </div>
-                                            <div className="git-commit-files-list">
-                                                {commit.fileChanges.files.map(f => (
-                                                    <div key={f} className="git-changed-file">{f}</div>
+                                            <div className="file-list">
+                                                {details.files.map((f: string) => (
+                                                    <div key={f} className="file-row" title={f}>{f}</div>
                                                 ))}
                                             </div>
-                                        </div>
+                                            <div className="action-bar">
+                                                <button onClick={() => window.electronAPI.git.gitCheckoutCommit(commit.hash)}>Checkout</button>
+                                                <button onClick={() => window.electronAPI.git.gitCreateBranchFromCommit(commit.hash)}>Branch</button>
+                                                <button onClick={() => navigator.clipboard.writeText(commit.hash)}>Copy Hash</button>
+                                            </div>
+                                        </>
                                     )}
-
-                                    <div className="git-commit-actions">
-                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); window.electronAPI.git.gitCheckoutCommit(commit.hash); }}>Checkout</button>
-                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); window.electronAPI.git.gitCreateBranchFromCommit(commit.hash); }}>Create Branch</button>
-                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); navigator.clipboard?.writeText(commit.hash); }}>Copy Hash</button>
-                                        <button className="git-action-btn" onClick={(e) => { e.stopPropagation(); window.electronAPI.git.openCommitDiff(commit.hash); }}>Show Diff</button>
-                                    </div>
                                 </div>
                             )}
                         </div>
@@ -357,17 +390,13 @@ export default function HistoryTab({ commits }: HistoryTabProps) {
                 );
             })}
 
-            {commits.length === 0 && (
-                <div className="git-empty">No commit history</div>
+            {hasMore && (
+                <div className="load-more-container">
+                    <button className="load-more-btn" onClick={onLoadMore} disabled={isLoading}>
+                        {isLoading ? 'Loading...' : 'Load More'}
+                    </button>
+                </div>
             )}
         </div>
     );
-}
-
-// 小工具：给颜色加透明
-function alpha(hsl: string, a: number) {
-    if (hsl.startsWith('hsl(')) {
-        return hsl.replace('hsl(', 'hsla(').replace(')', `, ${a})`);
-    }
-    return hsl;
 }

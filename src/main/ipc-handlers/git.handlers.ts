@@ -115,10 +115,17 @@ export const registerGitHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedStat
         return await gitService.createBranch(folder, branchName);
     });
 
-    ipcMain.handle(gitChannels.GET_COMMITS, async (_event, limit: number = 20) => {
+    ipcMain.handle(gitChannels.GET_COMMITS, async (_event, limit: number = 50, skip: number = 0) => {
         const folder = state.getFolder();
         if (!folder) return [];
-        return await gitService.getCommitHistory(folder, limit);
+        // @ts-ignore
+        return await gitService.getCommitHistory(folder, limit, skip);
+    });
+
+    ipcMain.handle(gitChannels.GET_COMMIT_DETAILS, async (_event, commitHash: string) => {
+        const folder = state.getFolder();
+        if (!folder) return null;
+        return await gitService.getCommitDetails(folder, commitHash);
     });
 
     ipcMain.handle(gitChannels.GET_DIFF, async (_event, filePath: string, staged: boolean) => {

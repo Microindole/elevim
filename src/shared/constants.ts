@@ -58,6 +58,7 @@ export const gitChannels = {
     CHECKOUT_BRANCH: 'git:checkout-branch',
     CREATE_BRANCH: 'git:create-branch',
     GET_COMMITS: 'git:get-commits',
+    GET_COMMIT_DETAILS: 'git:get-commit-details',
     GET_DIFF: 'git:get-diff',
     GET_CURRENT_BRANCH: 'git:get-current-branch',
     STASH: 'git:stash',

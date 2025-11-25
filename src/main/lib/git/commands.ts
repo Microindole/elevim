@@ -315,12 +315,13 @@ export async function createBranch(folderPath: string, branchName: string): Prom
     }
 }
 
-export async function getCommitHistory(folderPath: string, limit: number = 50): Promise<GitCommit[]> {
+export async function getCommitHistory(folderPath: string, limit: number = 50, skip: number = 0): Promise<GitCommit[]> {
     try {
-        // 第一步：获取提交历史和图形
+        // 优化：移除 --stat，只获取基础信息，极大提升速度
         const {stdout: logOutput} = await execFileAsync('git', [
             'log',
             `--max-count=${limit}`,
+            `--skip=${skip}`, // 支持分页
             '--all',
             '--format=%H%x1f%P%x1f%an%x1f%ad%x1f%s%x1f%D',
             '--date=format:%Y-%m-%d %H:%M'
@@ -357,49 +358,6 @@ export async function getCommitHistory(folderPath: string, limit: number = 50): 
                 }
             }
 
-            // 获取该提交的文件统计
-            let fileChanges = undefined;
-            try {
-                const {stdout: statOutput} = await execFileAsync('git', [
-                    'show',
-                    '--stat',
-                    '--format=',
-                    hash
-                ], {
-                    cwd: folderPath,
-                    timeout: 3000
-                });
-
-                if (statOutput.trim()) {
-                    const statLines = statOutput.trim().split('\n');
-                    const files: string[] = [];
-                    let additions = 0;
-                    let deletions = 0;
-
-                    for (const statLine of statLines) {
-                        // 解析类似 " file.txt | 10 ++++------" 的行
-                        const match = statLine.match(/^\s*(.+?)\s*\|\s*(\d+)\s*([+-]*)/);
-                        if (match) {
-                            const fileName = match[1].trim();
-                            files.push(fileName);
-
-                            const changes = match[3];
-                            const plusCount = (changes.match(/\+/g) || []).length;
-                            const minusCount = (changes.match(/-/g) || []).length;
-                            additions += plusCount;
-                            deletions += minusCount;
-                        }
-                    }
-
-                    if (files.length > 0) {
-                        fileChanges = { additions, deletions, files };
-                    }
-                }
-            } catch (statError) {
-                // 忽略统计错误，继续处理
-                console.warn('[Git] Failed to get stats for commit', hash.substring(0, 7));
-            }
-
             commits.push({
                 hash,
                 parentHashes: parents ? parents.split(' ').filter(Boolean) : [],
@@ -407,8 +365,8 @@ export async function getCommitHistory(folderPath: string, limit: number = 50): 
                 author,
                 date,
                 branch,
-                graph: [], // 我们不再使用 git log --graph 的输出
-                fileChanges
+                graph: [],
+                // fileChanges: undefined // 列表加载时不再返回文件详情
             });
         }
 
@@ -416,6 +374,50 @@ export async function getCommitHistory(folderPath: string, limit: number = 50): 
     } catch (error: any) {
         console.error('[Git] Failed to get commit history:', error.message);
         return [];
+    }
+}
+
+// 获取单个提交的详细信息（包含文件统计）
+export async function getCommitDetails(folderPath: string, commitHash: string) {
+    try {
+        const {stdout: statOutput} = await execFileAsync('git', [
+            'show',
+            '--stat',
+            '--format=',
+            commitHash
+        ], {
+            cwd: folderPath,
+            timeout: 3000
+        });
+
+        if (statOutput.trim()) {
+            const statLines = statOutput.trim().split('\n');
+            const files: string[] = [];
+            let additions = 0;
+            let deletions = 0;
+
+            for (const statLine of statLines) {
+                const match = statLine.match(/^\s*(.+?)\s*\|\s*(\d+)\s*([+-]*)/);
+                if (match) {
+                    const fileName = match[1].trim();
+                    files.push(fileName);
+
+                    const changes = match[3];
+                    const plusCount = (changes.match(/\+/g) || []).length;
+                    const minusCount = (changes.match(/-/g) || []).length;
+                    additions += plusCount;
+                    deletions += minusCount;
+                }
+            }
+
+            if (files.length > 0) {
+                return { additions, deletions, files };
+            }
+        }
+        return null;
+    } catch (error) {
+        console.warn('[Git] Failed to get details for commit', commitHash);
+        return null;
     }
 }
 

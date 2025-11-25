@@ -135,7 +135,8 @@ interface IGitAPI {
     gitGetBranches: () => Promise<GitBranch[]>;
     gitCheckoutBranch: (branchName: string) => Promise<boolean>;
     gitCreateBranch: (branchName: string) => Promise<boolean>;
-    gitGetCommits: (limit?: number) => Promise<GitCommit[]>;
+    gitGetCommits: (limit?: number, skip?: number) => Promise<GitCommit[]>;
+    gitGetCommitDetails: (commitHash: string) => Promise<{ additions: number; deletions: number; files: string[] } | null>;
     gitGetDiff: (filePath: string, staged: boolean) => Promise<GitDiff | null>;
     gitGetCurrentBranch: () => Promise<string | null>;
     gitStash: () => Promise<boolean>;

@@ -178,8 +178,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         gitCreateBranch: (branchName: string) => {
             return ipcRenderer.invoke(gitChannels.CREATE_BRANCH, branchName);
         },
-        gitGetCommits: (limit?: number) => {
-            return ipcRenderer.invoke(gitChannels.GET_COMMITS, limit);
+        gitGetCommits: (limit?: number, skip?: number) => {
+            return ipcRenderer.invoke(gitChannels.GET_COMMITS, limit, skip);
+        },
+        gitGetCommitDetails: (commitHash: string) => {
+            return ipcRenderer.invoke(gitChannels.GET_COMMIT_DETAILS, commitHash);
         },
         gitGetDiff: (filePath: string, staged: boolean) => {
             return ipcRenderer.invoke(gitChannels.GET_DIFF, filePath, staged);

@@ -33,10 +33,13 @@ export default function GitPanel({ onClose }: GitPanelProps) {
         branches,
         commits,
         currentBranch,
+        hasMoreCommits,
+        isLoadingCommits,
+        loadMoreCommits,
         loadChanges,
         loadBranches,
         loadCommits,
-        loadAll
+        loadAll,
     } = useGitData();
 
     const operations = useGitOperations({
@@ -147,7 +150,12 @@ export default function GitPanel({ onClose }: GitPanelProps) {
                         )}
 
                         {activeTab === GIT_PANEL_TABS.HISTORY && (
-                            <HistoryTab commits={commits} />
+                            <HistoryTab
+                                commits={commits}
+                                onLoadMore={loadMoreCommits}
+                                hasMore={hasMoreCommits}
+                                isLoading={isLoadingCommits}
+                            />
                         )}
 
                         {diffViewerFile && (

@@ -12,25 +12,56 @@ export const useGitData = () => {
     const [hasRemote, setHasRemote] = useState(false);
     const [changes, setChanges] = useState<GitFileChange[]>([]);
     const [branches, setBranches] = useState<GitBranch[]>([]);
-    const [commits, setCommits] = useState<GitCommit[]>([]);
     const [currentBranch, setCurrentBranch] = useState<string | null>(null);
 
+    // --- 提交历史状态 ---
+    const [commits, setCommits] = useState<GitCommit[]>([]);
+    const [hasMoreCommits, setHasMoreCommits] = useState(true);
+    const [isLoadingCommits, setIsLoadingCommits] = useState(false);
+
     const loadChanges = useCallback(async () => {
-        const result = await window.electronAPI.git.gitGetChanges(); // MODIFIED
+        const result = await window.electronAPI.git.gitGetChanges();
         setChanges(result);
     }, []);
 
     const loadBranches = useCallback(async () => {
-        const result = await window.electronAPI.git.gitGetBranches(); // MODIFIED
+        const result = await window.electronAPI.git.gitGetBranches();
         setBranches(result);
-        const current = await window.electronAPI.git.gitGetCurrentBranch(); // MODIFIED
+        const current = await window.electronAPI.git.gitGetCurrentBranch();
         setCurrentBranch(current);
     }, []);
 
+    // 1. 初始加载提交
     const loadCommits = useCallback(async () => {
-        const result = await window.electronAPI.git.gitGetCommits(50); // MODIFIED
-        setCommits(result);
+        setIsLoadingCommits(true);
+        try {
+            const result = await window.electronAPI.git.gitGetCommits(50, 0);
+            setCommits(result);
+            setHasMoreCommits(result.length === 50);
+        } finally {
+            setIsLoadingCommits(false);
+        }
     }, []);
+
+    // 2. 加载更多提交
+    const loadMoreCommits = useCallback(async () => {
+        if (isLoadingCommits || !hasMoreCommits) return;
+
+        setIsLoadingCommits(true);
+        try {
+            const currentLength = commits.length;
+            const result = await window.electronAPI.git.gitGetCommits(50, currentLength);
+
+            setCommits(prev => [...prev, ...result]);
+            if (result.length < 50) {
+                setHasMoreCommits(false);
+            }
+        } catch (e) {
+            console.error("Failed to load more commits", e);
+        } finally {
+            setIsLoadingCommits(false);
+        }
+    }, [commits.length, hasMoreCommits, isLoadingCommits]);
 
     const loadRemotes = useCallback(async () => {
         const remotes = await window.electronAPI.git.gitGetRemotes();
@@ -38,7 +69,6 @@ export const useGitData = () => {
     }, []);
 
     const loadAll = useCallback(() => {
-        // 立即检查状态，以防万一
         window.electronAPI.git.getGitStatus().then(status => {
             if (status === null) {
                 setRepoExists(false);
@@ -50,10 +80,9 @@ export const useGitData = () => {
             } else {
                 setRepoExists(true);
                 setHasRemote(true);
-                // 仅在仓库存在时加载
                 loadChanges();
                 loadBranches();
-                loadCommits();
+                loadCommits(); // 初始加载
                 loadRemotes();
             }
         });
@@ -66,9 +95,8 @@ export const useGitData = () => {
 
     // Git 状态变化监听
     useEffect(() => {
-        const unsubscribe = window.electronAPI.git.onGitStatusChange((status: GitStatusMap | null) => { // <--- 修改
+        const unsubscribe = window.electronAPI.git.onGitStatusChange((status: GitStatusMap | null) => {
             if (status === null) {
-                // 仓库不存在 (例如刚打开文件夹)
                 setRepoExists(false);
                 setChanges([]);
                 setBranches([]);
@@ -76,10 +104,12 @@ export const useGitData = () => {
                 setCurrentBranch(null);
                 setHasRemote(false);
             } else {
-                // 仓库存在 (可能是刚 init，或文件发生变化)
                 setRepoExists(true);
-                loadChanges(); // 重新加载变更
+                loadChanges();
                 loadRemotes();
+                // 注意：Git 状态变化（如文件修改）通常不需要刷新整个 Commit 历史，除非发生了 Commit。
+                // 如果你希望每次变动都刷新历史，可以在这里调用 loadCommits()，但要注意性能。
+                // 通常只需在 commit 操作成功后刷新历史即可（在 useGitOperations 里处理）。
             }
         });
         return unsubscribe;
@@ -98,6 +128,9 @@ export const useGitData = () => {
         branches,
         commits,
         currentBranch,
+        hasMoreCommits,
+        isLoadingCommits,
+        loadMoreCommits,
         loadChanges,
         loadBranches,
         loadCommits,

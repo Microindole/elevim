@@ -23,6 +23,7 @@ export {
     checkoutBranch,
     createBranch,
     getCommitHistory,
+    getCommitDetails,
     getFileDiff,
     getCurrentBranch,
     stashChanges,
