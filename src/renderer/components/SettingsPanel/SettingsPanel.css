@@ -106,3 +106,69 @@
     text-align: center;
     color: var(--text-color-subtle);
 }
+
+.settings-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-color-light);
+    color: var(--text-color);
+    padding: 8px 32px 8px 12px;
+    font-size: 13px;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    min-width: 200px;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23cccccc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    transition: all 0.2s ease;
+}
+
+.settings-select:hover {
+    background-color: #3e3e42;
+    border-color: var(--accent-color);
+}
+
+.settings-select:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.settings-select option {
+    background-color: var(--bg-panel);
+    color: var(--text-color);
+    padding: 10px;
+}
+
+/* 设置页面的头部按钮 */
+.settings-header-btn {
+    display: flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-color-subtle);
+    background-color: transparent;
+    border: 1px solid var(--border-color-light);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.settings-header-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-color-light);
+    border-color: var(--accent-color);
+}
+
+.settings-header-btn:active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.settings-header-btn svg {
+    opacity: 0.8;
+}

@@ -4,6 +4,7 @@ import Tabs, { OpenFile } from '../Tabs/Tabs';
 import Editor from '../Editor/Editor';
 import SettingsPanel from '../SettingsPanel/SettingsPanel';
 import './EditorGroup.css';
+import {EditorColors} from "../../../shared/types";
 
 interface EditorGroupProps {
     groupId: string;
@@ -22,6 +23,7 @@ interface EditorGroupProps {
     onJumpComplete: () => void;
     projectPath: string | null;
     onOpenFile: (path: string) => void;
+    themeColors: EditorColors | null;
 }
 
 // 一个内部组件：空状态展示
@@ -73,6 +75,7 @@ export default function EditorGroup(props: EditorGroupProps) {
                 initialFontSize={fontSize}
                 projectPath={projectPath}
                 onOpenFile={props.onOpenFile}
+                themeColors={props.themeColors}
             />
         );
     };

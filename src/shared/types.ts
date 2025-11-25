@@ -19,9 +19,37 @@ export type CommandId =
 // --- 设置 ---
 export type Keymap = Record<CommandId, string>;
 
+// 编辑器主题颜色
+export interface EditorColors {
+    // 基础界面颜色
+    background: string;
+    foreground: string;
+    caret: string;
+    selection: string;
+    lineHighlight: string;
+    gutterBackground: string;
+    gutterForeground: string;
+
+    // 语法高亮颜色
+    comment: string;
+    keyword: string;
+    string: string;
+    variable: string;
+    number: string;
+    function: string;
+    class: string;
+    tag: string;      // HTML/XML 标签
+    attribute: string; // HTML/CSS 属性
+}
+
 export interface AppSettings {
     fontSize: number;
     keymap: Keymap;
+    theme: {
+        mode: 'dark' | 'light'; // 用于 UI 判断
+        colors: EditorColors;
+    };
+    customThemes: Record<string, EditorColors>; //用户自定义主题
 }
 
 // --- 搜索 ---
@@ -81,6 +109,8 @@ interface IMenuAPI {
 interface ISettingsAPI {
     getSettings: () => Promise<AppSettings>;
     setSetting: (key: string, value: any) => void;
+    importTheme: ()=> Promise<{ success: boolean, data?: { name: string, colors: any }, message?: string }>;
+    openSettingsFolder: () => Promise<boolean>;
 }
 
 // --- 终端 API ---

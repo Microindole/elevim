@@ -1,17 +1,37 @@
 // src/renderer/hooks/useCodeMirror.ts
-import { useEffect, useRef, useState } from 'react';
-import { EditorState, Compartment, Extension } from "@codemirror/state";
-import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine, KeyBinding } from "@codemirror/view";
-import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, foldKeymap, indentUnit } from "@codemirror/language";
-import { oneDark } from '@codemirror/theme-one-dark';
-import { search, searchKeymap } from '@codemirror/search';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { getLanguage } from '../lib/language-map';
-import { autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
-import { linter, lintGutter, Diagnostic } from '@codemirror/lint';
-import { indentationMarkers } from '@replit/codemirror-indentation-markers';
+import {useEffect, useRef, useState} from 'react';
+import {EditorState, Compartment, Extension} from "@codemirror/state";
+import {
+    EditorView,
+    keymap,
+    lineNumbers,
+    highlightActiveLineGutter,
+    highlightSpecialChars,
+    drawSelection,
+    dropCursor,
+    rectangularSelection,
+    crosshairCursor,
+    highlightActiveLine,
+    KeyBinding
+} from "@codemirror/view";
+import {
+    defaultHighlightStyle,
+    syntaxHighlighting,
+    indentOnInput,
+    bracketMatching,
+    foldGutter,
+    foldKeymap,
+    indentUnit
+} from "@codemirror/language";
+import {createThemeExtension} from '../lib/theme-generator';
+import {search, searchKeymap} from '@codemirror/search';
+import {defaultKeymap, history, historyKeymap} from '@codemirror/commands';
+import {getLanguage} from '../lib/language-map';
+import {autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap} from '@codemirror/autocomplete';
+import {linter, lintGutter, Diagnostic} from '@codemirror/lint';
+import {indentationMarkers} from '@replit/codemirror-indentation-markers';
 
-import { Keymap } from '../../shared/types';
+import {EditorColors, Keymap} from '../../shared/types';
 
 const simpleLinter = (view: EditorView): readonly Diagnostic[] => {
     const diagnostics: Diagnostic[] = [];
@@ -52,8 +72,10 @@ interface UseCodeMirrorProps {
     onCursorChange: (line: number, col: number) => void;
     initialKeymap: Keymap | null;
     onUpdate?: (view: EditorView) => void;
+    themeColors: EditorColors | null;
 }
 
+const themeCompartment = new Compartment();
 const fontThemeCompartment = new Compartment();
 const languageCompartment = new Compartment();
 const keymapCompartment = new Compartment();
@@ -75,7 +97,10 @@ function createKeymapExtension(keymapConfig: Keymap, onSave: () => void): Extens
     if (keymapConfig['editor.save']) {
         saveBinding.push({
             key: keymapConfig['editor.save'], // (例如 "Mod+S")
-            run: () => { onSave(); return true; }
+            run: () => {
+                onSave();
+                return true;
+            }
         });
     }
 
@@ -92,7 +117,11 @@ function createKeymapExtension(keymapConfig: Keymap, onSave: () => void): Extens
 }
 
 export function useCodeMirror(props: UseCodeMirrorProps) {
-    const { content, filename, onDocChange, onSave, onCursorChange, initialKeymap, onUpdate } = props;
+    const {
+        content, filename, onDocChange,
+        onSave, onCursorChange, initialKeymap,
+        onUpdate, themeColors
+    } = props;
     const editorRef = useRef<HTMLDivElement>(null);
     const [view, setView] = useState<EditorView | null>(null);
 
@@ -120,6 +149,11 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
 
         const initialLanguage = getLanguage(filename);
 
+        // 如果还没加载配置，使用默认值（或者空）
+        const initialTheme = themeColors
+            ? createThemeExtension(themeColors)
+            : [];
+
         const setup = [
             lineNumbers(),
             highlightActiveLineGutter(),
@@ -130,15 +164,15 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             dropCursor(),
             EditorState.allowMultipleSelections.of(true),
             indentOnInput(),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+            syntaxHighlighting(defaultHighlightStyle, {fallback: true}),
             bracketMatching(),
             closeBrackets(),
             autocompletion(),
             rectangularSelection(),
             crosshairCursor(),
             highlightActiveLine(),
-            search({ top: true }),
-            oneDark,
+            search({top: true}),
+            themeCompartment.of(initialTheme),
             updateListener,
             fontThemeCompartment.of(EditorView.theme({
                 '&': {
@@ -199,7 +233,16 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
         }
     }, [filename, view]);
 
-    return { editorRef, view };
+    // 动态更新主题
+    useEffect(() => {
+        if (view && themeColors) {
+            view.dispatch({
+                effects: themeCompartment.reconfigure(createThemeExtension(themeColors))
+            });
+        }
+    }, [themeColors, view]);
+
+    return {editorRef, view};
 }
 
 export function updateEditorFontSize(view: EditorView | null, fontSize: number) {
@@ -233,8 +276,8 @@ export function jumpToLine(view: EditorView | null, line: number) {
         const linePos = view.state.doc.line(targetLine).from;
 
         view.dispatch({
-            selection: { anchor: linePos, head: linePos },
-            effects: EditorView.scrollIntoView(linePos, { y: "center" })
+            selection: {anchor: linePos, head: linePos},
+            effects: EditorView.scrollIntoView(linePos, {y: "center"})
         });
 
         view.focus();

@@ -1,7 +1,7 @@
 // src/renderer/components/Breadcrumbs/Breadcrumbs.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import './Breadcrumbs.css';
-import { BreadcrumbItem } from '../../../main/lib/breadcrumbs-util';
+import { BreadcrumbItem } from '../../lib/breadcrumbs-util';
 import { getIcon } from '../FileTree/icon-map';
 
 interface BreadcrumbsProps {

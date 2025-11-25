@@ -2,7 +2,8 @@
 import { app } from 'electron';
 import * as path from 'path';
 import * as fs from 'node:fs/promises';
-import { AppSettings, Keymap } from '../../shared/types';
+import {AppSettings, EditorColors, Keymap} from '../../shared/types';
+import {DEFAULT_THEME} from "../../shared/themes";
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
@@ -23,7 +24,12 @@ const defaultKeymap: Keymap = {
 
 const defaultSettings: AppSettings = {
     fontSize: 15,
-    keymap: defaultKeymap
+    keymap: defaultKeymap,
+    theme: {
+        mode: 'dark',
+        colors: DEFAULT_THEME
+    },
+    customThemes: {} // 初始化为空对象
 };
 
 export async function readSettings(): Promise<AppSettings> {

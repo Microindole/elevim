@@ -3,9 +3,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { EditorView } from '@codemirror/view';
 import { useCodeMirror, updateEditorFontSize, jumpToLine as cmJumpToLine, updateKeymap } from '../../hooks/useCodeMirror';
 import Breadcrumbs from '../Breadcrumbs/Breadcrumbs';
-import { getSymbolPath, BreadcrumbItem } from '../../../main/lib/breadcrumbs-util';
+import { getSymbolPath, BreadcrumbItem } from '../../lib/breadcrumbs-util';
 import './Editor.css';
-import { Keymap } from "../../../shared/types";
+import {EditorColors, Keymap} from "../../../shared/types";
 
 const MIN_FONT_SIZE = 8;
 const MAX_FONT_SIZE = 40;
@@ -23,22 +23,24 @@ interface EditorProps {
     initialFontSize: number;
     projectPath: string | null;
     onOpenFile: (filePath: string) => void;
+    themeColors: EditorColors | null;
 }
 
 export default function Editor({
-                                   content,
-                                   filename,
-                                   filePath,
-                                   onDocChange,
-                                   onSave,
-                                   programmaticChangeRef,
-                                   onCursorChange,
-                                   jumpToLine,
-                                   onJumpComplete,
-                                   initialFontSize,
-                                   projectPath,
-                                   onOpenFile,
-                               }: EditorProps) {
+    content,
+    filename,
+    filePath,
+    onDocChange,
+    onSave,
+    programmaticChangeRef,
+    onCursorChange,
+    jumpToLine,
+    onJumpComplete,
+    initialFontSize,
+    projectPath,
+    onOpenFile,
+    themeColors,
+}: EditorProps) {
     const [fontSize, setFontSize] = useState(initialFontSize);
     const [keymap, setKeymap] = useState<Keymap | null>(null);
 
@@ -73,7 +75,8 @@ export default function Editor({
         onSave,
         onCursorChange,
         initialKeymap: keymap,
-        onUpdate: handleBreadcrumbUpdate
+        onUpdate: handleBreadcrumbUpdate,
+        themeColors: themeColors,
     });
 
     useEffect(() => {

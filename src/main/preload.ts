@@ -110,6 +110,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         setSetting: (key: string, value: any) => {
             ipcRenderer.send(settingsChannels.SET_SETTING, key, value);
         },
+        importTheme: (): Promise<{ success: boolean, data?: { name: string, colors: any }, message?: string }> => {
+            return ipcRenderer.invoke(settingsChannels.IMPORT_THEME);
+        },
+        openSettingsFolder: () => {
+            return ipcRenderer.invoke(settingsChannels.OPEN_SETTINGS_FOLDER);
+        },
     },
 
     // --- 命名空间: terminal ---

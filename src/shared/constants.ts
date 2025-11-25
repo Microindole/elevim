@@ -77,27 +77,25 @@ export const githubChannels = {
     LINK_REMOTE: 'github:link-remote'
 };
 
-// (从 menu.handlers.ts 移动过来)
 export const menuChannels = {
     NEW_FILE: 'menu:new-file',
     TRIGGER_SAVE_AS_FILE: 'menu:trigger-save-as',
     TRIGGER_SAVE_FILE: 'menu:trigger-save',
 };
 
-// (从 settings.handlers.ts 移动过来)
 export const settingsChannels = {
     GET_SETTINGS: 'settings:get',
     SET_SETTING: 'settings:set',
+    IMPORT_THEME: 'settings:import-theme',
+    OPEN_SETTINGS_FOLDER: 'settings:open-folder',
 };
 
-// (从 terminal.handlers.ts 移动过来)
 export const terminalChannels = {
     INIT: 'terminal:init',
     IN: 'terminal:in',
     RESIZE: 'terminal:resize',
 };
 
-// (从 window.handlers.ts 移动过来)
 export const windowChannels = {
     MINIMIZE: 'window:minimize',
     MAXIMIZE: 'window:maximize',

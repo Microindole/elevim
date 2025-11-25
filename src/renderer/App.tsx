@@ -307,6 +307,7 @@ export default function App() {
         handleFileTreeSelectWrapper(path);
     };
 
+    const themeColors = settings ? settings.theme.colors : null;
     const fileEncoding = activeFile ? activeFile.encoding : null;
 
     return (
@@ -363,6 +364,7 @@ export default function App() {
                                         onJumpComplete={handleJumpComplete}
                                         projectPath={currentOpenFolderPath.current}
                                         onOpenFile={handleBreadcrumbFileSelect}
+                                        themeColors={themeColors}
                                     />
                                 </Allotment.Pane>
                             ))}
