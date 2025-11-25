@@ -2,7 +2,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './Breadcrumbs.css';
 import { BreadcrumbItem } from '../../../main/lib/breadcrumbs-util';
-// 确保引入路径正确，根据你的文件结构调整
 import { getIcon } from '../FileTree/icon-map';
 
 interface BreadcrumbsProps {
@@ -13,7 +12,6 @@ interface BreadcrumbsProps {
     onFileSelect: (path: string) => void;
 }
 
-// 扩展 BreadcrumbItem 类型以包含完整路径
 interface BreadcrumbPathItem extends BreadcrumbItem {
     fullPath: string;
 }
@@ -23,69 +21,74 @@ export default function Breadcrumbs({ filePath, projectPath, symbols, onItemClic
 
     const [activeDropdown, setActiveDropdown] = useState<number | null>(null);
     const [dropdownItems, setDropdownItems] = useState<{name: string, path: string, isDir: boolean}[]>([]);
-    const dropdownRef = useRef<HTMLDivElement>(null);
+    // 存储下拉菜单的坐标
+    const [dropdownPos, setDropdownPos] = useState<{ top: number, left: number } | null>(null);
 
-    // 点击外部关闭下拉菜单
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // 点击外部关闭
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setActiveDropdown(null);
+            // 检查点击是否在任何 .breadcrumb-item 或 .breadcrumb-dropdown 内
+            if ((event.target as Element).closest('.breadcrumb-dropdown') ||
+                (event.target as Element).closest('.breadcrumb-item')) {
+                return;
             }
+            setActiveDropdown(null);
         };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        window.addEventListener('mousedown', handleClickOutside);
+        return () => window.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    // --- 核心修复：准确计算路径 ---
+    // --- 1. 路径解析逻辑 (增强版：支持外部文件完整路径) ---
     const getPathItems = (): BreadcrumbPathItem[] => {
         const items: BreadcrumbPathItem[] = [];
-
-        // 统一路径分隔符
         const normalizedFilePath = filePath.replace(/\\/g, '/');
         const normalizedProjectPath = projectPath ? projectPath.replace(/\\/g, '/') : null;
 
         if (normalizedProjectPath && normalizedFilePath.startsWith(normalizedProjectPath)) {
-            // --- 情况 A: 项目内文件 ---
-
-            // 1. 添加根项目目录
+            // --- A. 项目内文件 ---
             const projectName = normalizedProjectPath.split('/').pop() || 'Project';
-            items.push({
-                type: 'dir',
-                name: projectName,
-                fullPath: normalizedProjectPath
-            });
+            items.push({ type: 'dir', name: projectName, fullPath: normalizedProjectPath });
 
-            // 2. 处理中间路径
-            // 获取相对路径部分，例如 "/src/components/App.tsx"
             const relativePart = normalizedFilePath.substring(normalizedProjectPath.length);
-            // 分割并过滤空字符串
             const parts = relativePart.split('/').filter(p => p.length > 0);
 
-            let currentAccumulatedPath = normalizedProjectPath;
-
+            let currentPath = normalizedProjectPath;
             parts.forEach((part, index) => {
-                currentAccumulatedPath += `/${part}`;
+                currentPath += `/${part}`;
                 const isLast = index === parts.length - 1;
-
                 items.push({
-                    type: isLast ? 'file' : 'dir', // 最后一个是当前文件
+                    type: isLast ? 'file' : 'dir',
                     name: part,
-                    fullPath: currentAccumulatedPath
+                    fullPath: currentPath
                 });
             });
         } else {
-            // --- 情况 B: 项目外文件 (或未打开文件夹) ---
-            // 简单处理：直接显示文件名，不支持上层导航（或者你可以实现完整系统路径分割）
+            // --- B. 外部文件 (完整系统路径) ---
+            // 例如: C:/Users/Admin/Desktop/test.txt
             const parts = normalizedFilePath.split('/');
-            const fileName = parts[parts.length - 1];
-            // 如果是在 Windows 根目录下，parts[0] 可能是 "C:"
 
-            // 这里简单起见，我们只显示文件名本身，或者你可以尝试解析父级
-            // 为了让它能工作，我们至少放入当前文件
-            items.push({
-                type: 'file',
-                name: fileName,
-                fullPath: normalizedFilePath
+            let currentAccumulated = "";
+
+            parts.forEach((part, index) => {
+                if (part === "") return; // 忽略空，但要注意 Linux 根路径
+
+                // 简单的路径累加
+                // 如果是 index 0 (如 "C:"), current = "C:"
+                // 如果是后续 (如 "Users"), current = "C:/Users"
+                if (index === 0) {
+                    currentAccumulated = part;
+                } else {
+                    currentAccumulated += `/${part}`;
+                }
+
+                const isLast = index === parts.length - 1;
+                items.push({
+                    type: isLast ? 'file' : 'dir',
+                    name: part,
+                    fullPath: currentAccumulated
+                });
             });
         }
         return items;
@@ -93,110 +96,71 @@ export default function Breadcrumbs({ filePath, projectPath, symbols, onItemClic
 
     const fileItems = getPathItems();
 
-    // --- 核心修复：点击事件处理 ---
-    const onBreadcrumbClick = async (index: number, item: BreadcrumbPathItem) => {
-        // 如果点击的是当前打开的下拉菜单，则关闭
+    // --- 2. 点击事件：计算位置并读取目录 ---
+    const onBreadcrumbClick = async (e: React.MouseEvent, index: number, item: BreadcrumbPathItem) => {
+        e.stopPropagation();
+
         if (activeDropdown === index) {
             setActiveDropdown(null);
             return;
         }
 
-        // 确定要读取的目录路径
-        let dirToRead = "";
+        // 计算下拉菜单的位置 (Fixed Positioning)
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDropdownPos({
+            top: rect.bottom + 4, // 在元素下方 4px
+            left: rect.left
+        });
 
+        let dirToRead = "";
         if (item.type === 'file') {
-            // 如果点击的是文件（通常是最后一个），我们显示它所在目录的同级文件
-            // 去掉文件名，获取父目录
-            const lastSlashIndex = item.fullPath.lastIndexOf('/');
-            if (lastSlashIndex !== -1) {
-                dirToRead = item.fullPath.substring(0, lastSlashIndex);
-            } else {
-                return; // 无法解析父目录
-            }
+            // 如果是文件，列出同级目录
+            const lastSlash = item.fullPath.lastIndexOf('/');
+            dirToRead = item.fullPath.substring(0, lastSlash);
         } else {
-            // 如果点击的是目录，直接读取这个目录下的内容
             dirToRead = item.fullPath;
         }
 
         try {
-            // 请求主进程读取目录
-            const result = await window.electronAPI.file.readDirectory(dirToRead);
+            // !!! 使用新的 Flat API
+            // @ts-ignore (如果 TS 报错说 readDirectoryFlat 不存在，因为没更新类型定义)
+            const result = await window.electronAPI.file.readDirectoryFlat(dirToRead);
 
             if (result && result.children) {
-                const siblings = result.children.map((child: any) => ({
-                    name: child.name,
-                    path: child.path, // 这里 file-system.ts 返回的 path 应该是完整路径
-                    isDir: !!child.children // 或者是根据 file-system 返回的类型判断
-                })).sort((a: any, b: any) => {
-                    // 文件夹排在前面
-                    if (a.isDir === b.isDir) return a.name.localeCompare(b.name);
-                    return a.isDir ? -1 : 1;
-                });
-
-                setDropdownItems(siblings);
-                setActiveDropdown(index); // 显示下拉菜单
+                setDropdownItems(result.children);
+                setActiveDropdown(index);
             }
-        } catch (e) {
-            console.error("Failed to read directory:", dirToRead, e);
+        } catch (err) {
+            console.error(err);
         }
     };
 
     return (
-        <div className="breadcrumbs-container" ref={dropdownRef}>
+        <div className="breadcrumbs-container" ref={containerRef}>
             {fileItems.map((item, index) => {
-                // 获取图标
                 const { iconPath } = getIcon(item.name, item.type === 'dir');
 
                 return (
                     <React.Fragment key={item.fullPath || index}>
-                        <div className="breadcrumb-wrapper" style={{position: 'relative'}}>
-                            <div
-                                className={`breadcrumb-item ${item.type} ${activeDropdown === index ? 'active' : ''}`}
-                                onClick={() => onBreadcrumbClick(index, item)}
-                            >
-                                <span className="breadcrumb-icon">
-                                    <img src={iconPath} alt="" />
-                                </span>
-                                <span className="breadcrumb-name">{item.name}</span>
-                            </div>
-
-                            {/* 下拉菜单渲染 */}
-                            {activeDropdown === index && (
-                                <div className="breadcrumb-dropdown">
-                                    {dropdownItems.length === 0 ? (
-                                        <div className="dropdown-empty">Empty</div>
-                                    ) : (
-                                        dropdownItems.map((subItem) => {
-                                            const subIcon = getIcon(subItem.name, subItem.isDir).iconPath;
-                                            return (
-                                                <div
-                                                    key={subItem.path}
-                                                    className="dropdown-item"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation(); // 防止冒泡
-                                                        if (!subItem.isDir) {
-                                                            onFileSelect(subItem.path);
-                                                            setActiveDropdown(null);
-                                                        }
-                                                        // 如果是目录，VS Code 的行为通常是不做操作或进入下一级
-                                                        // 这里暂时只支持打开文件
-                                                    }}
-                                                >
-                                                    <img src={subIcon} alt="" className="dropdown-icon" />
-                                                    <span className="dropdown-text">{subItem.name}</span>
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                </div>
-                            )}
+                        <div
+                            className={`breadcrumb-item ${item.type} ${activeDropdown === index ? 'active' : ''}`}
+                            onClick={(e) => onBreadcrumbClick(e, index, item)}
+                        >
+                            <span className="breadcrumb-icon">
+                                <img src={iconPath} alt="" />
+                            </span>
+                            <span className="breadcrumb-name">{item.name}</span>
                         </div>
-                        <span className="breadcrumb-separator">›</span>
+
+                        {/* 分隔符 */}
+                        {index < fileItems.length + symbols.length - 1 && (
+                            <span className="breadcrumb-separator">›</span>
+                        )}
                     </React.Fragment>
                 );
             })}
 
-            {/* 符号部分保持不变 */}
+            {/* 符号部分 (暂不加下拉) */}
             {symbols.map((item, index) => (
                 <React.Fragment key={`symbol-${index}`}>
                     <div
@@ -211,6 +175,43 @@ export default function Breadcrumbs({ filePath, projectPath, symbols, onItemClic
                     )}
                 </React.Fragment>
             ))}
+
+            {/* 下拉菜单 (渲染在最外层，利用 Fixed 定位)
+                注意：这里我们只渲染一个全局的下拉菜单，根据 activeDropdown 显示
+            */}
+            {activeDropdown !== null && dropdownPos && (
+                <div
+                    className="breadcrumb-dropdown"
+                    style={{ top: dropdownPos.top, left: dropdownPos.left }}
+                >
+                    {dropdownItems.length === 0 ? (
+                        <div className="dropdown-empty">Empty or Loading...</div>
+                    ) : (
+                        dropdownItems.map((subItem) => {
+                            // 获取下拉列表项的图标
+                            const subIcon = getIcon(subItem.name, subItem.isDir).iconPath;
+                            return (
+                                <div
+                                    key={subItem.path}
+                                    className="dropdown-item"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (!subItem.isDir) {
+                                            onFileSelect(subItem.path);
+                                            setActiveDropdown(null);
+                                        }
+                                        // 如果是文件夹，VS Code 行为是不打开。如果想支持导航，需要在这里递归更新面包屑状态，比较复杂。
+                                        // 暂时保持点击文件打开即可。
+                                    }}
+                                >
+                                    <img src={subIcon} alt="" className="dropdown-icon" />
+                                    <span className="dropdown-text">{subItem.name}</span>
+                                </div>
+                            );
+                        })
+                    )}
+                </div>
+            )}
         </div>
     );
 }

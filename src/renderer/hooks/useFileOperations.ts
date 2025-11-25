@@ -13,6 +13,14 @@ const welcomeFile: OpenFile = {
     encoding: 'UTF-8'
 };
 
+// 路径标准化
+const normalizePath = (path: string | null) => {
+    if (!path) return '';
+    // 1. 统一将反斜杠替换为正斜杠
+    // 2. 转为小写（解决 Windows 盘符大小写不一致问题）
+    return path.replace(/\\/g, '/').toLowerCase();
+};
+
 export function useFileOperations() {
     const [groups, setGroups] = useState<EditorGroup[]>([
         { id: uuidv4(), files: [], activeIndex: -1 }
@@ -32,7 +40,6 @@ export function useFileOperations() {
     const [jumpToLine, setJumpToLine] = useState<{ path: string | null, line: number } | null>(null);
 
     const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0];
-    // 安全获取 activeFile，防止数组越界
     const activeFile = activeGroup && activeGroup.files.length > 0
         ? activeGroup.files[activeGroup.activeIndex]
         : null;
@@ -41,8 +48,6 @@ export function useFileOperations() {
     useEffect(() => {
         stateRef.current = { groups, activeGroupId };
     }, [groups, activeGroupId]);
-
-    // --- 操作方法 ---
 
     const activateGroup = useCallback((groupId: string) => {
         setActiveGroupId(groupId);
@@ -54,6 +59,24 @@ export function useFileOperations() {
         encoding: string,
         line?: number
     ) => {
+        // 用于跳转的最终路径（默认为传入路径）
+        let finalJumpPath = filePath;
+
+        // A. 预先检查是否存在，为了修正 jumpToLine 的路径
+        // 如果文件已存在，我们需要使用已存在的那个路径字符串（可能有 \ 和 / 的区别），
+        // 否则 Editor.tsx 里的 jumpToLine 比较会失败。
+        const { groups, activeGroupId } = stateRef.current;
+        const currentActiveId = activeGroupId || groups[0]?.id;
+        const currentGroup = groups.find(g => g.id === currentActiveId);
+
+        if (currentGroup) {
+            const targetPath = normalizePath(filePath);
+            const existingFile = currentGroup.files.find(f => normalizePath(f.path) === targetPath);
+            if (existingFile && existingFile.path) {
+                finalJumpPath = existingFile.path; // 使用已存在的路径格式
+            }
+        }
+
         setGroups(prevGroups => {
             const currentActiveId = stateRef.current.activeGroupId || prevGroups[0].id;
 
@@ -73,15 +96,18 @@ export function useFileOperations() {
                     return { ...group, files: [newFile], activeIndex: 0 };
                 }
 
-                // 检查文件是否已存在
-                const existingIndex = group.files.findIndex(f => f.path === filePath);
+                // B. 使用标准化路径检查文件是否已存在
+                const targetPath = normalizePath(filePath);
+                const existingIndex = group.files.findIndex(f => normalizePath(f.path) === targetPath);
+
                 if (existingIndex > -1) {
+                    // 如果已存在，直接激活该 Tab
                     return { ...group, activeIndex: existingIndex };
                 }
 
                 // 新增文件
                 const newFile: OpenFile = {
-                    id: uuidv4(), // <--- 生成 ID
+                    id: uuidv4(),
                     path: filePath,
                     name: filePath.split(/[\\/]/).pop() ?? "Untitled",
                     content: fileContent,
@@ -96,7 +122,8 @@ export function useFileOperations() {
             });
         });
 
-        if (line) setJumpToLine({ path: filePath, line });
+        // 使用修正后的路径进行跳转
+        if (line) setJumpToLine({ path: finalJumpPath, line });
     }, []);
 
     const handleNewFile = useCallback(() => {
@@ -130,7 +157,6 @@ export function useFileOperations() {
             const group = prevGroups[groupIdx];
             const newFiles = group.files.filter((_, i) => i !== fileIndex);
 
-            // 逻辑简化：如果文件关完了，且有多组，则删除组；否则保留空组
             if (newFiles.length === 0 && prevGroups.length > 1) {
                 const newGroups = prevGroups.filter(g => g.id !== groupId);
                 if (groupId === stateRef.current.activeGroupId) {
@@ -141,33 +167,20 @@ export function useFileOperations() {
             }
 
             if (newFiles.length === 0) {
-                // 变为空组
                 return prevGroups.map(g => g.id === groupId
                     ? { ...g, files: [], activeIndex: -1 }
                     : g
                 );
             }
 
-            // 调整 activeIndex
             let newActiveIndex = group.activeIndex;
-            if (newActiveIndex >= fileIndex) {
-                newActiveIndex = Math.max(0, newActiveIndex - 1);
-            }
-            // 如果关闭的是非激活标签，且在激活标签左侧，索引减一
-            // 上面的逻辑可能有点问题，修正如下：
             if (fileIndex < group.activeIndex) {
-                // 如果关闭的在当前激活的左边，当前激活的索引减1
-                // 这里我们上面已经处理了 activeIndex >= fileIndex 的情况（即关闭当前或左侧）
-                // 但如果是关闭当前(==)，我们希望选中前一个，所以 Math.max(0, activeIndex - 1) 是对的
+                newActiveIndex = Math.max(0, newActiveIndex - 1);
             } else if (fileIndex === group.activeIndex) {
-                // 关闭当前，选中前一个，如果前一个不存在(0)，选中后一个(0)
                 newActiveIndex = Math.max(0, fileIndex - 1);
                 if (newFiles.length > 0 && newActiveIndex >= newFiles.length) {
                     newActiveIndex = newFiles.length - 1;
                 }
-            } else {
-                // 关闭右侧，索引不变
-                newActiveIndex = group.activeIndex;
             }
 
             return prevGroups.map(g => g.id === groupId
@@ -207,7 +220,6 @@ export function useFileOperations() {
         }
         setGroups(prev => {
             const currentActiveId = stateRef.current.activeGroupId;
-            // 同步所有组中相同路径的文件内容
             const currentGroup = prev.find(g => g.id === currentActiveId);
             const currentFile = currentGroup?.files[currentGroup?.activeIndex];
             const activeFilePath = currentFile?.path;
@@ -216,11 +228,11 @@ export function useFileOperations() {
                 return {
                     ...group,
                     files: group.files.map((f, i) => {
-                        // 匹配路径，或者是当前组正在编辑的无名文件
-                        const isTarget = (activeFilePath && f.path === activeFilePath) ||
-                            (!activeFilePath && group.id === currentActiveId && i === group.activeIndex);
+                        // 使用标准化路径进行匹配，确保同步正确
+                        const isSamePath = activeFilePath && f.path && normalizePath(f.path) === normalizePath(activeFilePath);
+                        const isCurrentUntitled = !activeFilePath && group.id === currentActiveId && i === group.activeIndex;
 
-                        if (isTarget && f.content !== doc) {
+                        if ((isSamePath || isCurrentUntitled) && f.content !== doc) {
                             return { ...f, content: doc, isDirty: true };
                         }
                         return f;
@@ -235,7 +247,7 @@ export function useFileOperations() {
         const group = groups.find(g => g.id === activeGroupId);
         if (!group) return;
         const file = group.files[group.activeIndex];
-        if (!file) return; // 空组不保存
+        if (!file) return;
 
         const savedPath = await window.electronAPI.file.saveFile(file.content);
 
@@ -243,7 +255,8 @@ export function useFileOperations() {
             setGroups(prev => prev.map(g => ({
                 ...g,
                 files: g.files.map(f => {
-                    if (f.path === file.path || (file.path === null && f === file)) {
+                    // 标准化比较
+                    if ((f.path && normalizePath(f.path) === normalizePath(file.path)) || (file.path === null && f === file)) {
                         return {
                             ...f,
                             path: savedPath,

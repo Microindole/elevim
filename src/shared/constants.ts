@@ -34,7 +34,6 @@ export const GITHUB_EVENTS = {
 
 // --- 2. Renderer -> Main 调用 (请求/调用) ---
 
-// (从 file.handlers.ts 移动过来)
 export const fileChannels = {
     SHOW_OPEN_DIALOG: 'file:show-open-dialog',
     SAVE_FILE: 'file:save-file',
@@ -46,7 +45,6 @@ export const fileChannels = {
     READ_DIRECTORY_FLAT: 'file:read-directory-flat',
 };
 
-// (从 git.handlers.ts 移动过来)
 export const gitChannels = {
     START_GIT_WATCHER: 'git:start-watcher',
     STOP_GIT_WATCHER: 'git:stop-watcher',

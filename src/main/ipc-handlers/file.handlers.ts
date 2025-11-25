@@ -2,7 +2,7 @@
 import { IpcMain, dialog } from 'electron';
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
-import * as jschardet from 'jschardet'; // <-- 导入
+import * as jschardet from 'jschardet';
 import { readDirectory, searchInDirectory, replaceInDirectory } from '../lib/file-system';
 import { SearchOptions, ReplaceOptions } from '../../shared/types';
 import { IpcHandlerSharedState } from './state';
@@ -183,17 +183,26 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
 
     ipcMain.handle(fileChannels.READ_DIRECTORY_FLAT, async (_event, folderPath: string) => {
         try {
+            // 只读一层，不递归
             const entries = await fs.readdir(folderPath, { withFileTypes: true });
-            // 转换为前端需要的简单格式
+
             const children = entries.map(entry => ({
                 name: entry.name,
+                // 拼接完整路径
                 path: path.join(folderPath, entry.name),
-                // 简单的判断是否是目录，不再递归
-                children: entry.isDirectory() ? [] : undefined
+                // 简单判断是否是目录 (不递归读取子节点)
+                isDir: entry.isDirectory()
             }));
+
+            // 排序：文件夹在前
+            children.sort((a, b) => {
+                if (a.isDir === b.isDir) return a.name.localeCompare(b.name);
+                return a.isDir ? -1 : 1;
+            });
+
             return { children };
         } catch (error) {
-            console.error('Failed to read directory flat:', error);
+            console.error('[Breadcrumbs] Failed to read flat directory:', folderPath, error);
             return { children: [] };
         }
     });

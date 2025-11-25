@@ -1,10 +1,10 @@
 // src/renderer/components/FileTree/icon-map.ts
 import { generateManifest } from 'material-icon-theme';
 
-// 1. 生成图标映射配置
+// 生成图标映射配置
 const manifest = generateManifest({});
 
-// 2. 手动补充可能缺失的常用映射
+// 手动补充可能缺失的常用映射
 // material-icon-theme 有时依赖 Language ID，导致这些基础后缀在 fileExtensions 中缺失
 const extraExtensions: Record<string, string> = {
     js: 'javascript',
