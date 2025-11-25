@@ -20,6 +20,8 @@ interface EditorGroupProps {
     programmaticChangeRef: React.MutableRefObject<boolean>;
     jumpToLine: { path: string | null, line: number } | null;
     onJumpComplete: () => void;
+    projectPath: string | null;
+    onOpenFile: (path: string) => void;
 }
 
 // 一个内部组件：空状态展示
@@ -40,7 +42,8 @@ export default function EditorGroup(props: EditorGroupProps) {
         files, activeIndex, isActiveGroup,
         onActivate, onTabClick, onTabClose,
         onDocChange, onSave, onCursorChange,
-        fontSize, programmaticChangeRef, jumpToLine, onJumpComplete
+        fontSize, programmaticChangeRef, jumpToLine, onJumpComplete,
+        projectPath,
     } = props;
 
     const activeFile = files[activeIndex];
@@ -68,6 +71,8 @@ export default function EditorGroup(props: EditorGroupProps) {
                 jumpToLine={jumpToLine}
                 onJumpComplete={onJumpComplete}
                 initialFontSize={fontSize}
+                projectPath={projectPath}
+                onOpenFile={props.onOpenFile}
             />
         );
     };

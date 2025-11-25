@@ -51,6 +51,7 @@ interface UseCodeMirrorProps {
     onSave: () => void;
     onCursorChange: (line: number, col: number) => void;
     initialKeymap: Keymap | null;
+    onUpdate?: (view: EditorView) => void;
 }
 
 const fontThemeCompartment = new Compartment();
@@ -91,9 +92,14 @@ function createKeymapExtension(keymapConfig: Keymap, onSave: () => void): Extens
 }
 
 export function useCodeMirror(props: UseCodeMirrorProps) {
-    const { content, filename, onDocChange, onSave, onCursorChange, initialKeymap } = props;
+    const { content, filename, onDocChange, onSave, onCursorChange, initialKeymap, onUpdate } = props;
     const editorRef = useRef<HTMLDivElement>(null);
     const [view, setView] = useState<EditorView | null>(null);
+
+    const onUpdateRef = useRef(onUpdate);
+    useEffect(() => {
+        onUpdateRef.current = onUpdate;
+    }, [onUpdate]);
 
     useEffect(() => {
         if (!editorRef.current || !initialKeymap) return;
@@ -106,6 +112,9 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
                 const pos = update.state.selection.main.head;
                 const line = update.state.doc.lineAt(pos);
                 onCursorChange(line.number, (pos - line.from) + 1);
+            }
+            if ((update.docChanged || update.selectionSet || update.viewportChanged) && onUpdateRef.current) {
+                onUpdateRef.current(update.view);
             }
         });
 
@@ -170,6 +179,9 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
         });
 
         setView(newView);
+        if (onUpdateRef.current) {
+            onUpdateRef.current(newView);
+        }
         onCursorChange(1, 1);
 
         return () => {

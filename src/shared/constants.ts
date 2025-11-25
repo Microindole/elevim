@@ -43,6 +43,7 @@ export const fileChannels = {
     READ_DIRECTORY: 'file:read-directory',
     GLOBAL_SEARCH: 'file:global-search',
     GLOBAL_REPLACE: 'file:global-replace',
+    READ_DIRECTORY_FLAT: 'file:read-directory-flat',
 };
 
 // (从 git.handlers.ts 移动过来)

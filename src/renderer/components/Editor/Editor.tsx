@@ -1,8 +1,11 @@
 // src/renderer/components/Editor/Editor.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { EditorView } from '@codemirror/view';
 import { useCodeMirror, updateEditorFontSize, jumpToLine as cmJumpToLine, updateKeymap } from '../../hooks/useCodeMirror';
+import Breadcrumbs from '../Breadcrumbs/Breadcrumbs';
+import { getSymbolPath, BreadcrumbItem } from '../../../main/lib/breadcrumbs-util';
 import './Editor.css';
-import {Keymap} from "../../../shared/types";
+import { Keymap } from "../../../shared/types";
 
 const MIN_FONT_SIZE = 8;
 const MAX_FONT_SIZE = 40;
@@ -18,6 +21,8 @@ interface EditorProps {
     jumpToLine: { path: string | null, line: number } | null;
     onJumpComplete: () => void;
     initialFontSize: number;
+    projectPath: string | null;
+    onOpenFile: (filePath: string) => void;
 }
 
 export default function Editor({
@@ -30,15 +35,34 @@ export default function Editor({
                                    onCursorChange,
                                    jumpToLine,
                                    onJumpComplete,
-                                   initialFontSize
+                                   initialFontSize,
+                                   projectPath,
+                                   onOpenFile,
                                }: EditorProps) {
     const [fontSize, setFontSize] = useState(initialFontSize);
     const [keymap, setKeymap] = useState<Keymap | null>(null);
 
+    const [breadcrumbSymbols, setBreadcrumbSymbols] = useState<BreadcrumbItem[]>([]);
+
     // 延迟加载 keymap
     useEffect(() => {
-        window.electronAPI.settings.getSettings().then(settings => { // MODIFIED
+        window.electronAPI.settings.getSettings().then(settings => {
             setKeymap(settings.keymap);
+        });
+    }, []);
+
+    // 使用 useCallback 避免不必要的重渲染传递给 useCodeMirror
+    const handleBreadcrumbUpdate = useCallback((view: EditorView) => {
+        // 这是一个轻量级操作，因为 getSymbolPath 只是向上遍历父节点
+        const symbols = getSymbolPath(view.state);
+
+        // 简单的防抖或比较，防止 state 频繁更新导致 React 渲染
+        // 这里简单使用 JSON stringify 比较，实际场景可能需要更高效的方法
+        setBreadcrumbSymbols(prev => {
+            if (JSON.stringify(prev) === JSON.stringify(symbols)) {
+                return prev;
+            }
+            return symbols;
         });
     }, []);
 
@@ -48,7 +72,8 @@ export default function Editor({
         onDocChange,
         onSave,
         onCursorChange,
-        initialKeymap: keymap
+        initialKeymap: keymap,
+        onUpdate: handleBreadcrumbUpdate
     });
 
     useEffect(() => {
@@ -59,7 +84,7 @@ export default function Editor({
                 changes: { from: 0, to: view.state.doc.length, insert: content }
             });
         }
-    }, [content, view, programmaticChangeRef]); // 将 ref 加入依赖数组
+    }, [content, view, programmaticChangeRef]);
 
     useEffect(() => {
         setFontSize(initialFontSize);
@@ -92,16 +117,8 @@ export default function Editor({
     }, [editorRef]);
 
     useEffect(() => {
-        // 检查：
-        // 1. CodeMirror view 是否已准备好
-        // 2. 是否有跳转请求
-        // 3. 跳转请求的路径(jumpToLine.path)是否与当前编辑器显示的路径(filePath)匹配
         if (view && jumpToLine && jumpToLine.path === filePath) {
-
-            // 执行跳转！
             cmJumpToLine(view, jumpToLine.line);
-
-            // 通知 App.tsx 跳转已完成，以便重置状态
             onJumpComplete();
         }
     }, [view, jumpToLine, filePath, onJumpComplete]);
@@ -125,5 +142,28 @@ export default function Editor({
         };
     }, [view, onSave]);
 
-    return <div id="editor" ref={editorRef}></div>;
+    // --- 修改：处理点击面包屑跳转 ---
+    const handleSymbolClick = (item: BreadcrumbItem) => {
+        if (item.startPos !== undefined && view) {
+            // 跳转并把目标行滚动到中间
+            view.dispatch({
+                selection: { anchor: item.startPos, head: item.startPos },
+                effects: EditorView.scrollIntoView(item.startPos, { y: "center" })
+            });
+            view.focus();
+        }
+    };
+
+    return (
+        <div className="editor-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Breadcrumbs
+                filePath={filePath}
+                projectPath={projectPath}
+                symbols={breadcrumbSymbols}
+                onItemClick={handleSymbolClick}
+                onFileSelect={onOpenFile}
+            />
+            <div id="editor" ref={editorRef} style={{ flex: 1, overflow: 'hidden' }}></div>
+        </div>
+    );
 }

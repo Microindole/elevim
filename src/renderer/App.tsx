@@ -301,6 +301,12 @@ export default function App() {
         );
     }
 
+    const handleBreadcrumbFileSelect = (path: string) => {
+        openFile(path, '', 'UTF-8'); // 假设你的 openFile 会处理读取逻辑，如果不会，你需要先 read，或者复用 handleFileTreeSelectWrapper
+        // 实际上复用 handleFileTreeSelectWrapper 最好：
+        handleFileTreeSelectWrapper(path);
+    };
+
     const fileEncoding = activeFile ? activeFile.encoding : null;
 
     return (
@@ -355,6 +361,8 @@ export default function App() {
                                         programmaticChangeRef={programmaticChangeRef}
                                         jumpToLine={jumpToLine}
                                         onJumpComplete={handleJumpComplete}
+                                        projectPath={currentOpenFolderPath.current}
+                                        onOpenFile={handleBreadcrumbFileSelect}
                                     />
                                 </Allotment.Pane>
                             ))}

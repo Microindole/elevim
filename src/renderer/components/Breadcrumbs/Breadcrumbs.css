@@ -1,0 +1,115 @@
+/* src/renderer/components/Breadcrumbs/Breadcrumbs.css */
+
+.breadcrumbs-container {
+    display: flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 10px;
+    background-color: var(--bg-editor); /* 使用全局变量 */
+    font-size: 13px;
+    color: #969696; /* 稍微淡一点的颜色 */
+    flex-shrink: 0;
+    white-space: nowrap;
+    user-select: none;
+    overflow-x: auto;
+}
+
+/* 隐藏滚动条 */
+.breadcrumbs-container::-webkit-scrollbar { display: none; }
+
+.breadcrumb-wrapper {
+    display: flex;
+    align-items: center;
+    height: 100%; /* 确保高度填满 */
+}
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 0 4px;
+    border-radius: 3px;
+    transition: background-color 0.1s;
+    height: 18px;
+}
+
+.breadcrumb-item:hover, .breadcrumb-item.active {
+    background-color: var(--bg-hover); /* 使用全局悬停色 */
+    color: var(--text-color-light); /* 悬停时文字变亮 */
+}
+
+/* 图标样式 */
+.breadcrumb-icon img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    display: block; /* 防止 img 下方有空隙 */
+}
+
+.breadcrumb-icon {
+    margin-right: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.symbol-icon {
+    font-style: italic;
+    font-family: 'Times New Roman', Times, serif;
+    font-weight: bold;
+    color: #b392f0; /* 符号图标给个颜色 */
+}
+
+.breadcrumb-name {
+    line-height: 1;
+}
+
+.breadcrumb-separator {
+    margin: 0 2px;
+    opacity: 0.6;
+    font-size: 14px;
+}
+
+/* --- 下拉菜单样式 --- */
+.breadcrumb-dropdown {
+    position: absolute;
+    top: 100%; /* 在下方显示 */
+    left: 0;
+    min-width: 220px;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #252526; /* 深色背景 */
+    border: 1px solid #454545;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    z-index: 2000; /* 确保在最上层 */
+    padding: 4px 0;
+    border-radius: 4px;
+    margin-top: 2px;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    cursor: pointer;
+    color: #cccccc;
+    font-size: 13px;
+}
+
+.dropdown-item:hover {
+    background-color: #37373d; /* 列表悬停色 */
+    color: white;
+}
+
+.dropdown-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    object-fit: contain;
+}
+
+.dropdown-empty {
+    padding: 8px 12px;
+    color: #888;
+    font-style: italic;
+    font-size: 12px;
+}

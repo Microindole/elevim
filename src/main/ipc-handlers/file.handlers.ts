@@ -180,4 +180,21 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
             return [];
         }
     });
+
+    ipcMain.handle(fileChannels.READ_DIRECTORY_FLAT, async (_event, folderPath: string) => {
+        try {
+            const entries = await fs.readdir(folderPath, { withFileTypes: true });
+            // 转换为前端需要的简单格式
+            const children = entries.map(entry => ({
+                name: entry.name,
+                path: path.join(folderPath, entry.name),
+                // 简单的判断是否是目录，不再递归
+                children: entry.isDirectory() ? [] : undefined
+            }));
+            return { children };
+        } catch (error) {
+            console.error('Failed to read directory flat:', error);
+            return { children: [] };
+        }
+    });
 };
