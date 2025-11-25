@@ -55,6 +55,7 @@ interface IFileAPI {
     showOpenDialog: () => void;
     globalSearch: (options: SearchOptions) => Promise<SearchResult[]>;
     globalReplace: (options: ReplaceOptions) => Promise<string[]>;
+    readDirectoryFlat: (folderPath: string)=> Promise<any>;
 }
 
 // --- 窗口 & 对话框 API ---

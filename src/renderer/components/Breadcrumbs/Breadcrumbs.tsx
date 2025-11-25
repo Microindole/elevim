@@ -122,7 +122,6 @@ export default function Breadcrumbs({ filePath, projectPath, symbols, onItemClic
         }
 
         try {
-            // !!! 使用新的 Flat API
             // @ts-ignore (如果 TS 报错说 readDirectoryFlat 不存在，因为没更新类型定义)
             const result = await window.electronAPI.file.readDirectoryFlat(dirToRead);
 
