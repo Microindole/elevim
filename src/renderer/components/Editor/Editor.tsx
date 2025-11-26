@@ -11,10 +11,11 @@ const MIN_FONT_SIZE = 8;
 const MAX_FONT_SIZE = 40;
 
 interface EditorProps {
+    fileId: string;
     content: string;
     filename: string;
     filePath: string | null;
-    onDocChange: (doc: string) => void;
+    onDocChange: (doc: string, fileId: string) => void;
     onSave: () => void;
     programmaticChangeRef: React.MutableRefObject<boolean>;
     onCursorChange: (line: number, col: number) => void;
@@ -27,39 +28,34 @@ interface EditorProps {
 }
 
 export default function Editor({
-    content,
-    filename,
-    filePath,
-    onDocChange,
-    onSave,
-    programmaticChangeRef,
-    onCursorChange,
-    jumpToLine,
-    onJumpComplete,
-    initialFontSize,
-    projectPath,
-    onOpenFile,
-    themeColors,
-}: EditorProps) {
+                                   fileId, // [新增] 解构
+                                   content,
+                                   filename,
+                                   filePath,
+                                   onDocChange,
+                                   onSave,
+                                   programmaticChangeRef,
+                                   onCursorChange,
+                                   jumpToLine,
+                                   onJumpComplete,
+                                   initialFontSize,
+                                   projectPath,
+                                   onOpenFile,
+                                   themeColors,
+                               }: EditorProps) {
     const [fontSize, setFontSize] = useState(initialFontSize);
     const [keymap, setKeymap] = useState<Keymap | null>(null);
 
     const [breadcrumbSymbols, setBreadcrumbSymbols] = useState<BreadcrumbItem[]>([]);
 
-    // 延迟加载 keymap
     useEffect(() => {
         window.electronAPI.settings.getSettings().then(settings => {
             setKeymap(settings.keymap);
         });
     }, []);
 
-    // 使用 useCallback 避免不必要的重渲染传递给 useCodeMirror
     const handleBreadcrumbUpdate = useCallback((view: EditorView) => {
-        // 这是一个轻量级操作，因为 getSymbolPath 只是向上遍历父节点
         const symbols = getSymbolPath(view.state);
-
-        // 简单的防抖或比较，防止 state 频繁更新导致 React 渲染
-        // 这里简单使用 JSON stringify 比较，实际场景可能需要更高效的方法
         setBreadcrumbSymbols(prev => {
             if (JSON.stringify(prev) === JSON.stringify(symbols)) {
                 return prev;
@@ -71,7 +67,10 @@ export default function Editor({
     const { editorRef, view } = useCodeMirror({
         content,
         filename,
-        onDocChange,
+        filePath,
+        projectPath,
+        // [修改] 关键：将 ID 带回
+        onDocChange: (doc) => onDocChange(doc, fileId),
         onSave,
         onCursorChange,
         initialKeymap: keymap,
@@ -97,7 +96,6 @@ export default function Editor({
         updateEditorFontSize(view, fontSize);
     }, [fontSize, view]);
 
-    // 滚轮缩放事件
     useEffect(() => {
         const editorDom = editorRef.current;
         if (!editorDom) return;
@@ -145,10 +143,8 @@ export default function Editor({
         };
     }, [view, onSave]);
 
-    // --- 修改：处理点击面包屑跳转 ---
     const handleSymbolClick = (item: BreadcrumbItem) => {
         if (item.startPos !== undefined && view) {
-            // 跳转并把目标行滚动到中间
             view.dispatch({
                 selection: { anchor: item.startPos, head: item.startPos },
                 effects: EditorView.scrollIntoView(item.startPos, { y: "center" })

@@ -72,7 +72,7 @@ export async function startGitWatcher(folderPath: string): Promise<void> {
         .on('unlink', refreshStatus)
         .on('error', (error) => console.error('[Git Watcher] Error:', error));
 
-    console.log('[Git Watcher] Started watching:', folderPath);
+    // console.log('[Git Watcher] Started watching:', folderPath);
 }
 
 export async function stopGitWatcher(): Promise<void> {

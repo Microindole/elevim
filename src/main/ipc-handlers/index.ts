@@ -11,6 +11,7 @@ import { registerSettingsHandlers } from './settings.handlers';
 import { registerTerminalHandlers } from './terminal.handlers';
 import { registerWindowHandlers } from './window.handlers';
 import { registerSessionHandlers } from './session.handlers';
+import { registerLspHandlers } from './lsp.handlers';
 
 // 2. 创建一个注册函数列表
 const registrars: IpcHandlerRegistrar[] = [
@@ -22,6 +23,7 @@ const registrars: IpcHandlerRegistrar[] = [
     registerWindowHandlers,
     registerGitHubHandlers,
     registerSessionHandlers,
+    registerLspHandlers
 ];
 
 // 3. 导出一个总注册函数

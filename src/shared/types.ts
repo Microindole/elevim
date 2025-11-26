@@ -76,7 +76,7 @@ export interface ReplaceOptions extends SearchOptions {
 interface IFileAPI {
     onFileOpen: (callback: (data: { content: string; filePath: string; encoding: string }) => void) => () => void;
     onNewFile: (callback: () => void) => () => void;
-    saveFile: (content: string) => Promise<string | null>;
+    saveFile: (filePath: string | null, content: string) => Promise<string | null>;
     openFile: (filePath: string) => Promise<string | null>;
     openFolder: () => Promise<any | null>;
     readDirectory: (folderPath: string) => Promise<any | null>;
@@ -181,6 +181,14 @@ interface ISessionAPI {
     saveSession: (session: EditorSessionData) => void;
 }
 
+// LSP API 接口
+interface ILspAPI {
+    start: (languageId: string) => void;
+    send: (languageId: string, message: any) => void;
+    request: (languageId: string, message: any) => Promise<any>;
+    onNotification: (callback: (languageId: string, method: string, params: any) => void) => () => void;
+}
+
 
 // --- 组合的最终 API ---
 export interface IElectronAPI {
@@ -193,6 +201,7 @@ export interface IElectronAPI {
     cli: ICliAPI;
     github: IGitHubAPI;
     session: ISessionAPI;
+    lsp: ILspAPI;
 }
 
 declare global {

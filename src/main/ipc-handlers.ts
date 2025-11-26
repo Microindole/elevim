@@ -19,12 +19,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow) {
         getFolder: () => currentFolderPath,
         setFolder: (path: string | null) => {
             currentFolderPath = path;
-            console.log(`[State] currentFolderPath set to: ${path}`);
+            // console.log(`[State] currentFolderPath set to: ${path}`);
         },
         getFile: () => currentFilePath,
         setFile: (path: string | null) => {
             currentFilePath = path;
-            console.log(`[State] currentFilePath set to: ${path}`);
+            // console.log(`[State] currentFilePath set to: ${path}`);
         },
         getPty: () => localPtyProcess,
         setPty: (pty: pty.IPty | null) => { localPtyProcess = pty; },

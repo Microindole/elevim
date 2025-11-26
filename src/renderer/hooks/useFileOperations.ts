@@ -62,9 +62,6 @@ export function useFileOperations() {
         // 用于跳转的最终路径（默认为传入路径）
         let finalJumpPath = filePath;
 
-        // A. 预先检查是否存在，为了修正 jumpToLine 的路径
-        // 如果文件已存在，我们需要使用已存在的那个路径字符串（可能有 \ 和 / 的区别），
-        // 否则 Editor.tsx 里的 jumpToLine 比较会失败。
         const { groups, activeGroupId } = stateRef.current;
         const currentActiveId = activeGroupId || groups[0]?.id;
         const currentGroup = groups.find(g => g.id === currentActiveId);
@@ -122,7 +119,6 @@ export function useFileOperations() {
             });
         });
 
-        // 使用修正后的路径进行跳转
         if (line) setJumpToLine({ path: finalJumpPath, line });
     }, []);
 
@@ -213,26 +209,33 @@ export function useFileOperations() {
         setActiveGroupId(groupId);
     }, []);
 
-    const onEditorContentChange = useCallback((doc: string) => {
+    // [修复核心]：增加 fileId 参数，确保只更新特定的文件
+    const onEditorContentChange = useCallback((doc: string, fileId: string) => {
         if (programmaticChangeRef.current) {
             programmaticChangeRef.current = false;
             return;
         }
         setGroups(prev => {
-            const currentActiveId = stateRef.current.activeGroupId;
-            const currentGroup = prev.find(g => g.id === currentActiveId);
-            const currentFile = currentGroup?.files[currentGroup?.activeIndex];
-            const activeFilePath = currentFile?.path;
+            // 1. 先找到触发变更的那个文件的 Path (为了处理分屏同步)
+            let sourcePath: string | null = null;
+            for (const group of prev) {
+                const f = group.files.find(f => f.id === fileId);
+                if (f && f.path) {
+                    sourcePath = normalizePath(f.path);
+                    break;
+                }
+            }
 
+            // 2. 遍历所有组，精确更新匹配的文件
             return prev.map(group => {
                 return {
                     ...group,
-                    files: group.files.map((f, i) => {
-                        // 使用标准化路径进行匹配，确保同步正确
-                        const isSamePath = activeFilePath && f.path && normalizePath(f.path) === normalizePath(activeFilePath);
-                        const isCurrentUntitled = !activeFilePath && group.id === currentActiveId && i === group.activeIndex;
+                    files: group.files.map(f => {
+                        // 匹配条件：ID 相同 (同一个标签页) OR 路径相同 (分屏的同一个文件)
+                        const isTarget = f.id === fileId;
+                        const isSyncedPath = sourcePath && f.path && normalizePath(f.path) === sourcePath;
 
-                        if ((isSamePath || isCurrentUntitled) && f.content !== doc) {
+                        if ((isTarget || isSyncedPath) && f.content !== doc) {
                             return { ...f, content: doc, isDirty: true };
                         }
                         return f;
@@ -249,8 +252,7 @@ export function useFileOperations() {
         const file = group.files[group.activeIndex];
         if (!file) return;
 
-        const savedPath = await window.electronAPI.file.saveFile(file.content);
-
+        const savedPath = await window.electronAPI.file.saveFile(file.path, file.content);
         if (savedPath) {
             setGroups(prev => prev.map(g => ({
                 ...g,

@@ -25,6 +25,9 @@ export const IPC_CHANNELS = {
     OPEN_FOLDER_FROM_CLI: 'open-folder-from-cli',
     OPEN_FILE_FROM_CLI: 'open-file-from-cli',
     OPEN_DIFF_FROM_CLI: 'open-diff-from-cli',
+
+    LSP_NOTIFICATION: 'lsp-notification', // 服务器推送的通知 (如诊断报错)
+    LSP_RESPONSE: 'lsp-response',
 };
 
 // --- GitHub Events (Main -> Renderer) ---
@@ -110,4 +113,11 @@ export const windowChannels = {
 export const sessionChannels = {
     GET_SESSION: 'session:get',
     SAVE_SESSION: 'session:save'
+};
+
+// LSP 通道
+export const lspChannels = {
+    START: 'lsp:start', // 启动服务器
+    SEND: 'lsp:send',   // 发送消息 (Request/Notification)
+    REQUEST: 'lsp:request', // 用于 Request (双向，需要返回值)
 };

@@ -65,23 +65,32 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
         }
     });
 
-    ipcMain.handle(fileChannels.SAVE_FILE, async (_event, content: string): Promise<string | null> => {
-        let savePath = state.getFile();
-        if (savePath === null) {
-            const { canceled, filePath } = await dialog.showSaveDialog(state.getMainWindow(), {
+    ipcMain.handle(fileChannels.SAVE_FILE, async (_event, filePath: string | null, content: string): Promise<string | null> => {
+
+        // 1. 优先使用前端传来的路径
+        let savePath = filePath;
+
+        // 2. 如果前端传的是 null (说明是 Untitled 新文件)，则弹出对话框让用户选
+        if (!savePath) {
+            const { canceled, filePath: selectedPath } = await dialog.showSaveDialog(state.getMainWindow(), {
                 title: 'Save File',
                 filters: [
-                    { name: 'Text Files', extensions: ['txt', 'md'] },
+                    { name: 'Text Files', extensions: ['txt', 'md', 'js', 'ts', 'html', 'css'] },
                     { name: 'All Files', extensions: ['*'] }
                 ]
             });
-            if (canceled || !filePath) return null;
-            savePath = filePath;
+            if (canceled || !selectedPath) return null;
+            savePath = selectedPath;
         }
+
         try {
+            // 3. 写入文件
             await fs.writeFile(savePath, content, 'utf-8');
+
+            // 4. 更新主进程状态 (仅作为记录)
             state.setFile(savePath);
-            return state.getFile();
+
+            return savePath;
         } catch (error) {
             console.error('Failed to save file:', error);
             return null;

@@ -2,7 +2,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
-import { v4 as uuidv4 } from 'uuid'; // 引入 uuid
+import { v4 as uuidv4 } from 'uuid';
 
 // ... (Imports Components 保持不变) ...
 import TitleBar from './components/TitleBar/TitleBar';
@@ -34,7 +34,7 @@ import './App.css';
 export default function App() {
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
     const [settings, setSettings] = useState<AppSettings | null>(null);
-    const [isReady, setIsReady] = useState(false); // --- 1. 新增：加载状态 ---
+    const [isReady, setIsReady] = useState(false);
 
     // 文件操作
     const {
@@ -68,10 +68,10 @@ export default function App() {
         handleFileTreeSelect
     } = useFileTree();
 
-    // 侧边栏 (解构出 setSidebarWidth)
+    // 侧边栏
     const {
         sidebarWidth,
-        setSidebarWidth, // --- 2. 使用导出的 setter ---
+        setSidebarWidth,
         activeSidebarView,
         setActiveSidebarView,
         handleViewChange,
@@ -90,13 +90,12 @@ export default function App() {
     const { gitStatus, setGitStatus } = useGitStatus(currentOpenFolderPath, setFileTree);
     const currentBranch = useCurrentBranch(currentOpenFolderPath.current);
 
-    // --- 3. 启动时恢复 Session ---
+    // --- 启动时恢复 Session ---
     useEffect(() => {
         const restoreSession = async () => {
             try {
                 const session = await window.electronAPI.session.getSession();
 
-                // 恢复文件夹
                 if (session.currentFolderPath) {
                     const tree = await window.electronAPI.file.readDirectory(session.currentFolderPath);
                     if (tree) {
@@ -106,28 +105,25 @@ export default function App() {
                     }
                 }
 
-                // 恢复编辑器组
                 if (session.groups && session.groups.length > 0) {
                     const restoredGroups = await Promise.all(session.groups.map(async (g: any) => {
-                        // 并行读取文件内容
                         const files = await Promise.all(g.files.map(async (path: string) => {
                             try {
                                 const content = await window.electronAPI.file.openFile(path);
-                                if (content === null) return null; // 文件可能被删除
+                                if (content === null) return null;
                                 return {
                                     id: uuidv4(),
                                     path: path,
                                     name: path.split(/[\\/]/).pop() || 'Untitled',
                                     content: content,
                                     isDirty: false,
-                                    encoding: 'UTF-8' // 暂时默认
+                                    encoding: 'UTF-8'
                                 };
                             } catch {
                                 return null;
                             }
                         }));
 
-                        // 过滤掉无效文件
                         const validFiles = files.filter((f: any) => f !== null);
 
                         return {
@@ -147,21 +143,20 @@ export default function App() {
                     }
                 }
 
-                // 恢复 UI 状态
                 if (session.sidebarWidth) setSidebarWidth(session.sidebarWidth);
                 if (session.sidebarView !== undefined) setActiveSidebarView(session.sidebarView);
 
             } catch (e) {
                 console.error('Failed to restore session:', e);
             } finally {
-                setIsReady(true); // 无论成功失败，结束加载状态
+                setIsReady(true);
             }
         };
 
         restoreSession();
     }, []);
 
-    // --- 4. 自动保存 Session (防抖) ---
+    // --- 自动保存 Session ---
     useEffect(() => {
         if (!isReady) return;
 
@@ -171,7 +166,7 @@ export default function App() {
                     id: g.id,
                     activeFileIndex: g.activeIndex,
                     files: g.files
-                        .filter(f => f.path) // 只保存已持久化(有路径)的文件
+                        .filter(f => f.path)
                         .map(f => f.path)
                 })),
                 activeGroupId,
@@ -180,12 +175,11 @@ export default function App() {
                 currentFolderPath: currentOpenFolderPath.current
             };
             window.electronAPI.session.saveSession(sessionData);
-        }, 1000); // 1秒内无变化才保存
+        }, 1000);
 
         return () => clearTimeout(timer);
     }, [groups, activeGroupId, sidebarWidth, activeSidebarView, currentOpenFolderPath.current, isReady]);
 
-    // 处理侧边栏视图切换
     const handleSidebarViewChange = (view: any) => {
         if (view === 'settings') {
             openFile('elevim://settings', '', 'UTF-8');
@@ -211,14 +205,13 @@ export default function App() {
 
     const handleReplaceComplete = useCallback(async (modifiedFiles: string[]) => {
         if (modifiedFiles.length === 0) return;
-        console.log('Replace complete. TODO: Refresh open editors');
+        console.log('Replace complete.');
     }, []);
 
     const handleJumpComplete = useCallback(() => {
         setJumpToLine(null);
     }, []);
 
-    // 加载设置
     useEffect(() => {
         const fetchSettings = async () => {
             const loadedSettings = await window.electronAPI.settings.getSettings();
@@ -235,7 +228,25 @@ export default function App() {
         };
     }, []);
 
-    // Hooks 调用
+    // [新增] 监听 LSP 跳转请求
+    useEffect(() => {
+        const handleJumpRequest = (e: any) => {
+            const { path, line } = e.detail;
+            // 1. 打开文件 (复用 FileTree 的打开逻辑)
+            handleFileTreeSelectWrapper(path);
+
+            // 2. 设置跳转 (延迟一小段时间等待文件加载和 Editor 组件挂载)
+            // 注意：更优雅的方式是改造 openFile 让它支持 Promise 或 callback，
+            // 但为了最小化修改，这里使用 setTimeout hack。
+            setTimeout(() => {
+                setJumpToLine({ path, line });
+            }, 150);
+        };
+
+        window.addEventListener('open-file-request', handleJumpRequest);
+        return () => window.removeEventListener('open-file-request', handleJumpRequest);
+    }, [handleFileTreeSelectWrapper, setJumpToLine]);
+
     useCliHandlers({
         setFileTree,
         currentOpenFolderPath,
@@ -280,7 +291,6 @@ export default function App() {
         handleViewChange
     });
 
-    // Ctrl+\ 快捷键
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.key === '\\') {
@@ -292,7 +302,6 @@ export default function App() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [splitEditor]);
 
-    // --- 5. 渲染加载中状态 ---
     if (!settings || !isReady) {
         return (
             <div className="main-layout" style={{ justifyContent: 'center', alignItems: 'center', color: '#888' }}>
@@ -302,8 +311,6 @@ export default function App() {
     }
 
     const handleBreadcrumbFileSelect = (path: string) => {
-        openFile(path, '', 'UTF-8'); // 假设你的 openFile 会处理读取逻辑，如果不会，你需要先 read，或者复用 handleFileTreeSelectWrapper
-        // 实际上复用 handleFileTreeSelectWrapper 最好：
         handleFileTreeSelectWrapper(path);
     };
 

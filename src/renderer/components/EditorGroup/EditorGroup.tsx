@@ -14,7 +14,7 @@ interface EditorGroupProps {
     onActivate: () => void;
     onTabClick: (index: number) => void;
     onTabClose: (index: number) => void;
-    onDocChange: (doc: string) => void;
+    onDocChange: (doc: string, fileId: string) => void;
     onSave: () => void;
     onCursorChange: (line: number, col: number) => void;
     fontSize: number;
@@ -63,6 +63,7 @@ export default function EditorGroup(props: EditorGroupProps) {
         return (
             <Editor
                 key={activeFile.id}
+                fileId={activeFile.id}
                 content={activeFile.content}
                 filename={activeFile.name}
                 filePath={activeFile.path}

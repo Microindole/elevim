@@ -2,13 +2,14 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 // 导入所有通道
 import {
+    lspChannels,
     IPC_CHANNELS,
     fileChannels,
     gitChannels,
     menuChannels,
     settingsChannels,
     terminalChannels,
-    windowChannels, GITHUB_EVENTS, githubChannels
+    windowChannels, GITHUB_EVENTS, githubChannels,
 } from '../shared/constants';
 import { GitStatusMap } from "./lib/git/types";
 import { AppSettings, SearchOptions, ReplaceOptions } from "../shared/types";
@@ -31,8 +32,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
                 ipcRenderer.removeListener(IPC_CHANNELS.NEW_FILE, handler);
             };
         },
-        saveFile: (content: string): Promise<string | null> => {
-            return ipcRenderer.invoke(fileChannels.SAVE_FILE, content);
+        saveFile: (filePath: string | null, content: string): Promise<string | null> => {
+            return ipcRenderer.invoke(fileChannels.SAVE_FILE, filePath, content);
         },
         openFile: (filePath: string): Promise<string | null> => {
             return ipcRenderer.invoke(fileChannels.OPEN_FILE, filePath);
@@ -266,5 +267,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     session: {
         getSession: () => ipcRenderer.invoke('session:get'),
         saveSession: (session: any) => ipcRenderer.send('session:save', session),
+    },
+
+    lsp: {
+        // request 方法，增加 languageId 参数
+        request: (languageId: string, message: any): Promise<any> => {
+            return ipcRenderer.invoke(lspChannels.REQUEST, { languageId, message });
+        },
+        start: (languageId: string) => {
+            ipcRenderer.send(lspChannels.START, languageId);
+        },
+        // send 方法，增加 languageId 参数
+        send: (languageId: string, message: any) => {
+            ipcRenderer.send(lspChannels.SEND, { languageId, message });
+        },
+        onNotification: (callback: (languageId: string, method: string, params: any) => void) => {
+            const handler = (_event: any, data: { languageId: string, method: string, params: any }) => {
+                callback(data.languageId, data.method, data.params);
+            };
+            ipcRenderer.on(IPC_CHANNELS.LSP_NOTIFICATION, handler);
+            return () => ipcRenderer.removeListener(IPC_CHANNELS.LSP_NOTIFICATION, handler);
+        }
     },
 });

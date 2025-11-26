@@ -98,3 +98,49 @@ export function getLanguage(filename: string) {
             return null;
     }
 }
+
+/**
+ * 根据文件名后缀获取 LSP 协议定义的 Language ID
+ */
+export function getLanguageId(filename: string): string | null {
+    const ext = filename.split('.').pop()?.toLowerCase();
+
+    switch (ext) {
+        // TypeScript / JavaScript
+        case 'ts':
+        case 'tsx':
+            return 'typescript';
+        case 'js':
+        case 'jsx':
+        case 'mjs':
+        case 'cjs':
+            return 'javascript';
+
+        // Python
+        case 'py':
+            return 'python';
+
+        // Web
+        case 'html':
+        case 'htm':
+            return 'html';
+        case 'css':
+            return 'css';
+        case 'json':
+            return 'json';
+
+        // 其他
+        case 'rs':
+            return 'rust';
+        case 'c':
+        case 'cpp':
+        case 'h':
+        case 'hpp':
+            return 'cpp'; // 或 'c'/'cpp'，取决于使用的 clangd 配置
+        case 'go':
+            return 'go';
+
+        default:
+            return null;
+    }
+}
