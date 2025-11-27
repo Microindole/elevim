@@ -2,51 +2,50 @@
 #editor {
     height: 100%;
     width: 100%;
+    font-size: 14px;
+    background-color: var(--bg-editor);
 }
 
 .cm-editor {
     height: 100%;
 }
-
-/* 强制统一行高和背景样式 */
-.cm-editor .cm-line {
-    padding: 0 !important;
-    margin: 0 !important;
-    line-height: 1.6 !important;
+.cm-cursor {
+    border-left-width: 2px;
+    border-left-color: var(--accent-color);
+    animation: cm-blink 1.2s steps(1) infinite;
 }
 
-/* 活动行背景 - 使用 box-sizing 确保高度一致 */
-.cm-editor .cm-activeLine {
-    background-color: transparent !important;
-    box-sizing: border-box !important;
-    padding: 0 !important;
+@keyframes cm-blink {
+    50% { opacity: 0; }
 }
 
-.cm-editor .cm-activeLineGutter {
-    background-color: transparent !important;
-    box-sizing: border-box !important;
+/* --- 2. 基础行样式 --- */
+.cm-line {
+    font-variant-ligatures: none;
 }
 
-/* 聚焦时的活动行样式 */
-.cm-editor.cm-focused .cm-activeLine {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    box-sizing: border-box !important;
+/* --- 4. 滚动条美化 --- */
+.cm-scroller::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+.cm-scroller::-webkit-scrollbar-track {
+    background: var(--bg-editor);
+}
+.cm-scroller::-webkit-scrollbar-thumb {
+    background-color: #424242;
+    border-radius: 6px;
+    border: 3px solid var(--bg-editor);
+}
+.cm-scroller::-webkit-scrollbar-thumb:hover {
+    background-color: #4f4f4f;
 }
 
-.cm-editor.cm-focused .cm-activeLineGutter {
-    background-color: rgba(255, 255, 255, 0.05) !important;
-    box-sizing: border-box !important;
+/* --- 5. 搜索匹配 --- */
+.cm-searchMatch {
+    background-color: rgba(255, 255, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 0, 0.5);
 }
-
-.cm-editor .cm-content {
-    padding: 0 !important;
-}
-
-.cm-editor .cm-gutters {
-    padding: 0 !important;
-}
-
-/* 防止选择导致的高度变化 */
-.cm-editor .cm-selectionBackground {
-    box-sizing: border-box !important;
+.cm-searchMatch-selected {
+    background-color: rgba(255, 255, 0, 0.4);
 }

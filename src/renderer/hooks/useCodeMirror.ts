@@ -27,18 +27,12 @@ import {createThemeExtension} from '../lib/theme-generator';
 import {search, searchKeymap} from '@codemirror/search';
 import {defaultKeymap, history, historyKeymap} from '@codemirror/commands';
 import {getLanguage, getLanguageId} from '../lib/language-map';
-import {
-    autocompletion,
-    completionKeymap,
-    closeBrackets,
-    closeBracketsKeymap,
-    completeAnyWord
-} from '@codemirror/autocomplete';
-import {linter, lintGutter} from '@codemirror/lint';
+import {autocompletion, completionKeymap, closeBrackets, closeBracketsKeymap, completeAnyWord} from '@codemirror/autocomplete';
+import {lintGutter} from '@codemirror/lint';
 import {indentationMarkers} from '@replit/codemirror-indentation-markers';
-import { createLspPlugin, notifyLspDidSave } from '../lib/lsp-plugin'; // [修改] 引入 notifyLspDidSave
-import { createLspHover } from '../lib/lsp-hover'; // [新增] 引入 Hover
-import { URI } from 'vscode-uri'; // [新增] 引入 URI
+import { createLspPlugin, notifyLspDidSave } from '../lib/lsp-plugin';
+import { createLspHover } from '../lib/lsp-hover';
+import { URI } from 'vscode-uri';
 
 import {EditorColors, Keymap} from '../../shared/types';
 import {createLspCompletionSource} from "../lib/lsp-completion";
@@ -61,29 +55,31 @@ const fontThemeCompartment = new Compartment();
 const languageCompartment = new Compartment();
 const keymapCompartment = new Compartment();
 
-// 自定义缩进线的样式主题
+// 参考线样式：使用极细的虚线或低透明度实线
 const indentationMarkersTheme = EditorView.baseTheme({
+    // 默认线条（未激活）
     ".cm-indent-markers .cm-indent-marker": {
-        borderLeft: "1px solid rgba(255, 255, 255, 0.15)",
+        background: "none",
+        borderLeft: "2px solid rgba(255, 255, 255, 0.4)",
+        width: "1.5px", // 显式设置宽度
+        marginRight: "4px" // 可选：给一点右间距，让代码不要紧贴着线
     },
+
+    // 激活的线条（Active）
     ".cm-indent-markers .cm-indent-marker-active": {
-        borderLeft: "1px solid rgba(255, 255, 255, 0.35)",
+        borderLeft: "2px solid rgba(255, 255, 255, 0.9)",
+        width: "1.5px",
     },
 });
 
 function createKeymapExtension(keymapConfig: Keymap, onSave: () => void): Extension {
     const saveBinding: KeyBinding[] = [];
-
     if (keymapConfig['editor.save']) {
         saveBinding.push({
             key: keymapConfig['editor.save'],
-            run: () => {
-                onSave();
-                return true;
-            }
+            run: () => { onSave(); return true; }
         });
     }
-
     return keymap.of([
         ...saveBinding,
         ...closeBracketsKeymap,
@@ -106,11 +102,8 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
     const [view, setView] = useState<EditorView | null>(null);
 
     const onUpdateRef = useRef(onUpdate);
-    useEffect(() => {
-        onUpdateRef.current = onUpdate;
-    }, [onUpdate]);
+    useEffect(() => { onUpdateRef.current = onUpdate; }, [onUpdate]);
 
-    // [修改] 使用 vscode-uri 生成标准 URI
     const docUri = (filePath) ? URI.file(filePath).toString() : '';
 
     useEffect(() => {
@@ -131,45 +124,28 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
         });
 
         const initialLanguage = getLanguage(filename);
-
-        const initialTheme = themeColors
-            ? createThemeExtension(themeColors)
-            : [];
-
-        // [修改] 动态判断 LSP
+        const initialTheme = themeColors ? createThemeExtension(themeColors) : [];
         const languageId = getLanguageId(filename);
         const lspExtensions = [];
-
-        // 默认为基础补全 (防止没有 LSP 时完全没提示)
-        let completionConfig = autocompletion({
-            override: [completeAnyWord]
-        });
+        let completionConfig = autocompletion({ override: [completeAnyWord] });
 
         if (languageId && filePath) {
-            // 1. 核心插件
             lspExtensions.push(createLspPlugin(filePath, projectPath, languageId));
-            // 2. 悬停提示
             lspExtensions.push(createLspHover(filePath, languageId));
-            // 3. [修复] 自动补全：同时支持 LSP 和 单词补全
             completionConfig = autocompletion({
                 override: [
-                    // 优先尝试 LSP
                     createLspCompletionSource(docUri, languageId),
-                    // 如果 LSP 没结果，回退到单词补全
                     completeAnyWord
                 ]
             });
         }
 
-        // [新增] F12 跳转定义的快捷键逻辑
         const definitionKeymap = keymap.of([{
             key: "F12",
             run: (view: EditorView) => {
                 if (!languageId || !filePath) return false;
                 const pos = view.state.selection.main.head;
                 const lineObj = view.state.doc.lineAt(pos);
-
-                // 发送 Definition 请求
                 window.electronAPI.lsp.request(languageId, {
                     method: 'textDocument/definition',
                     params: {
@@ -178,22 +154,13 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
                     }
                 }).then((result: any) => {
                     if (!result) return;
-                    // 兼容 Location | Location[] | LocationLink[]
                     const location = Array.isArray(result) ? result[0] : result;
                     if (!location) return;
-
                     let targetUri = location.uri || location.targetUri;
                     let targetRange = location.range || location.targetSelectionRange;
-
                     if (!targetUri || !targetRange) return;
-
-                    // 将 file:///c%3A/foo.ts 转回文件路径
                     const targetPath = URI.parse(targetUri).fsPath;
                     const targetLine = targetRange.start.line + 1;
-
-                    console.log(`[LSP] Go to Definition: ${targetPath}:${targetLine}`);
-
-                    // 触发全局事件，由 App.tsx 监听并处理打开文件
                     window.dispatchEvent(new CustomEvent('open-file-request', {
                         detail: { path: targetPath, line: targetLine }
                     }));
@@ -202,13 +169,37 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             }
         }]);
 
-        // [修改] 增强的保存逻辑：通知 LSP
         const handleSaveWithLsp = () => {
-            onSave(); // 原始保存 (写入磁盘)
+            onSave();
             if (filePath && languageId) {
-                notifyLspDidSave(filePath, languageId); // 通知 LSP 重新编译/检查
+                notifyLspDidSave(filePath, languageId);
             }
         };
+
+        // 字体与布局配置
+        const fontTheme = EditorView.theme({
+            '&': {
+                height: '100%',
+            },
+            '.cm-scroller': {
+                fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', monospace",
+                lineHeight: '1.6',
+                fontVariantLigatures: 'none',
+                scrollbarGutter: 'stable'
+            },
+            '.cm-content': {
+                fontSize: '14px',
+                // 给一点内边距，让第一行不贴顶，看起来更舒服
+                padding: '8px 0'
+            },
+            '.cm-gutters': {
+                fontSize: '14px',
+                fontFamily: 'inherit',
+                // 保持行号区域没有额外的垂直边距，与 content 对齐的关键
+                // 如果 content 有 padding，这里最好保持一致或通过 CSS 处理，
+                // 但 CM6 通常自动处理行对齐。关键是不要给 .cm-line 设 padding。
+            }
+        });
 
         const setup = [
             lineNumbers(),
@@ -223,39 +214,25 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             syntaxHighlighting(defaultHighlightStyle, {fallback: true}),
             bracketMatching(),
             closeBrackets(),
-            completionConfig, // 使用配置好的补全
+            completionConfig,
             rectangularSelection(),
             crosshairCursor(),
             highlightActiveLine(),
             search({top: true}),
             themeCompartment.of(initialTheme),
             updateListener,
-            fontThemeCompartment.of(EditorView.theme({
-                '&': {
-                    lineHeight: '1.8',
-                    fontFamily: "'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace"
-                },
-                '.cm-content, .cm-gutters': {
-                    fontSize: `15px`,
-                    fontFamily: "'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace"
-                },
-                '.cm-line': {
-                    lineHeight: '1.8',
-                    padding: '0'
-                }
-            })),
+            fontThemeCompartment.of(fontTheme),
             lintGutter(),
             languageCompartment.of(initialLanguage ? [initialLanguage] : []),
             indentUnit.of("    "),
             indentationMarkers({
-                highlightActiveBlock: true,
-                thickness: 1,
+                highlightActiveBlock: true, // 开启，然后用上面的 CSS 控制样式
+                hideFirstIndent: true,      // 隐藏第0级缩进线，彻底解决“双层线”问题！
+                thickness: 1.5,
             }),
             indentationMarkersTheme,
-            // 注册基础快捷键 + F12 跳转
             keymapCompartment.of(createKeymapExtension(initialKeymap, handleSaveWithLsp)),
             definitionKeymap,
-            // 加载 LSP 扩展 (同步, 诊断, Hover)
             ...lspExtensions,
         ];
 
@@ -306,17 +283,17 @@ export function updateEditorFontSize(view: EditorView | null, fontSize: number) 
         view.dispatch({
             effects: fontThemeCompartment.reconfigure(
                 EditorView.theme({
-                    '&': {
-                        lineHeight: '1.8',
-                        fontFamily: "'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace"
+                    '.cm-scroller': {
+                        lineHeight: '1.6',
+                        fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', 'Monaco', 'Courier New', monospace",
+                        scrollbarGutter: 'stable'
                     },
-                    '.cm-content, .cm-gutters': {
+                    '.cm-content': {
                         fontSize: `${fontSize}px`,
-                        fontFamily: "'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', 'Courier New', monospace"
+                        padding: '8px 0'
                     },
-                    '.cm-line': {
-                        lineHeight: '1.8',
-                        padding: '0'
+                    '.cm-gutters': {
+                        fontSize: `${fontSize}px`,
                     }
                 })
             )
@@ -326,18 +303,14 @@ export function updateEditorFontSize(view: EditorView | null, fontSize: number) 
 
 export function jumpToLine(view: EditorView | null, line: number) {
     if (!view || line <= 0) return;
-
     try {
         const targetLine = Math.min(line, view.state.doc.lines);
         const linePos = view.state.doc.line(targetLine).from;
-
         view.dispatch({
             selection: {anchor: linePos, head: linePos},
             effects: EditorView.scrollIntoView(linePos, {y: "center"})
         });
-
         view.focus();
-
     } catch (e) {
         console.error(`[jumpToLine] 无法跳转到行 ${line}:`, e);
     }

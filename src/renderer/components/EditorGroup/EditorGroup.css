@@ -12,7 +12,7 @@
 .editor-group:not(.active) .editor-group-content {
     opacity: 0.8;
     filter: grayscale(0.3);
-    transition: all 0.2s;
+    transition: opacity 0.2s, filter 0.2s;
 }
 
 .editor-group-content {
