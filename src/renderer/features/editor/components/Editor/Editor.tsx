@@ -5,7 +5,7 @@ import { useCodeMirror, updateEditorFontSize, jumpToLine as cmJumpToLine, update
 import Breadcrumbs from '../Breadcrumbs/Breadcrumbs';
 import { getSymbolPath, BreadcrumbItem } from '../../lib/breadcrumbs-util';
 import './Editor.css';
-import {EditorColors, Keymap} from "../../../../../shared/types";
+import {EditorColors, Keymap, ZenModeConfig} from "../../../../../shared/types";
 
 const MIN_FONT_SIZE = 8;
 const MAX_FONT_SIZE = 40;
@@ -25,24 +25,26 @@ interface EditorProps {
     projectPath: string | null;
     onOpenFile: (filePath: string) => void;
     themeColors: EditorColors | null;
+    zenModeConfig: ZenModeConfig | null;
 }
 
 export default function Editor({
-                                   fileId, // [新增] 解构
-                                   content,
-                                   filename,
-                                   filePath,
-                                   onDocChange,
-                                   onSave,
-                                   programmaticChangeRef,
-                                   onCursorChange,
-                                   jumpToLine,
-                                   onJumpComplete,
-                                   initialFontSize,
-                                   projectPath,
-                                   onOpenFile,
-                                   themeColors,
-                               }: EditorProps) {
+    fileId,
+    content,
+    filename,
+    filePath,
+    onDocChange,
+    onSave,
+    programmaticChangeRef,
+    onCursorChange,
+    jumpToLine,
+    onJumpComplete,
+    initialFontSize,
+    projectPath,
+    onOpenFile,
+    themeColors,
+    zenModeConfig,
+}: EditorProps) {
     const [fontSize, setFontSize] = useState(initialFontSize);
     const [keymap, setKeymap] = useState<Keymap | null>(null);
 
@@ -76,6 +78,7 @@ export default function Editor({
         initialKeymap: keymap,
         onUpdate: handleBreadcrumbUpdate,
         themeColors: themeColors,
+        zenModeConfig: zenModeConfig,
     });
 
     useEffect(() => {

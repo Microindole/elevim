@@ -43,6 +43,13 @@ export interface EditorColors {
     attribute: string; // HTML/CSS 属性
 }
 
+
+export interface ZenModeConfig {
+    fullScreen: boolean;
+    centerLayout: boolean;
+    hideLineNumbers: boolean;
+}
+
 export interface AppSettings {
     fontSize: number;
     keymap: Keymap;
@@ -51,6 +58,7 @@ export interface AppSettings {
         colors: EditorColors;
     };
     customThemes: Record<string, EditorColors>; //用户自定义主题
+    zenMode: ZenModeConfig;
 }
 
 // --- 搜索 ---
@@ -96,6 +104,7 @@ interface IWindowAPI {
     showSaveDialog: () => Promise<'save' | 'dont-save' | 'cancel'>;
     showMessageBox: (options: any) => Promise<any>;
     showConfirmBox: (options: any) => Promise<boolean>;
+    setFullScreen: (fullscreen: boolean) => void;
 }
 
 // --- 菜单/快捷键 API ---

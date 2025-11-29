@@ -81,6 +81,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         showConfirmBox: (options: any): Promise<boolean> => {
             return ipcRenderer.invoke(windowChannels.SHOW_CONFIRM_BOX, options);
         },
+        setFullScreen: (fullscreen: boolean) => {
+            ipcRenderer.send(windowChannels.SET_FULLSCREEN, fullscreen);
+        },
     },
 
     // --- 命名空间: menu ---

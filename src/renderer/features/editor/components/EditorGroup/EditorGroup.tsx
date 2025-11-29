@@ -4,7 +4,7 @@ import Tabs, { OpenFile } from '../Tabs/Tabs';
 import Editor from '../Editor/Editor';
 import SettingsPanel from '../../../settings/components/SettingsPanel/SettingsPanel';
 import './EditorGroup.css';
-import {EditorColors} from "../../../../../shared/types";
+import {EditorColors, ZenModeConfig} from "../../../../../shared/types";
 
 interface EditorGroupProps {
     groupId: string;
@@ -24,6 +24,7 @@ interface EditorGroupProps {
     projectPath: string | null;
     onOpenFile: (path: string) => void;
     themeColors: EditorColors | null;
+    zenModeConfig: ZenModeConfig | null;
 }
 
 // 一个内部组件：空状态展示
@@ -77,6 +78,7 @@ export default function EditorGroup(props: EditorGroupProps) {
                 projectPath={projectPath}
                 onOpenFile={props.onOpenFile}
                 themeColors={props.themeColors}
+                zenModeConfig={props.zenModeConfig}
             />
         );
     };

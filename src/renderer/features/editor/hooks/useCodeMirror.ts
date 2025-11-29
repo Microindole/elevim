@@ -34,7 +34,7 @@ import { createLspPlugin, notifyLspDidSave } from '../lib/lsp-plugin';
 import { createLspHover } from '../lib/lsp-hover';
 import { URI } from 'vscode-uri';
 
-import {EditorColors, Keymap} from '../../../../shared/types';
+import {EditorColors, Keymap, ZenModeConfig} from '../../../../shared/types';
 import {createLspCompletionSource} from "../lib/lsp-completion";
 
 interface UseCodeMirrorProps {
@@ -48,12 +48,14 @@ interface UseCodeMirrorProps {
     initialKeymap: Keymap | null;
     onUpdate?: (view: EditorView) => void;
     themeColors: EditorColors | null;
+    zenModeConfig: ZenModeConfig | null;
 }
 
 const themeCompartment = new Compartment();
 const fontThemeCompartment = new Compartment();
 const languageCompartment = new Compartment();
 const keymapCompartment = new Compartment();
+const zenModeCompartment = new Compartment();
 
 // 参考线样式：使用极细的虚线或低透明度实线
 const indentationMarkersTheme = EditorView.baseTheme({
@@ -96,7 +98,8 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
         content, filename,
         filePath, projectPath,onDocChange,
         onSave, onCursorChange, initialKeymap,
-        onUpdate, themeColors
+        onUpdate, themeColors,
+        zenModeConfig
     } = props;
     const editorRef = useRef<HTMLDivElement>(null);
     const [view, setView] = useState<EditorView | null>(null);
@@ -234,6 +237,7 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             keymapCompartment.of(createKeymapExtension(initialKeymap, handleSaveWithLsp)),
             definitionKeymap,
             ...lspExtensions,
+            zenModeCompartment.of([]),
         ];
 
         const startState = EditorState.create({
@@ -257,6 +261,67 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             setView(null);
         };
     }, [initialKeymap, filePath, projectPath, filename]);
+
+    useEffect(() => {
+        if (view) {
+            const extensions = [];
+
+            if (zenModeConfig) {
+                // 1. 居中布局 (Box-shadow 扩散法)
+                if (zenModeConfig.centerLayout) {
+                    extensions.push(EditorView.theme({
+                        // 滚动容器：Flex 居中
+                        ".cm-scroller": {
+                            display: "flex",
+                            justifyContent: "center",
+                            // 允许垂直滚动，但隐藏水平溢出（防止 box-shadow 撑出滚动条）
+                            overflowX: "hidden",
+                        },
+                        // 内容容器：限制宽度并居中
+                        ".cm-content": {
+                            flex: "0 1 900px", // 基础宽度 900px，允许缩小
+                            maxWidth: "900px",
+                            margin: "0",
+                            paddingBottom: "30vh",
+                        },
+                        // 行号栏：取消固定，紧贴代码
+                        ".cm-gutters": {
+                            position: "static !important",
+                            borderRight: "none",
+                            backgroundColor: "transparent !important",
+                            flexShrink: 0, // 防止被压缩
+                            marginRight: "16px", // 与代码保持舒适距离
+                        },
+                        // *** 核心修复：全屏行高亮 ***
+                        // 不再修改 .cm-activeLine 的尺寸，而是用 box-shadow 向左右无限延伸
+                        ".cm-activeLine": {
+                            backgroundColor: "rgba(255, 255, 255, 0.05)",
+                            // 左右各延伸 100vw 的阴影，颜色与背景一致
+                            // 参数：x偏移 y偏移 模糊半径 扩散半径 颜色
+                            boxShadow: "0 0 0 100vw rgba(255, 255, 255, 0.05)",
+                            // 必须设置 clip-path 或者让父容器 overflow: hidden 防止阴影遮挡其他元素？
+                            // 不，box-shadow 不占布局空间，但会显示。
+                            // 只要 .cm-scroller 设置了 overflow-x: hidden，就不会出现水平滚动条。
+                        },
+                        ".cm-activeLineGutter": {
+                            backgroundColor: "transparent !important", // 行号本身透明，透出 box-shadow 即可
+                        }
+                    }));
+                }
+
+                // 2. 隐藏行号 (保持不变)
+                if (zenModeConfig.hideLineNumbers) {
+                    extensions.push(EditorView.theme({
+                        ".cm-gutters": { display: "none !important" }
+                    }));
+                }
+            }
+
+            view.dispatch({
+                effects: zenModeCompartment.reconfigure(extensions)
+            });
+        }
+    }, [view, zenModeConfig]);
 
     useEffect(() => {
         if (view) {

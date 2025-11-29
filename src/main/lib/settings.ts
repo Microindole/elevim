@@ -18,7 +18,12 @@ const defaultSettings: AppSettings = {
         mode: 'dark',
         colors: DEFAULT_THEME
     },
-    customThemes: {}
+    customThemes: {},
+    zenMode: {
+        fullScreen: true,
+        centerLayout: true,
+        hideLineNumbers: false
+    }
 };
 
 export async function readSettings(): Promise<AppSettings> {

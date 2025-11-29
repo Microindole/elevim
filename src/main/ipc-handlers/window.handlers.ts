@@ -53,4 +53,8 @@ export const registerWindowHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedS
     ipcMain.on(windowChannels.SET_TITLE, (_event, title: string) => {
         // (No-op, as noted in original file)
     });
+
+    ipcMain.on(windowChannels.SET_FULLSCREEN, (_event, fullscreen: boolean) => {
+        state.getMainWindow().setFullScreen(fullscreen);
+    });
 };

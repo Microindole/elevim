@@ -107,7 +107,8 @@ export const windowChannels = {
     SHOW_SAVE_DIALOG: 'window:show-save-dialog',
     SET_TITLE: 'window:set-title',
     SHOW_MESSAGE_BOX: 'window:show-message-box',
-    SHOW_CONFIRM_BOX: 'window:show-confirm-box'
+    SHOW_CONFIRM_BOX: 'window:show-confirm-box',
+    SET_FULLSCREEN: 'window:set-fullscreen',
 };
 
 export const sessionChannels = {

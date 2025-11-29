@@ -244,6 +244,62 @@ export default function SettingsPanel() {
                         )}
                     </div>
                 </div>
+
+                <div className="settings-section">
+                    <h2>Zen Mode</h2>
+
+                    <div className="setting-row">
+                        <div className="setting-info">
+                            <label>Full Screen</label>
+                            <span
+                                className="setting-desc">Automatically enter full screen when Zen Mode is activated.</span>
+                        </div>
+                        <div className="setting-control">
+                            <input
+                                type="checkbox"
+                                checked={settings.zenMode?.fullScreen ?? true}
+                                onChange={(e) => handleSave('zenMode', {
+                                    ...settings?.zenMode,
+                                    fullScreen: e.target.checked
+                                })}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="setting-row">
+                        <div className="setting-info">
+                            <label>Center Layout</label>
+                            <span className="setting-desc">Center the editor content with a fixed width.</span>
+                        </div>
+                        <div className="setting-control">
+                            <input
+                                type="checkbox"
+                                checked={settings.zenMode?.centerLayout ?? true}
+                                onChange={(e) => handleSave('zenMode', {
+                                    ...settings?.zenMode,
+                                    centerLayout: e.target.checked
+                                })}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="setting-row">
+                        <div className="setting-info">
+                            <label>Hide Line Numbers</label>
+                            <span className="setting-desc">Hide line numbers gutter in Zen Mode.</span>
+                        </div>
+                        <div className="setting-control">
+                            <input
+                                type="checkbox"
+                                checked={settings.zenMode?.hideLineNumbers ?? false}
+                                onChange={(e) => handleSave('zenMode', {
+                                    ...settings?.zenMode,
+                                    hideLineNumbers: e.target.checked
+                                })}
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );

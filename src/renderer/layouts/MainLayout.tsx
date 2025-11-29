@@ -12,7 +12,7 @@ import TerminalComponent from '../features/terminal/components/Terminal/Terminal
 import GitPanel from '../features/git/components/GitPanel/GitPanel';
 import ActivityBar from '../features/workbench/components/ActivityBar/ActivityBar';
 import SearchPanel from '../features/search/components/SearchPanel/SearchPanel';
-import { AppSettings } from '../../shared/types';
+import {AppSettings, ZenModeConfig} from '../../shared/types';
 
 // 定义这个 Layout 需要的所有数据接口
 export interface MainLayoutProps {
@@ -72,6 +72,7 @@ export interface MainLayoutProps {
     // Breadcrumbs / Other
     handleBreadcrumbFileSelect: (path: string) => void;
     isZenMode: boolean;
+    zenModeConfig: ZenModeConfig | null;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -155,6 +156,7 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                                         projectPath={fileTree.currentOpenFolderPath.current}
                                         onOpenFile={handleBreadcrumbFileSelect}
                                         themeColors={themeColors}
+                                        zenModeConfig={props.zenModeConfig}
                                     />
                                 </Allotment.Pane>
                             ))}

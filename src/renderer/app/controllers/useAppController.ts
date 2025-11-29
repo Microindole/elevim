@@ -112,8 +112,19 @@ export function useAppController() {
 
     // Zen Mode 逻辑
     const toggleZenMode = useCallback(() => {
-        setIsZenMode(prev => !prev);
-    }, []);
+        setIsZenMode(prev => {
+            const nextState = !prev;
+
+            // 读取配置决定是否全屏
+            // 注意：这里我们直接用 nextState，因为 settings 可能是异步更新的，
+            // 但更好的做法是直接从 settings 状态读取
+            if (settings?.zenMode?.fullScreen) {
+                window.electronAPI.window.setFullScreen(nextState);
+            }
+
+            return nextState;
+        });
+    }, [settings]);
 
     // --- 核心：构建命令注册表 ---
     // 将所有具体的实现映射到 Command ID
@@ -204,6 +215,7 @@ export function useAppController() {
 
         // Misc
         handleBreadcrumbFileSelect: handleFileTreeSelectWrapper,
-        isZenMode
+        isZenMode,
+        zenModeConfig: isZenMode ? (settings?.zenMode || null) : null,
     };
 }
