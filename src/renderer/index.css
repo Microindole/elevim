@@ -1,8 +1,0 @@
-/* src/renderer/index.css */
-
-/*
-  这个文件是所有 CSS 的入口。
-  它只导入真正全局的样式。
-  所有组件专属的样式都由它们各自的 .tsx 文件导入。
-*/
-@import "./styles/global.css";

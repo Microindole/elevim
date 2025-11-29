@@ -1,0 +1,65 @@
+/* src/renderer/features/workbench/components/CommandPalette/CommandPalette.css */
+.palette-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    padding-top: 15vh;
+}
+
+.palette-container {
+    width: 600px;
+    max-height: 500px;
+    background-color: var(--bg-color-lighter);
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--border-color-light);
+}
+
+.palette-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: none;
+    background-color: var(--bg-color-lightest);
+    color: var(--text-color);
+    font-size: 16px;
+    outline: none;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--border-color-light);
+}
+
+.palette-input:focus {
+    outline: 1px solid var(--accent-color);
+}
+
+.palette-list {
+    list-style: none;
+    margin: 0;
+    padding: 5px;
+    overflow-y: auto;
+}
+
+.palette-item, .palette-item-empty {
+    padding: 10px 15px;
+    color: var(--text-color);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.palette-item.active {
+    background-color: var(--accent-color);
+    color: var(--text-color-light);
+}
+
+.palette-item-empty {
+    color: var(--text-color-subtle);
+    cursor: default;
+}

@@ -1,0 +1,12 @@
+/* src/renderer/features/terminal/components/Terminal/Terminal.css */
+
+.terminal-container {
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-editor);
+}
+
+.terminal-wrapper {
+    width: 100%;
+    height: 100%;
+}

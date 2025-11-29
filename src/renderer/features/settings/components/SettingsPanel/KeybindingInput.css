@@ -1,0 +1,29 @@
+/* src/renderer/features/settings/components/SettingsPanel/KeybindingInput.css */
+
+.keybinding-input {
+    width: 200px; /* 保持原 .wide 样式 */
+    padding: 6px 8px;
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-color-light);
+    color: var(--text-color);
+    font-size: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'Consolas', 'Monaco', monospace; /* 适合显示快捷键 */
+}
+
+.keybinding-input:focus,
+.keybinding-input.is-listening {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color);
+}
+
+.keybinding-input.is-listening {
+    color: var(--text-color-light);
+}
+
+.keybinding-input::placeholder {
+    color: var(--text-color-subtle);
+    font-style: italic;
+}

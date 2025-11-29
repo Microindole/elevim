@@ -1,0 +1,114 @@
+/* src/renderer/features/editor/components/Breadcrumbs/Breadcrumbs.css */
+
+.breadcrumbs-container {
+    display: flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 10px;
+    background-color: var(--bg-editor);
+    font-size: 13px;
+    color: #969696;
+    flex-shrink: 0;
+    white-space: nowrap;
+    user-select: none;
+    overflow-x: auto; /* 横向滚动 */
+}
+.breadcrumbs-container::-webkit-scrollbar { display: none; }
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 0 4px;
+    border-radius: 3px;
+    transition: background-color 0.1s;
+    height: 18px;
+    flex-shrink: 0; /* 防止被挤压 */
+}
+
+.breadcrumb-item:hover, .breadcrumb-item.active {
+    background-color: var(--bg-hover);
+    color: var(--text-color-light);
+}
+
+.breadcrumb-icon img {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+    display: block;
+}
+
+.breadcrumb-icon {
+    margin-right: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.symbol-icon {
+    font-style: italic;
+    font-family: 'Times New Roman', serif;
+    font-weight: bold;
+    color: #b392f0;
+}
+
+.breadcrumb-name {
+    line-height: 1;
+}
+
+.breadcrumb-separator {
+    margin: 0 2px;
+    opacity: 0.6;
+    font-size: 14px;
+}
+
+/* --- 下拉菜单样式 (Fixed) --- */
+.breadcrumb-dropdown {
+    position: fixed; /* 改为 fixed */
+    /* top 和 left 会由内联样式设置 */
+    min-width: 220px;
+    max-height: 300px;
+    overflow-y: auto;
+    background-color: #252526;
+    border: 1px solid #454545;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    z-index: 9999; /* 确保最高层级 */
+    padding: 4px 0;
+    border-radius: 4px;
+}
+
+.breadcrumb-dropdown::-webkit-scrollbar {
+    width: 10px;
+}
+.breadcrumb-dropdown::-webkit-scrollbar-thumb {
+    background: #424242;
+    border-radius: 5px;
+    border: 2px solid #252526;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 12px; /* 稍微紧凑一点 */
+    cursor: pointer;
+    color: #cccccc;
+    font-size: 13px;
+}
+
+.dropdown-item:hover {
+    background-color: #094771;
+    color: white;
+}
+
+.dropdown-icon {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    object-fit: contain;
+}
+
+.dropdown-empty {
+    padding: 8px 12px;
+    color: #888;
+    font-style: italic;
+    font-size: 12px;
+}

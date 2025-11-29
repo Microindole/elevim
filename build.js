@@ -15,7 +15,7 @@ async function build() {
 
         // 任务2: 构建渲染进程的 JS 和 CSS
         await esbuild.build({
-            entryPoints: ['src/renderer/index.tsx'],
+            entryPoints: ['src/renderer/app/index.tsx'],
             outfile: 'dist/renderer/index.js',
             bundle: true,
             platform: 'browser',

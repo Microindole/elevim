@@ -3,15 +3,15 @@ import React from 'react';
 import { Allotment } from "allotment";
 import "allotment/dist/style.css";
 
-import TitleBar from '../components/TitleBar/TitleBar';
-import EditorGroup from '../components/EditorGroup/EditorGroup';
-import FileTree from '../components/FileTree/FileTree';
-import StatusBar from '../components/StatusBar/StatusBar';
-import CommandPalette from '../components/CommandPalette/CommandPalette';
-import TerminalComponent from '../components/Terminal/Terminal';
-import GitPanel from '../components/GitPanel/GitPanel';
-import ActivityBar from '../components/ActivityBar/ActivityBar';
-import SearchPanel from '../components/SearchPanel/SearchPanel';
+import TitleBar from '../features/workbench/components/TitleBar/TitleBar';
+import EditorGroup from '../features/editor/components/EditorGroup/EditorGroup';
+import FileTree from '../features/explorer/components/FileTree/FileTree';
+import StatusBar from '../features/workbench/components/StatusBar/StatusBar';
+import CommandPalette from '../features/workbench/components/CommandPalette/CommandPalette';
+import TerminalComponent from '../features/terminal/components/Terminal/Terminal';
+import GitPanel from '../features/git/components/GitPanel/GitPanel';
+import ActivityBar from '../features/workbench/components/ActivityBar/ActivityBar';
+import SearchPanel from '../features/search/components/SearchPanel/SearchPanel';
 import { AppSettings } from '../../shared/types';
 
 // 定义这个 Layout 需要的所有数据接口

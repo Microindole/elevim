@@ -1,0 +1,180 @@
+/* src/renderer/features/git/components/GitPanel/GitPanel.css */
+
+/* 基础布局 */
+.git-panel {
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-sidebar);
+    display: flex;
+    flex-direction: column;
+    color: var(--text-color);
+}
+
+/* Header */
+.git-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-color-light);
+}
+
+.git-panel-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color-light);
+}
+
+.git-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 8px;
+    line-height: 1;
+}
+
+.git-close-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-color-light);
+}
+
+/* Tabs */
+.git-tabs {
+    display: flex;
+    background-color: var(--bg-sidebar);
+    border-bottom: 1px solid var(--border-color-light);
+}
+
+.git-tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    color: var(--text-color-subtle);
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.git-tab:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-color);
+}
+
+.git-tab.active {
+    color: var(--text-color-light);
+    border-bottom-color: var(--accent-color);
+}
+
+/* Content Area */
+.git-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: var(--bg-sidebar);
+}
+
+.git-content::-webkit-scrollbar {
+    width: 10px;
+}
+.git-content::-webkit-scrollbar-track {
+    background: var(--bg-sidebar);
+}
+.git-content::-webkit-scrollbar-thumb {
+    background: var(--bg-resizer);
+    border-radius: 5px;
+}
+.git-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-color-subtle);
+}
+
+.git-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--text-color-subtle);
+    font-size: 13px;
+}
+
+/* 通用按钮样式 */
+.git-action-btn {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    border-radius: 3px;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.git-action-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-color-light);
+}
+
+.git-action-btn.danger:hover {
+    background-color: rgba(224, 108, 117, 0.2);
+    color: var(--git-red);
+}
+
+.git-action-btn.secondary {
+    flex: 1;
+    width: auto;
+    height: auto;
+    padding: 6px 12px;
+    background-color: var(--bg-resizer);
+    border: 1px solid var(--border-color-light);
+    color: var(--text-color);
+    font-size: 12px;
+}
+
+.git-action-btn.secondary:hover:not(:disabled) {
+    background-color: var(--bg-hover);
+    border-color: var(--border-color-light);
+}
+
+.git-action-btn.secondary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.git-init-container {
+    padding: 20px 16px;
+    text-align: left;
+    color: var(--text-color-subtle);
+    font-size: 14px;
+}
+
+.git-init-container p {
+    margin-top: 0;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.git-init-btn {
+    width: 100%; /* 使其成为一个块级按钮 */
+    padding: 8px 16px;
+    background-color: var(--accent-color);
+    border: none;
+    color: var(--text-color-light);
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    text-align: center;
+}
+
+.git-init-btn:hover {
+    background-color: #009aff; /* 悬停时更亮的蓝色 */
+}
