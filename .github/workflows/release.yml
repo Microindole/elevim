@@ -1,0 +1,41 @@
+name: Release (Distribute)
+
+# 核心区别：只有当推送以 'v' 开头的 tag 时才触发 (例如 v0.4.1)
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write # 必须赋予写权限，否则无法上传 Release 文件
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # 矩阵策略：同时在三个平台上运行
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      # 这里运行 'npm run release' (即 npm run dist -- --publish always)
+      # 你的 package.json 里已经配好了 release 脚本
+      - name: Build & Publish
+        env:
+          # 必须提供 GITHUB_TOKEN，electron-builder 用它来上传文件到 Releases
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release

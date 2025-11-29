@@ -1,0 +1,43 @@
+name: CI (Build Check)
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    paths-ignore:
+      - 'docs/**'            # 忽略 docs 目录下所有文件
+      - 'resources/**'       # 忽略资源目录 (如图标)，除非你的构建强依赖它们
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/PULL_REQUEST_TEMPLATE.md'
+      - '**.md'              # 忽略根目录及子目录下所有的 Markdown 文件 (README, CHANGELOG 等)
+      - 'LICENSE'            # 忽略证书文件
+      - '.gitignore'         # 忽略 git 配置文件
+      - 'CODE_OF_CONDUCT.md' # 忽略行为准则
+      - 'SECURITY.md'        # 忽略安全策略
+  pull_request:
+    branches: [ "main", "master" ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+      - 'LICENSE'
+
+jobs:
+  build-check:
+    runs-on: ubuntu-latest # 使用 Linux 环境 (1倍费率，最便宜)
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20 # 建议使用 LTS 版本
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      # 关键点：这里只运行 'npm run build' (esbuild)，不运行 'dist'
+      # 这会检查你的 TS 代码是否有错，React 能否编译通过，耗时极短
+      - name: Compile Source
+        run: npm run build
