@@ -20,7 +20,7 @@ import { useGlobalEvents } from '../../../shared/hooks/useGlobalEvents';
 export function useAppController() {
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
     const [settings, setSettings] = useState<AppSettings | null>(null);
-
+    const [isZenMode, setIsZenMode] = useState(false);
     // 1. 初始化基础 Hooks
     const fileOps = useFileOperations();
     const sidebar = useSidebar();
@@ -108,6 +108,16 @@ export function useAppController() {
         setOpenFiles: fileOps.setGroups as any
     });
 
+    // Zen Mode 逻辑
+    const toggleZenMode = useCallback(() => {
+        setIsZenMode(prev => {
+            const nextState = !prev;
+            // 可选：进入 Zen Mode 时自动关闭侧边栏和终端，退出时恢复？
+            // 这里我们只做纯粹的 Zen Mode 开关，具体显示逻辑交给 Layout
+            return nextState;
+        });
+    }, []);
+
     // 键盘快捷键
     useKeyboardShortcuts({
         keymap: settings?.keymap,
@@ -120,7 +130,8 @@ export function useAppController() {
         handleSave: fileOps.handleSave,
         handleMenuSaveAsFile,
         handleMenuCloseWindow,
-        splitEditor: fileOps.splitEditor
+        splitEditor: fileOps.splitEditor,
+        toggleZenMode,
     });
 
     // 分屏快捷键监听 (保留在 Controller 或移入 KeyboardShortcuts)
@@ -150,7 +161,8 @@ export function useAppController() {
         handleSave: fileOps.handleSave,
         handleMenuSaveAsFile,
         handleMenuCloseWindow,
-        handleViewChange: sidebar.handleViewChange
+        handleViewChange: sidebar.handleViewChange,
+        toggleZenMode
     });
 
     // 5. 组装返回给 View 的 Props
@@ -210,6 +222,7 @@ export function useAppController() {
         },
 
         // Misc
-        handleBreadcrumbFileSelect: handleFileTreeSelectWrapper
+        handleBreadcrumbFileSelect: handleFileTreeSelectWrapper,
+        isZenMode
     };
 }

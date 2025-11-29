@@ -14,6 +14,7 @@ export type CommandId =
     | 'view.toggleGitPanel'
     | 'view.toggleSearchPanel'
     | 'view.splitEditor'
+    | 'view.toggleZenMode'
     | 'editor.save';
 
 // --- 设置 ---

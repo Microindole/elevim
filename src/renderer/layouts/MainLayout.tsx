@@ -71,13 +71,15 @@ export interface MainLayoutProps {
 
     // Breadcrumbs / Other
     handleBreadcrumbFileSelect: (path: string) => void;
+    isZenMode: boolean;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = (props) => {
     const {
         settings, isPaletteOpen, setIsPaletteOpen,
         fileOps, sidebar, fileTree, git, terminal, search,
-        commands, menuHandlers, handleBreadcrumbFileSelect
+        commands, menuHandlers, handleBreadcrumbFileSelect,
+        isZenMode
     } = props;
 
     const themeColors = settings ? settings.theme.colors : null;
@@ -86,25 +88,27 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
     return (
         <div className="main-layout">
             <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} commands={commands} />
-
-            <TitleBar
-                isDirty={fileOps.activeFile?.isDirty ?? false}
-                currentFileName={fileOps.activeFile?.name ?? "Elevim"}
-                onNewFile={menuHandlers.handleNewFile}
-                onOpenFile={menuHandlers.handleOpenFile}
-                onOpenFolder={menuHandlers.handleOpenFolder}
-                onSaveFile={menuHandlers.handleSave}
-                onSaveAsFile={menuHandlers.handleSaveAs}
-                onCloseWindow={menuHandlers.handleCloseWindow}
-            />
-
+            {!isZenMode &&(
+                <TitleBar
+                    isDirty={fileOps.activeFile?.isDirty ?? false}
+                    currentFileName={fileOps.activeFile?.name ?? "Elevim"}
+                    onNewFile={menuHandlers.handleNewFile}
+                    onOpenFile={menuHandlers.handleOpenFile}
+                    onOpenFolder={menuHandlers.handleOpenFolder}
+                    onSaveFile={menuHandlers.handleSave}
+                    onSaveAsFile={menuHandlers.handleSaveAs}
+                    onCloseWindow={menuHandlers.handleCloseWindow}
+                />
+            )}
             <div className="main-content-area">
                 <div className="app-container">
-                    <ActivityBar
-                        activeView={sidebar.activeSidebarView}
-                        onViewChange={sidebar.handleSidebarViewChange}
-                    />
-                    {sidebar.activeSidebarView && (
+                    {!isZenMode && (
+                        <ActivityBar
+                            activeView={sidebar.activeSidebarView}
+                            onViewChange={sidebar.handleSidebarViewChange}
+                        />
+                    )}
+                    {!isZenMode && sidebar.activeSidebarView && (
                         <>
                             <div className="sidebar" style={{ width: sidebar.sidebarWidth }}>
                                 {sidebar.activeSidebarView === 'explorer' && fileTree.data && (
@@ -158,7 +162,7 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                     </div>
                 </div>
 
-                {terminal.isVisible && (
+                {!isZenMode && terminal.isVisible && (
                     <>
                         <div className="terminal-resizer" onMouseDown={terminal.startResize} />
                         <div className="terminal-panel" style={{ height: terminal.height }}>
@@ -168,12 +172,14 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                 )}
             </div>
 
-            <StatusBar
-                cursorLine={fileOps.cursorLine}
-                cursorCol={fileOps.cursorCol}
-                currentBranch={git.currentBranch}
-                encoding={fileEncoding}
-            />
+            {!isZenMode && (
+                <StatusBar
+                    cursorLine={fileOps.cursorLine}
+                    cursorCol={fileOps.cursorCol}
+                    currentBranch={git.currentBranch}
+                    encoding={fileEncoding}
+                />
+            )}
         </div>
     );
 };

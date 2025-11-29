@@ -14,7 +14,8 @@ interface UseKeyboardShortcutsProps {
     handleSave: () => void;
     handleMenuSaveAsFile: () => void;
     handleMenuCloseWindow: () => void;
-    splitEditor: () => void; // <--- 新增
+    splitEditor: () => void;
+    toggleZenMode: () => void;
 }
 
 function checkKey(e: KeyboardEvent, shortcut: string): boolean {
@@ -89,10 +90,14 @@ export function useKeyboardShortcuts(props: UseKeyboardShortcutsProps) {
                 props.handleMenuCloseWindow();
             }
 
-            // 新增：分屏
             if (checkKey(e, keymap['view.splitEditor'])) {
                 e.preventDefault();
                 props.splitEditor();
+            }
+
+            if (checkKey(e, keymap['view.toggleZenMode'])) {
+                e.preventDefault();
+                props.toggleZenMode();
             }
         };
 

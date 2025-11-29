@@ -11,17 +11,19 @@ interface UseCommandsProps {
     handleMenuSaveAsFile: () => void;
     handleMenuCloseWindow: () => void;
     handleViewChange: (view: SidebarView) => void;
+    toggleZenMode: () => void;
 }
 
 export function useCommands({
-                                handleMenuNewFile,
-                                handleMenuOpenFile,
-                                handleMenuOpenFolder,
-                                handleSave,
-                                handleMenuSaveAsFile,
-                                handleMenuCloseWindow,
-                                handleViewChange
-                            }: UseCommandsProps) {
+    handleMenuNewFile,
+    handleMenuOpenFile,
+    handleMenuOpenFolder,
+    handleSave,
+    handleMenuSaveAsFile,
+    handleMenuCloseWindow,
+    handleViewChange,
+    toggleZenMode,
+}: UseCommandsProps) {
     const commands = useMemo<Command[]>(() => [
         { id: 'file.new', name: 'File: New File', action: handleMenuNewFile },
         { id: 'file.open', name: 'File: Open File...', action: handleMenuOpenFile },
@@ -31,6 +33,7 @@ export function useCommands({
         { id: 'app.quit', name: 'Application: Quit', action: handleMenuCloseWindow },
         { id: 'git.toggle', name: 'Git: Toggle Source Control', action: () => handleViewChange('git') },
         { id: 'search.toggle', name: 'Search: Toggle Search', action: () => handleViewChange('search') },
+        { id: 'view.toggleZenMode', name: 'View: Toggle Zen Mode', action: toggleZenMode },
     ], [
         handleMenuNewFile,
         handleMenuOpenFile,
@@ -38,7 +41,8 @@ export function useCommands({
         handleSave,
         handleMenuSaveAsFile,
         handleMenuCloseWindow,
-        handleViewChange
+        handleViewChange,
+        toggleZenMode,
     ]);
 
     return commands;

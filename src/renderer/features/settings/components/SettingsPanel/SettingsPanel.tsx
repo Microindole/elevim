@@ -17,6 +17,7 @@ const commandLabels: Record<CommandId, string> = {
     'view.toggleGitPanel': '切换源代码管理',
     'view.toggleSearchPanel': '切换搜索面板',
     'view.splitEditor': '拆分编辑器',
+    'view.toggleZenMode': 'Zen Mode',
     'editor.save': '保存 (编辑器内部快捷键)',
 };
 
