@@ -5,7 +5,7 @@ import './CommandPalette.css';
 export interface Command {
     id: string;
     name: string;
-    action: () => void;
+    action: () => void | Promise<void>;
 }
 
 interface CommandPaletteProps {

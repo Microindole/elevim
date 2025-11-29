@@ -2,26 +2,14 @@
 import { app } from 'electron';
 import * as path from 'path';
 import * as fs from 'node:fs/promises';
-import {AppSettings, EditorColors, Keymap} from '../../shared/types';
-import {DEFAULT_THEME} from "../../shared/themes";
+import { AppSettings, Keymap } from '../../shared/types';
+import { DEFAULT_THEME } from "../../shared/themes";
+import { generateDefaultKeymap } from "../../shared/command-manifest";
 
 const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 
-const defaultKeymap: Keymap = {
-    'app.quit': 'Ctrl+Q',
-    'file.new': 'Ctrl+N',
-    'file.open': 'Ctrl+O',
-    'file.openFolder': 'Ctrl+Shift+O',
-    'file.save': 'Ctrl+S',
-    'file.saveAs': 'Ctrl+Shift+S',
-    'view.togglePalette': 'Ctrl+Shift+P',
-    'view.toggleTerminal': 'Ctrl+`',
-    'view.toggleGitPanel': 'Ctrl+Shift+G',
-    'view.toggleSearchPanel': 'Ctrl+Shift+F',
-    'view.splitEditor': 'Ctrl+\\',
-    'view.toggleZenMode': 'Ctrl+Alt+M',
-    'editor.save': 'Mod+S'
-};
+// 使用 helper 生成默认键位，不再手动写死
+const defaultKeymap: Keymap = generateDefaultKeymap() as Keymap;
 
 const defaultSettings: AppSettings = {
     fontSize: 15,
@@ -30,7 +18,7 @@ const defaultSettings: AppSettings = {
         mode: 'dark',
         colors: DEFAULT_THEME
     },
-    customThemes: {} // 初始化为空对象
+    customThemes: {}
 };
 
 export async function readSettings(): Promise<AppSettings> {
@@ -40,9 +28,9 @@ export async function readSettings(): Promise<AppSettings> {
         const savedSettings = JSON.parse(settingsData);
 
         return {
-            ...defaultSettings, // 默认值
-            ...savedSettings,   // 加载的值
-            keymap: {           // 深度合并 keymap
+            ...defaultSettings,
+            ...savedSettings,
+            keymap: {
                 ...defaultSettings.keymap,
                 ...(savedSettings.keymap || {})
             }

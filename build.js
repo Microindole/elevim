@@ -3,7 +3,7 @@ const esbuild = require('esbuild');
 
 async function build() {
     try {
-        // 任务1: 构建主进程 (保持不变)
+        // 构建主进程
         await esbuild.build({
             entryPoints: ['src/main/index.ts', 'src/main/preload.ts'],
             outdir: 'dist/main',
@@ -13,7 +13,7 @@ async function build() {
         });
         console.log('✅ Main process built successfully!');
 
-        // 任务2: 构建渲染进程的 JS 和 CSS
+        // 构建渲染进程的 JS 和 CSS
         await esbuild.build({
             entryPoints: ['src/renderer/app/index.tsx'],
             outfile: 'dist/renderer/index.js',
@@ -27,8 +27,6 @@ async function build() {
             // 即 'dist/renderer/index.css'。这是我们想要的行为。
         });
         console.log('✅ Renderer JS and CSS built successfully!');
-
-        // 任务3: (已合并到任务2中，不再需要)
 
     } catch (e) {
         console.error('Build failed:', e);

@@ -1,6 +1,7 @@
 // src/renderer/app/controllers/useAppController.ts
-import { useState, useCallback, useEffect } from 'react';
-import { AppSettings} from '../../../shared/types';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { AppSettings } from '../../../shared/types';
+import { CommandRegistry } from '../../features/workbench/commands/types';
 
 // Hooks
 import { useFileOperations } from '../../features/editor/hooks/useFileOperations';
@@ -21,6 +22,7 @@ export function useAppController() {
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
     const [settings, setSettings] = useState<AppSettings | null>(null);
     const [isZenMode, setIsZenMode] = useState(false);
+
     // 1. 初始化基础 Hooks
     const fileOps = useFileOperations();
     const sidebar = useSidebar();
@@ -28,19 +30,15 @@ export function useAppController() {
     const fileTree = useFileTree();
 
     // 2. 依赖关系处理 (Wrappers)
-
-    // 封装安全操作 (带保存提示)
     const handleMenuNewFile = useCallback(() => fileOps.safeAction(fileOps.handleNewFile), [fileOps]);
     const handleMenuOpenFile = useCallback(() => fileOps.safeAction(() => window.electronAPI.file.showOpenDialog()), [fileOps]);
     const handleMenuSaveAsFile = useCallback(() => window.electronAPI.menu.triggerSaveAsFile(), []);
     const handleMenuCloseWindow = useCallback(() => fileOps.safeAction(() => window.electronAPI.window.closeWindow()), [fileOps]);
 
-    // 封装文件树选择逻辑
     const handleFileTreeSelectWrapper = useCallback((filePath: string) => {
         fileTree.handleFileTreeSelect(filePath, fileOps.safeAction);
     }, [fileTree, fileOps]);
 
-    // 封装从搜索面板打开文件的逻辑
     const openFileToLine = useCallback((filePath: string, line: number) => {
         fileOps.safeAction(async () => {
             const content = await window.electronAPI.file.openFile(filePath);
@@ -57,12 +55,9 @@ export function useAppController() {
     }, []);
 
     // 3. 处理高级状态 (Git, Session, Events)
-
-    // Git 状态依赖于当前文件夹
     const { gitStatus, setGitStatus } = useGitStatus(fileTree.currentOpenFolderPath, fileTree.setFileTree);
     const currentBranch = useCurrentBranch(fileTree.currentOpenFolderPath.current);
 
-    // Session 管理 (提取出的 Hook)
     const { isReady } = useSessionManager({
         groups: fileOps.groups,
         activeGroupId: fileOps.activeGroupId,
@@ -76,7 +71,6 @@ export function useAppController() {
         setActiveSidebarView: sidebar.setActiveSidebarView
     });
 
-    // 全局事件监听 (提取出的 Hook)
     useGlobalEvents({
         setSettings,
         handleFileTreeSelectWrapper,
@@ -89,7 +83,7 @@ export function useAppController() {
         currentOpenFolderPath: fileTree.currentOpenFolderPath,
         setActiveSidebarView: sidebar.setActiveSidebarView,
         setOpenFiles: fileOps.setGroups as any,
-        setActiveIndex: () => {}, // 简化处理，实际可以通过增强 fileOps 来处理
+        setActiveIndex: () => {},
         openFile: fileOps.openFile
     });
 
@@ -108,44 +102,6 @@ export function useAppController() {
         setOpenFiles: fileOps.setGroups as any
     });
 
-    // Zen Mode 逻辑
-    const toggleZenMode = useCallback(() => {
-        setIsZenMode(prev => {
-            const nextState = !prev;
-            // 可选：进入 Zen Mode 时自动关闭侧边栏和终端，退出时恢复？
-            // 这里我们只做纯粹的 Zen Mode 开关，具体显示逻辑交给 Layout
-            return nextState;
-        });
-    }, []);
-
-    // 键盘快捷键
-    useKeyboardShortcuts({
-        keymap: settings?.keymap,
-        setIsPaletteOpen,
-        setIsTerminalVisible: terminal.setIsTerminalVisible,
-        handleViewChange: sidebar.handleViewChange,
-        handleMenuNewFile,
-        handleMenuOpenFile,
-        handleMenuOpenFolder: fileTree.handleMenuOpenFolder,
-        handleSave: fileOps.handleSave,
-        handleMenuSaveAsFile,
-        handleMenuCloseWindow,
-        splitEditor: fileOps.splitEditor,
-        toggleZenMode,
-    });
-
-    // 分屏快捷键监听 (保留在 Controller 或移入 KeyboardShortcuts)
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.ctrlKey && e.key === '\\') {
-                e.preventDefault();
-                fileOps.splitEditor();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [fileOps]);
-
     const handleSidebarViewChange = (view: any) => {
         if (view === 'settings') {
             fileOps.openFile('elevim://settings', '', 'UTF-8');
@@ -154,16 +110,41 @@ export function useAppController() {
         }
     };
 
-    const commands = useCommands({
-        handleMenuNewFile,
-        handleMenuOpenFile,
-        handleMenuOpenFolder: fileTree.handleMenuOpenFolder,
-        handleSave: fileOps.handleSave,
-        handleMenuSaveAsFile,
-        handleMenuCloseWindow,
-        handleViewChange: sidebar.handleViewChange,
+    // Zen Mode 逻辑
+    const toggleZenMode = useCallback(() => {
+        setIsZenMode(prev => !prev);
+    }, []);
+
+    // --- 核心：构建命令注册表 ---
+    // 将所有具体的实现映射到 Command ID
+    const commandRegistry = useMemo<CommandRegistry>(() => ({
+        'file.new': handleMenuNewFile,
+        'file.open': handleMenuOpenFile,
+        'file.openFolder': fileTree.handleMenuOpenFolder,
+        'file.save': fileOps.handleSave,
+        'file.saveAs': handleMenuSaveAsFile,
+        'app.quit': handleMenuCloseWindow,
+        'view.togglePalette': () => setIsPaletteOpen(prev => !prev),
+        'view.toggleTerminal': () => terminal.setIsTerminalVisible(prev => !prev),
+        'view.toggleGitPanel': () => sidebar.handleViewChange('git'),
+        'view.toggleSearchPanel': () => sidebar.handleViewChange('search'),
+        'view.splitEditor': fileOps.splitEditor,
+        'view.toggleZenMode': toggleZenMode,
+        // 'editor.save' 通常是编辑器内部处理
+    }), [
+        handleMenuNewFile, handleMenuOpenFile, fileTree.handleMenuOpenFolder,
+        fileOps.handleSave, handleMenuSaveAsFile, handleMenuCloseWindow,
+        terminal.setIsTerminalVisible, sidebar.handleViewChange, fileOps.splitEditor,
         toggleZenMode
+    ]);
+
+    // 键盘快捷键
+    useKeyboardShortcuts({
+        keymap: settings?.keymap,
+        commandRegistry
     });
+
+    const commands = useCommands({ commandRegistry });
 
     // 5. 组装返回给 View 的 Props
     return {
