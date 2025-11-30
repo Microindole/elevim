@@ -48,6 +48,7 @@ export interface ZenModeConfig {
     fullScreen: boolean;
     centerLayout: boolean;
     hideLineNumbers: boolean;
+    typewriterScroll: boolean;
 }
 
 export interface AppSettings {

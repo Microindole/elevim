@@ -299,6 +299,25 @@ export default function SettingsPanel() {
                             />
                         </div>
                     </div>
+
+                    <div className="setting-row">
+                        <div className="setting-info">
+                            <label>Typewriter Scrolling</label>
+                                <span className="setting-desc">
+                                    Keep the cursor vertically centered in the editor (Zen Mode only).
+                                </span>
+                        </div>
+                        <div className="setting-control">
+                            <input
+                                type="checkbox"
+                                checked={settings.zenMode?.typewriterScroll ?? true}
+                                onChange={(e) => handleSave('zenMode', {
+                                    ...settings?.zenMode,
+                                    typewriterScroll: e.target.checked
+                                })}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

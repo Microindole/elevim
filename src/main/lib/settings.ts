@@ -22,7 +22,8 @@ const defaultSettings: AppSettings = {
     zenMode: {
         fullScreen: true,
         centerLayout: true,
-        hideLineNumbers: false
+        hideLineNumbers: false,
+        typewriterScroll: true,
     }
 };
 

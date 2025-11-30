@@ -36,6 +36,7 @@ import { URI } from 'vscode-uri';
 
 import {EditorColors, Keymap, ZenModeConfig} from '../../../../shared/types';
 import {createLspCompletionSource} from "../lib/lsp-completion";
+import {typewriterScrollPlugin} from "../lib/typewriter-scroll";
 
 interface UseCodeMirrorProps {
     content: string;
@@ -266,56 +267,122 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
         if (view) {
             const extensions = [];
 
+            // src/renderer/features/editor/hooks/useCodeMirror.ts
+
+// ... 在 useEffect 中 ...
+
             if (zenModeConfig) {
-                // 1. 居中布局 (Box-shadow 扩散法)
+                let contentStyles: any = {};
+                let scrollerStyles: any = {};
+
+                // 1. 基础 Zen Mode 样式
                 if (zenModeConfig.centerLayout) {
+                    scrollerStyles = {
+                        // 关键：不要用 flex 布局来居中 scroller，因为这会干扰原生滚动
+                        // 我们保持 block 布局，但在 content 上做 margin: 0 auto
+                        overflowX: "hidden",
+                    };
+
+                    contentStyles = {
+                        // 使用 margin: 0 auto 来实现水平居中，这样不影响垂直滚动
+                        margin: "0 auto",
+                        // 宽度设置 (90vw)
+                        width: "90vw",
+                        maxWidth: "90vw",
+                        minHeight: "100%", // 确保高度撑满
+                    };
+
                     extensions.push(EditorView.theme({
-                        // 滚动容器：Flex 居中
+                        // 滚动容器
+                        ".cm-scroller": scrollerStyles,
+
+                        // 内容容器
+                        ".cm-content": contentStyles,
+
+                        // 行号栏调整
+                        ".cm-gutters": {
+                            position: "fixed", // 尝试固定定位，或者保持 static 但配合 margin
+                            left: "calc(50% - 45vw - 40px)", // 粗略计算：屏幕中心 - 内容一半宽度 - 行号宽度
+                            // 上面的 fixed 定位比较复杂，不仅要算位置，还要处理滚动同步。
+                            // 简单的做法是：让行号栏也包含在居中的容器里。
+                            // 但 CodeMirror 的结构是 scroller -> [gutters, content]。
+                            // 所以最好的办法还是让 scroller 保持默认，只限制 content 宽度是不行的，因为 gutters 和 content 是兄弟元素。
+
+                            // --- 回退到更稳健的 Flex 方案，但修正 overflow ---
+                        }
+                    }));
+
+                    // --- 重新编写样式逻辑 (更稳健的方案) ---
+                    extensions.push(EditorView.theme({
+                        // 1. 滚动容器
                         ".cm-scroller": {
+                            // 使用 Flex 居中是没问题的，但必须允许 Y 轴滚动
                             display: "flex",
                             justifyContent: "center",
-                            // 允许垂直滚动，但隐藏水平溢出（防止 box-shadow 撑出滚动条）
-                            overflowX: "hidden",
+                            overflowY: "auto !important", // 强制开启垂直滚动
+                            overflowX: "hidden",          // 隐藏水平滚动
+                            height: "100%"                // 确保高度占满
                         },
-                        // 内容容器：限制宽度并居中
+
+                        // 2. 内容容器
                         ".cm-content": {
-                            flex: "0 1 900px", // 基础宽度 900px，允许缩小
-                            maxWidth: "900px",
+                            flex: "0 0 90vw", // 不伸缩，固定 90vw
+                            maxWidth: "90vw",
                             margin: "0",
-                            paddingBottom: "30vh",
+                            // 关键：打字机模式需要的 padding 必须在这里动态合并，或者在下面单独加
                         },
-                        // 行号栏：取消固定，紧贴代码
+
+                        // 3. 行号栏
                         ".cm-gutters": {
-                            position: "static !important",
-                            borderRight: "none",
+                            position: "sticky", // 粘性定位可能更好，或者是 static
+                            // 保持原有的透明配置
+                            borderRight: "none !important",
                             backgroundColor: "transparent !important",
-                            flexShrink: 0, // 防止被压缩
-                            marginRight: "16px", // 与代码保持舒适距离
+                            marginRight: "20px",
+                            zIndex: 10,
                         },
-                        // *** 核心修复：全屏行高亮 ***
-                        // 不再修改 .cm-activeLine 的尺寸，而是用 box-shadow 向左右无限延伸
+
+                        // 4. 全屏高亮 (伪元素法) - 保持不变
                         ".cm-activeLine": {
+                            backgroundColor: "transparent !important",
+                            position: "relative",
+                            zIndex: 1,
+                        },
+                        ".cm-activeLine::before": {
+                            content: '""',
+                            position: "absolute",
+                            top: 0, bottom: 0,
+                            left: "-100vw", right: "-100vw", // 足够宽
                             backgroundColor: "rgba(255, 255, 255, 0.05)",
-                            // 左右各延伸 100vw 的阴影，颜色与背景一致
-                            // 参数：x偏移 y偏移 模糊半径 扩散半径 颜色
-                            boxShadow: "0 0 0 100vw rgba(255, 255, 255, 0.05)",
-                            // 必须设置 clip-path 或者让父容器 overflow: hidden 防止阴影遮挡其他元素？
-                            // 不，box-shadow 不占布局空间，但会显示。
-                            // 只要 .cm-scroller 设置了 overflow-x: hidden，就不会出现水平滚动条。
+                            pointerEvents: "none",
+                            zIndex: -1,
                         },
                         ".cm-activeLineGutter": {
-                            backgroundColor: "transparent !important", // 行号本身透明，透出 box-shadow 即可
+                            backgroundColor: "transparent !important"
                         }
                     }));
                 }
 
-                // 2. 隐藏行号 (保持不变)
+                // 2. 隐藏行号
                 if (zenModeConfig.hideLineNumbers) {
                     extensions.push(EditorView.theme({
                         ".cm-gutters": { display: "none !important" }
                     }));
                 }
+
+                // 3. 打字机滚动 (修复滚动失效的问题)
+                if (zenModeConfig.typewriterScroll) {
+                    extensions.push(typewriterScrollPlugin);
+                    extensions.push(EditorView.theme({
+                        ".cm-content": {
+                            // 这里的 !important 很重要，防止被上面的样式覆盖
+                            paddingTop: "45vh !important",
+                            paddingBottom: "45vh !important"
+                        }
+                    }));
+                }
             }
+// ...
 
             view.dispatch({
                 effects: zenModeCompartment.reconfigure(extensions)

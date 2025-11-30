@@ -166,7 +166,7 @@ export default function SearchPanel({ folderPath, onResultClick, onReplaceComple
                 <div className="search-input-group">
                     <input
                         type="text"
-                        placeholder="Repalce"
+                        placeholder="Replace"
                         className="search-input"
                         value={replaceTerm}
                         onChange={(e) => setReplaceTerm(e.target.value)}
