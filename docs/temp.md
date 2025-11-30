@@ -1,75 +1,182 @@
-```markdown
-elevim/
-├── .github/                  <-- (GitHub 模板配置)
-├── dist/                     <-- (编译输出目录，.gitignore 排除)
-├── resources/                <-- (应用打包时需要的图标、资源等)
-│   └── logo.png
-├── src/                      <-- (项目源码)
-│   ├── main/                 <-- (主进程代码)
-│   │   ├── lib/              <-- (主进程的辅助工具模块)
-│   │   │   ├── file-system.ts  # 文件系统相关函数 (如读取目录)
-│   │   │   ├── git-service.ts  # 封装所有 Git 操作的模块
-│   │   │   ├── language-map.ts # CodeMirror 语言高亮映射
-│   │   │   └── settings.ts     # 设置读写相关函数
-│   │   ├── index.ts          # 主进程入口
-│   │   ├── ipc-handlers.ts   # 专门处理所有 IPC 通信的模块
-│   │   └── preload.ts        # 预加载脚本，桥接主进程和渲染进程
-│   │
-│   ├── renderer/             <-- (渲染进程代码 - React 应用)
-│   │   ├── components/       <-- (存放所有 React 组件)
-│   │   │   ├── App/
-│   │   │   │   └── App.css
-│   │   │   ├── CommandPalette/ # 命令面板 (Ctrl+Shift+P)
-│   │   │   │   ├── CommandPalette.tsx
-│   │   │   │   └── CommandPalette.css
-│   │   │   ├── Editor/         # CodeMirror 编辑器组件
-│   │   │   │   ├── Editor.tsx
-│   │   │   │   └── Editor.css
-│   │   │   ├── FileTree/       # 文件树组件
-│   │   │   │   ├── FileTree.tsx
-│   │   │   │   ├── FileTree.css
-│   │   │   │   ├── TreeNode.tsx
-│   │   │   │   └── icon-map.ts   # 文件/文件夹图标映射
-│   │   │   ├── GitPanel/       # Git 源代码管理面板
-│   │   │   │   ├── GitPanel.tsx
-│   │   │   │   ├── GitPanel.css
-│   │   │   │   ├── DiffViewer.tsx  # 差异查看器
-│   │   │   │   ├── DiffViewer.css
-│   │   │   │   ├── ContextMenu.tsx # 右键菜单
-│   │   │   │   └── ContextMenu.css
-│   │   │   ├── StatusBar/      # 底部状态栏
-│   │   │   │   ├── StatusBar.tsx
-│   │   │   │   └── StatusBar.css
-│   │   │   ├── Tabs/           # 多标签页
-│   │   │   │   ├── Tabs.tsx
-│   │   │   │   └── Tabs.css
-│   │   │   ├── Terminal/       # 集成终端
-│   │   │   │   ├── Terminal.tsx
-│   │   │   │   └── Terminal.css
-│   │   │   └── TitleBar/       # 自定义标题栏和菜单
-│   │   │       ├── TitleBar.tsx
-│   │   │       └── TitleBar.css
-│   │   ├── hooks/            <-- (自定义 React Hooks)
-│   │   │   └── useCodeMirror.ts  # 封装 CodeMirror 逻辑
-│   │   ├── styles/           <-- (全局样式)
-│   │   │   └── global.css
-│   │   ├── App.tsx           # 渲染进程入口 (布局和状态中心)
-│   │   ├── index.tsx         # React 渲染的起点
-│   │   └── index.css         # CSS 入口文件
-│   │
-│   └── shared/               <-- (主进程和渲染进程共享的代码)
-│       ├── constants.ts      # IPC 频道常量
-│       └── types.ts          # 共享的 TypeScript 接口
-│
-├── .gitignore
-├── build.js                  <-- (esbuild 构建脚本)
-├── index.html                <-- (Electron 加载的 HTML 根文件)
-├── LICENSE
-├── package.json
-├── package-lock.json
-├── README.md
-├── SECURITY.md
-├── step.md                   <-- (开发步骤)
-├── temp.md
-└── tsconfig.json
+```
+elevim
+├─ build.js
+├─ CODE_OF_CONDUCT.md
+├─ CONTRIBUTING.md
+├─ docs
+│  ├─ step.md
+│  ├─ temp.md
+│  ├─ themes.md
+│  └─ WARNING.md
+├─ index.html
+├─ LICENSE
+├─ package-lock.json
+├─ package.json
+├─ README.md
+├─ resources
+│  ├─ logo.png
+│  └─ logo1.png
+├─ SECURITY.md
+├─ src
+│  ├─ main
+│  │  ├─ cli
+│  │  │  ├─ cli-action.types.ts
+│  │  │  └─ cli-handler.ts
+│  │  ├─ index.ts
+│  │  ├─ ipc-handlers
+│  │  │  ├─ file.handlers.ts
+│  │  │  ├─ git.handlers.ts
+│  │  │  ├─ github.handlers.ts
+│  │  │  ├─ index.ts
+│  │  │  ├─ lsp.handlers.ts
+│  │  │  ├─ menu.handlers.ts
+│  │  │  ├─ session.handlers.ts
+│  │  │  ├─ settings.handlers.ts
+│  │  │  ├─ state.ts
+│  │  │  ├─ terminal.handlers.ts
+│  │  │  └─ window.handlers.ts
+│  │  ├─ ipc-handlers.ts
+│  │  ├─ lib
+│  │  │  ├─ file-system.ts
+│  │  │  ├─ git
+│  │  │  │  ├─ commands.ts
+│  │  │  │  ├─ types.ts
+│  │  │  │  └─ watcher.ts
+│  │  │  ├─ git-service.ts
+│  │  │  ├─ github-auth.ts
+│  │  │  ├─ lsp-manager.ts
+│  │  │  ├─ session.ts
+│  │  │  └─ settings.ts
+│  │  └─ preload.ts
+│  ├─ renderer
+│  │  ├─ features
+│  │  │  ├─ editor
+│  │  │  │  ├─ components
+│  │  │  │  │  ├─ Breadcrumbs
+│  │  │  │  │  │  ├─ Breadcrumbs.css
+│  │  │  │  │  │  └─ Breadcrumbs.tsx
+│  │  │  │  │  ├─ Editor
+│  │  │  │  │  │  ├─ Editor.css
+│  │  │  │  │  │  └─ Editor.tsx
+│  │  │  │  │  ├─ EditorGroup
+│  │  │  │  │  │  ├─ EditorGroup.css
+│  │  │  │  │  │  └─ EditorGroup.tsx
+│  │  │  │  │  └─ Tabs
+│  │  │  │  │     ├─ Tabs.css
+│  │  │  │  │     └─ Tabs.tsx
+│  │  │  │  ├─ hooks
+│  │  │  │  │  ├─ useCodeMirror.ts
+│  │  │  │  │  └─ useFileOperations.ts
+│  │  │  │  └─ lib
+│  │  │  │     ├─ breadcrumbs-util.ts
+│  │  │  │     ├─ focus-mode.ts
+│  │  │  │     ├─ language-map.ts
+│  │  │  │     ├─ lsp-completion.ts
+│  │  │  │     ├─ lsp-hover.ts
+│  │  │  │     ├─ lsp-plugin.ts
+│  │  │  │     ├─ theme-generator.ts
+│  │  │  │     ├─ typewriter-scroll.ts
+│  │  │  │     └─ wiki-links.ts
+│  │  │  ├─ explorer
+│  │  │  │  ├─ components
+│  │  │  │  │  └─ FileTree
+│  │  │  │  │     ├─ FileTree.css
+│  │  │  │  │     ├─ FileTree.tsx
+│  │  │  │  │     ├─ icon-map.ts
+│  │  │  │  │     └─ TreeNode.tsx
+│  │  │  │  └─ hooks
+│  │  │  │     ├─ useCliHandlers.ts
+│  │  │  │     └─ useFileTree.ts
+│  │  │  ├─ git
+│  │  │  │  ├─ components
+│  │  │  │  │  └─ GitPanel
+│  │  │  │  │     ├─ DiffViewer.css
+│  │  │  │  │     ├─ DiffViewer.tsx
+│  │  │  │  │     ├─ GitPanel.css
+│  │  │  │  │     ├─ GitPanel.tsx
+│  │  │  │  │     ├─ PublishRepoModal.css
+│  │  │  │  │     ├─ PublishRepoModal.tsx
+│  │  │  │  │     └─ tabs
+│  │  │  │  │        ├─ BranchesTab.css
+│  │  │  │  │        ├─ BranchesTab.tsx
+│  │  │  │  │        ├─ ChangesTab.css
+│  │  │  │  │        ├─ ChangesTab.tsx
+│  │  │  │  │        ├─ CommitBox.tsx
+│  │  │  │  │        ├─ FileChangesList.tsx
+│  │  │  │  │        ├─ HistoryTab.css
+│  │  │  │  │        ├─ HistoryTab.tsx
+│  │  │  │  │        └─ StashButtons.tsx
+│  │  │  │  └─ hooks
+│  │  │  │     ├─ useBranchChange.ts
+│  │  │  │     ├─ useCurrentBranch.ts
+│  │  │  │     ├─ useGitData.ts
+│  │  │  │     ├─ useGitOperations.ts
+│  │  │  │     └─ useGitStatus.ts
+│  │  │  ├─ search
+│  │  │  │  └─ components
+│  │  │  │     └─ SearchPanel
+│  │  │  │        ├─ SearchPanel.css
+│  │  │  │        └─ SearchPanel.tsx
+│  │  │  ├─ settings
+│  │  │  │  └─ components
+│  │  │  │     └─ SettingsPanel
+│  │  │  │        ├─ KeybindingInput.css
+│  │  │  │        ├─ KeybindingInput.tsx
+│  │  │  │        ├─ SettingsPanel.css
+│  │  │  │        └─ SettingsPanel.tsx
+│  │  │  ├─ terminal
+│  │  │  │  ├─ components
+│  │  │  │  │  └─ Terminal
+│  │  │  │  │     ├─ Terminal.css
+│  │  │  │  │     └─ Terminal.tsx
+│  │  │  │  └─ hooks
+│  │  │  │     └─ useTerminal.ts
+│  │  │  └─ workbench
+│  │  │     ├─ commands
+│  │  │     │  └─ types.ts
+│  │  │     ├─ components
+│  │  │     │  ├─ ActivityBar
+│  │  │     │  │  ├─ ActivityBar.css
+│  │  │     │  │  ├─ ActivityBar.tsx
+│  │  │     │  │  └─ icons.tsx
+│  │  │     │  ├─ CommandPalette
+│  │  │     │  │  ├─ CommandPalette.css
+│  │  │     │  │  └─ CommandPalette.tsx
+│  │  │     │  ├─ StatusBar
+│  │  │     │  │  ├─ StatusBar.css
+│  │  │     │  │  └─ StatusBar.tsx
+│  │  │     │  └─ TitleBar
+│  │  │     │     ├─ TitleBar.css
+│  │  │     │     └─ TitleBar.tsx
+│  │  │     └─ hooks
+│  │  │        ├─ useCommands.ts
+│  │  │        ├─ useKeyboardShortcuts.ts
+│  │  │        └─ useSidebar.ts
+│  │  ├─ styles
+│  │  │  └─ global.css
+│  │  └─ types
+│  ├─ shared
+│  │  ├─ command-manifest.ts
+│  │  ├─ components
+│  │  │  └─ ContextMenu
+│  │  │     ├─ ContextMenu.css
+│  │  │     └─ ContextMenu.tsx
+│  │  ├─ constants.ts
+│  │  ├─ hooks
+│  │  │  ├─ useGlobalEvents.ts
+│  │  │  └─ useIpcListeners.ts
+│  │  ├─ themes
+│  │  │  ├─ dracula.ts
+│  │  │  ├─ github-dark.ts
+│  │  │  ├─ index.ts
+│  │  │  ├─ monokai.ts
+│  │  │  ├─ nord.ts
+│  │  │  ├─ one-dark.ts
+│  │  │  ├─ origin.ts
+│  │  │  ├─ solarized-dark.ts
+│  │  │  └─ tokyo-night.ts
+│  │  └─ types.ts
+│  └─ types
+│     └─ jschardet.d.ts
+└─ tsconfig.json
 ```

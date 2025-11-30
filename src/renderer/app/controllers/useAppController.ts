@@ -159,6 +159,54 @@ export function useAppController() {
 
     const commands = useCommands({ commandRegistry });
 
+    useEffect(() => {
+        const handleWikiLinkClick = async (e: any) => {
+            const { filename } = e.detail;
+            const currentRoot = fileTree.currentOpenFolderPath.current;
+
+            if (!currentRoot) return;
+
+            // 用户点击了 [[My Note]]，我们需要找到 My Note.md 或 My Note.txt
+            console.log(`[WikiLink] Resolving: ${filename}`);
+
+            try {
+                // 1. 获取目录下所有文件
+                // @ts-ignore
+                const result = await window.electronAPI.file.readDirectoryFlat(currentRoot);
+
+                if (!result || !result.children) return;
+
+                // 2. 模糊查找文件
+                const targetFile = result.children.find((f: any) => {
+                    if (f.isDir) return false;
+                    // 匹配文件名 (带后缀 或 不带后缀)
+                    return f.name === filename ||
+                        f.name.split('.')[0] === filename;
+                });
+
+                if (targetFile) {
+                    // 3. 找到文件 -> 打开
+                    console.log(`[WikiLink] Opening: ${targetFile.path}`);
+                    fileOps.openFile(targetFile.path, "", "UTF-8");
+                } else {
+                    // 4. 未找到 -> 询问创建
+                    const create = confirm(`File "${filename}" not found. Create it?`);
+                    if (create) {
+                        // 默认创建为 .md 文件
+                        const newPath = `${currentRoot}/${filename}.md`;
+                        // 打开一个新文件 (内容为空或带标题)，保存时才会真正写入磁盘
+                        fileOps.openFile(newPath, `# ${filename}\n\n`, "UTF-8");
+                    }
+                }
+            } catch (err) {
+                console.error("[WikiLink] Failed to resolve link:", err);
+            }
+        };
+
+        window.addEventListener('wiki-link-click', handleWikiLinkClick);
+        return () => window.removeEventListener('wiki-link-click', handleWikiLinkClick);
+    }, [fileTree.currentOpenFolderPath, fileOps]);
+
     // 5. 组装返回给 View 的 Props
     return {
         // Core State

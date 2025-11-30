@@ -71,7 +71,6 @@ export default function Editor({
         filename,
         filePath,
         projectPath,
-        // [修改] 关键：将 ID 带回
         onDocChange: (doc) => onDocChange(doc, fileId),
         onSave,
         onCursorChange,

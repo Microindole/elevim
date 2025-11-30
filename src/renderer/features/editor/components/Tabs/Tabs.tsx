@@ -30,21 +30,13 @@ function Tab({ file, isActive, onClick, onClose }: TabProps) {
             onClick={onClick}
             title={file.path || file.name} // 鼠标悬停显示完整路径
         >
-            {/* 1. 顶部高亮条 (通过 CSS border-top 实现) */}
-
-            {/* 2. 文件图标 */}
             <div className="tab-icon">
                 <img src={iconPath} alt="" />
             </div>
-
-            {/* 3. 文件名 */}
             <span className="tab-title">
                 {file.name}
             </span>
-
-            {/* 4. 右侧操作区：关闭按钮 或 未保存圆点 */}
             <div className="tab-actions">
-                {/* 未保存时显示圆点 (CSS控制 hover 时隐藏圆点显示关闭) */}
                 <span className="tab-dirty-dot">●</span>
 
                 <button

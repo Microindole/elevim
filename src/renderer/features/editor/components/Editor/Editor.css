@@ -51,3 +51,19 @@
 .cm-searchMatch-selected {
     background-color: rgba(255, 255, 0, 0.4);
 }
+/* Wiki Link 样式 */
+.cm-wiki-link {
+    color: var(--accent-color); /* 使用主题色 (蓝色) */
+    text-decoration: underline;
+    text-underline-offset: 3px; /* 下划线稍微远离文字 */
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(255, 255, 255, 0.3); /* 下划线淡一点 */
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+}
+
+.cm-wiki-link:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* 悬停时加背景 */
+    text-decoration-color: var(--accent-color); /* 下划线变亮 */
+}

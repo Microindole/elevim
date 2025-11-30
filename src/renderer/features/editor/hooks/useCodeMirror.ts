@@ -38,6 +38,7 @@ import {EditorColors, Keymap, ZenModeConfig} from '../../../../shared/types';
 import {createLspCompletionSource} from "../lib/lsp-completion";
 import {typewriterScrollPlugin} from "../lib/typewriter-scroll";
 import {focusModePlugin} from "../lib/focus-mode";
+import {createWikiLinkCompletion, wikiLinkPlugin} from "../lib/wiki-links";
 
 interface UseCodeMirrorProps {
     content: string;
@@ -132,17 +133,22 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
         const initialTheme = themeColors ? createThemeExtension(themeColors) : [];
         const languageId = getLanguageId(filename);
         const lspExtensions = [];
-        let completionConfig = autocompletion({ override: [completeAnyWord] });
+        const completionSources = [
+            // 1. 如果有 projectPath，添加 Wiki Link 补全
+            ...(projectPath ? [createWikiLinkCompletion(projectPath)] : []),
+            // 2. 如果有 LSP，添加 LSP 补全
+            ...(languageId && filePath ? [createLspCompletionSource(docUri, languageId)] : []),
+            // 3. 兜底：单词补全
+            completeAnyWord
+        ];
+
+        const completionConfig = autocompletion({
+            override: completionSources
+        });
 
         if (languageId && filePath) {
             lspExtensions.push(createLspPlugin(filePath, projectPath, languageId));
             lspExtensions.push(createLspHover(filePath, languageId));
-            completionConfig = autocompletion({
-                override: [
-                    createLspCompletionSource(docUri, languageId),
-                    completeAnyWord
-                ]
-            });
         }
 
         const definitionKeymap = keymap.of([{
@@ -200,9 +206,6 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             '.cm-gutters': {
                 fontSize: '14px',
                 fontFamily: 'inherit',
-                // 保持行号区域没有额外的垂直边距，与 content 对齐的关键
-                // 如果 content 有 padding，这里最好保持一致或通过 CSS 处理，
-                // 但 CM6 通常自动处理行对齐。关键是不要给 .cm-line 设 padding。
             }
         });
 
@@ -220,6 +223,7 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             bracketMatching(),
             closeBrackets(),
             completionConfig,
+            wikiLinkPlugin,
             rectangularSelection(),
             crosshairCursor(),
             highlightActiveLine(),
