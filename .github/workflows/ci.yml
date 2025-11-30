@@ -13,12 +13,14 @@ on:
       - '.gitignore'         # 忽略 git 配置文件
       - 'CODE_OF_CONDUCT.md' # 忽略行为准则
       - 'SECURITY.md'        # 忽略安全策略
+      - 'website/**'
   pull_request:
     branches: [ "main", "master" ]
     paths-ignore:
       - 'docs/**'
       - '**.md'
       - 'LICENSE'
+      - 'website/**'
 
 jobs:
   build-check:
