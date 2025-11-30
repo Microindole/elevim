@@ -76,3 +76,51 @@
     overflow: hidden;
     display: flex;
 }
+
+/* 定义过渡基础 */
+.layout-header,
+.layout-activity-bar,
+.layout-footer {
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    opacity: 1;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.layout-sidebar {
+    /*transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);*/
+    display: flex;
+    flex-direction: row;
+    flex-shrink: 0;
+}
+
+/* Zen Mode 激活时的隐藏状态 */
+.zen-hidden {
+    opacity: 0;
+    pointer-events: none; /* 防止点击 */
+}
+
+/* 针对不同部位的具体隐藏逻辑 */
+
+/* 1. 标题栏：向上收起 */
+.layout-header.zen-hidden {
+    height: 0 !important;
+    transform: translateY(-100%);
+}
+
+/* 2. ActivityBar：向左收起 */
+.layout-activity-bar.zen-hidden {
+    width: 0 !important;
+    transform: translateX(-100%);
+}
+
+/* 3. 底部状态栏：向下收起 */
+.layout-footer.zen-hidden {
+    height: 0 !important;
+    transform: translateY(100%);
+}
+
+/* 编辑器区域的背景过渡（可选） */
+.zen-mode-active .editor-container {
+    background-color: var(--bg-editor); /* 确保背景色平滑过渡 */
+}

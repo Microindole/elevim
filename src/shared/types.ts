@@ -15,7 +15,9 @@ export type CommandId =
     | 'view.toggleSearchPanel'
     | 'view.splitEditor'
     | 'view.toggleZenMode'
-    | 'editor.save';
+    | 'editor.save'
+    | 'workbench.action.nextEditor'
+    | 'workbench.action.previousEditor';
 
 // --- 设置 ---
 export type Keymap = Record<CommandId, string>;
@@ -49,6 +51,7 @@ export interface ZenModeConfig {
     centerLayout: boolean;
     hideLineNumbers: boolean;
     typewriterScroll: boolean;
+    focusMode: boolean;
 }
 
 export interface AppSettings {

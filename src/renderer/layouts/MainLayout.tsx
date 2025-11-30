@@ -85,11 +85,12 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
 
     const themeColors = settings ? settings.theme.colors : null;
     const fileEncoding = fileOps.activeFile ? fileOps.activeFile.encoding : null;
+    const zenClass = isZenMode ? 'zen-hidden' : '';
 
     return (
-        <div className="main-layout">
+        <div className={`main-layout ${isZenMode ? 'zen-mode-active' : ''}`}>
             <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} commands={commands} />
-            {!isZenMode &&(
+            <div className={`layout-header ${zenClass}`}>
                 <TitleBar
                     isDirty={fileOps.activeFile?.isDirty ?? false}
                     currentFileName={fileOps.activeFile?.name ?? "Elevim"}
@@ -100,16 +101,23 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                     onSaveAsFile={menuHandlers.handleSaveAs}
                     onCloseWindow={menuHandlers.handleCloseWindow}
                 />
-            )}
+            </div>
             <div className="main-content-area">
                 <div className="app-container">
-                    {!isZenMode && (
+                    <div className={`layout-activity-bar ${zenClass}`}>
                         <ActivityBar
                             activeView={sidebar.activeSidebarView}
                             onViewChange={sidebar.handleSidebarViewChange}
                         />
-                    )}
-                    {!isZenMode && sidebar.activeSidebarView && (
+                    </div>
+                    <div
+                        className={`layout-sidebar ${zenClass}`}
+                        style={{
+                            width: isZenMode ? 0 : sidebar.activeSidebarView ? (sidebar.sidebarWidth + 3) : 0,
+                            overflow: 'hidden'
+                        }}
+                    >
+                        {sidebar.activeSidebarView && (
                         <>
                             <div className="sidebar" style={{ width: sidebar.sidebarWidth }}>
                                 {sidebar.activeSidebarView === 'explorer' && fileTree.data && (
@@ -133,6 +141,7 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             <div className="resizer" onMouseDown={sidebar.startResizing} />
                         </>
                     )}
+                    </div>
 
                     <div className="editor-container">
                         <Allotment>
@@ -163,25 +172,23 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                         </Allotment>
                     </div>
                 </div>
-
-                {!isZenMode && terminal.isVisible && (
-                    <>
-                        <div className="terminal-resizer" onMouseDown={terminal.startResize} />
-                        <div className="terminal-panel" style={{ height: terminal.height }}>
-                            <TerminalComponent />
-                        </div>
-                    </>
-                )}
+                <div className={`layout-footer ${zenClass}`}>
+                    {terminal.isVisible && (
+                        <>
+                            <div className="terminal-resizer" onMouseDown={terminal.startResize} />
+                            <div className="terminal-panel" style={{ height: terminal.height }}>
+                                <TerminalComponent />
+                            </div>
+                        </>
+                    )}
+                    <StatusBar
+                        cursorLine={fileOps.cursorLine}
+                        cursorCol={fileOps.cursorCol}
+                        currentBranch={git.currentBranch}
+                        encoding={fileEncoding}
+                    />
+                </div>
             </div>
-
-            {!isZenMode && (
-                <StatusBar
-                    cursorLine={fileOps.cursorLine}
-                    cursorCol={fileOps.cursorCol}
-                    currentBranch={git.currentBranch}
-                    encoding={fileEncoding}
-                />
-            )}
         </div>
     );
 };

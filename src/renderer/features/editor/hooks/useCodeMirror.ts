@@ -37,6 +37,7 @@ import { URI } from 'vscode-uri';
 import {EditorColors, Keymap, ZenModeConfig} from '../../../../shared/types';
 import {createLspCompletionSource} from "../lib/lsp-completion";
 import {typewriterScrollPlugin} from "../lib/typewriter-scroll";
+import {focusModePlugin} from "../lib/focus-mode";
 
 interface UseCodeMirrorProps {
     content: string;
@@ -266,11 +267,6 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
     useEffect(() => {
         if (view) {
             const extensions = [];
-
-            // src/renderer/features/editor/hooks/useCodeMirror.ts
-
-// ... 在 useEffect 中 ...
-
             if (zenModeConfig) {
                 let contentStyles: any = {};
                 let scrollerStyles: any = {};
@@ -378,6 +374,28 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
                             // 这里的 !important 很重要，防止被上面的样式覆盖
                             paddingTop: "45vh !important",
                             paddingBottom: "45vh !important"
+                        }
+                    }));
+                }
+
+                if (zenModeConfig.focusMode) {
+                    extensions.push(focusModePlugin);
+                    extensions.push(EditorView.theme({
+                        // 让所有行默认半透明、稍微模糊
+                        ".cm-content .cm-line": {
+                            transition: "opacity 0.4s ease, filter 0.4s ease", // 优雅的过渡
+                            opacity: "0.25",
+                            filter: "blur(0.8px)", // 可选：给非聚焦行一点点模糊，增加景深感
+                        },
+                        // 让被插件标记为 active 的行恢复正常
+                        ".cm-content .cm-focus-active-line": {
+                            opacity: "1 !important",
+                            filter: "none !important"
+                        },
+                        // 当鼠标悬停在编辑器上时，临时显示所有内容（方便快速浏览）
+                        ".cm-content:hover .cm-line": {
+                            opacity: "1",
+                            filter: "none"
                         }
                     }));
                 }

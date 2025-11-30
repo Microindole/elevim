@@ -141,12 +141,14 @@ export function useAppController() {
         'view.toggleSearchPanel': () => sidebar.handleViewChange('search'),
         'view.splitEditor': fileOps.splitEditor,
         'view.toggleZenMode': toggleZenMode,
+        'workbench.action.nextEditor': fileOps.nextEditor,
+        'workbench.action.previousEditor': fileOps.previousEditor,
         // 'editor.save' 通常是编辑器内部处理
     }), [
         handleMenuNewFile, handleMenuOpenFile, fileTree.handleMenuOpenFolder,
         fileOps.handleSave, handleMenuSaveAsFile, handleMenuCloseWindow,
         terminal.setIsTerminalVisible, sidebar.handleViewChange, fileOps.splitEditor,
-        toggleZenMode
+        toggleZenMode, fileOps.nextEditor, fileOps.previousEditor,
     ]);
 
     // 键盘快捷键

@@ -296,6 +296,35 @@ export function useFileOperations() {
         setCursorCol(col);
     }, []);
 
+    // 切换到下一个标签页
+    const nextEditor = useCallback(() => {
+        setGroups(prevGroups => {
+            const currentActiveId = stateRef.current.activeGroupId;
+            return prevGroups.map(g => {
+                if (g.id === currentActiveId && g.files.length > 1) {
+                    const nextIndex = (g.activeIndex + 1) % g.files.length; // 循环切换
+                    return { ...g, activeIndex: nextIndex };
+                }
+                return g;
+            });
+        });
+    }, []);
+
+    // 切换到上一个标签页
+    const previousEditor = useCallback(() => {
+        setGroups(prevGroups => {
+            const currentActiveId = stateRef.current.activeGroupId;
+            return prevGroups.map(g => {
+                if (g.id === currentActiveId && g.files.length > 1) {
+                    // 循环切换逻辑
+                    const prevIndex = (g.activeIndex - 1 + g.files.length) % g.files.length;
+                    return { ...g, activeIndex: prevIndex };
+                }
+                return g;
+            });
+        });
+    }, []);
+
     return {
         groups,
         activeGroupId,
@@ -317,5 +346,7 @@ export function useFileOperations() {
         onEditorContentChange,
         handleCursorChange,
         safeAction,
+        nextEditor,
+        previousEditor,
     };
 }

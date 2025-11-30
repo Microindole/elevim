@@ -1,10 +1,10 @@
 // src/renderer/features/settings/components/SettingsPanel/SettingsPanel.tsx
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import './SettingsPanel.css';
-import { AppSettings, CommandId, EditorColors } from '../../../../../shared/types';
+import {AppSettings, CommandId, EditorColors} from '../../../../../shared/types';
 import KeybindingInput from './KeybindingInput';
-import { PRESET_THEMES } from "../../../../../shared/themes";
-import { COMMAND_MANIFEST } from "../../../../../shared/command-manifest";
+import {PRESET_THEMES} from "../../../../../shared/themes";
+import {COMMAND_MANIFEST} from "../../../../../shared/command-manifest";
 
 export default function SettingsPanel() {
     const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -24,18 +24,18 @@ export default function SettingsPanel() {
     }, []);
 
     const handleSave = (key: keyof AppSettings, value: any) => {
-        const newSettings = { ...settings!, [key]: value };
+        const newSettings = {...settings!, [key]: value};
         setSettings(newSettings);
         window.electronAPI.settings.setSetting(key, value);
         window.dispatchEvent(new CustomEvent('settings-changed', {
-            detail: { key, value }
+            detail: {key, value}
         }));
     };
 
     const handleColorChange = (colorKey: keyof EditorColors, newValue: string) => {
         if (!settings) return;
-        const newColors = { ...settings.theme.colors, [colorKey]: newValue };
-        const newTheme = { ...settings.theme, colors: newColors };
+        const newColors = {...settings.theme.colors, [colorKey]: newValue};
+        const newTheme = {...settings.theme, colors: newColors};
         handleSave('theme', newTheme);
     };
 
@@ -43,7 +43,7 @@ export default function SettingsPanel() {
         const result = await window.electronAPI.settings.importTheme();
 
         if (result.success && result.data && settings) {
-            const { name, colors } = result.data;
+            const {name, colors} = result.data;
             const newCustomThemes = {
                 ...(settings.customThemes || {}),
                 [name]: colors
@@ -63,7 +63,7 @@ export default function SettingsPanel() {
             window.electronAPI.settings.setSetting('theme', newActiveTheme);
 
             window.dispatchEvent(new CustomEvent('settings-changed', {
-                detail: { key: 'theme', value: newActiveTheme }
+                detail: {key: 'theme', value: newActiveTheme}
             }));
 
             alert(`Theme "${name}" imported successfully!`);
@@ -74,12 +74,12 @@ export default function SettingsPanel() {
 
     const handlePresetChange = (themeName: string) => {
         if (!settings || !allThemes[themeName]) return;
-        const newTheme = { ...settings.theme, colors: allThemes[themeName] };
+        const newTheme = {...settings.theme, colors: allThemes[themeName]};
         handleSave('theme', newTheme);
     };
 
     const handleKeymapChange = (command: CommandId, newShortcut: string) => {
-        const newKeymap = { ...settings!.keymap, [command]: newShortcut };
+        const newKeymap = {...settings!.keymap, [command]: newShortcut};
         handleSave('keymap', newKeymap);
     };
 
@@ -303,7 +303,7 @@ export default function SettingsPanel() {
                     <div className="setting-row">
                         <div className="setting-info">
                             <label>Typewriter Scrolling</label>
-                                <span className="setting-desc">
+                            <span className="setting-desc">
                                     Keep the cursor vertically centered in the editor (Zen Mode only).
                                 </span>
                         </div>
@@ -314,6 +314,25 @@ export default function SettingsPanel() {
                                 onChange={(e) => handleSave('zenMode', {
                                     ...settings?.zenMode,
                                     typewriterScroll: e.target.checked
+                                })}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="setting-row">
+                        <div className="setting-info">
+                            <label>Focus Mode</label>
+                            <span className="setting-desc">
+                                Dim all lines except the current one to help you focus.
+                            </span>
+                        </div>
+                        <div className="setting-control">
+                            <input
+                                type="checkbox"
+                                checked={settings.zenMode?.focusMode ?? false}
+                                onChange={(e) => handleSave('zenMode', {
+                                    ...settings?.zenMode,
+                                    focusMode: e.target.checked
                                 })}
                             />
                         </div>

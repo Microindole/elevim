@@ -24,6 +24,7 @@ const defaultSettings: AppSettings = {
         centerLayout: true,
         hideLineNumbers: false,
         typewriterScroll: true,
+        focusMode: false,
     }
 };
 
