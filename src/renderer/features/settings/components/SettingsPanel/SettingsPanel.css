@@ -9,27 +9,18 @@
     display: flex;
     justify-content: center;
 }
-
 .settings-container {
     width: 100%;
     max-width: 800px;
     padding: 40px 20px;
 }
-
-.settings-header {
-    margin-bottom: 40px;
-}
-
+.settings-header { margin-bottom: 40px;}
 .settings-header h1 {
     font-size: 28px;
     font-weight: 400;
     margin-bottom: 20px;
 }
-
-.settings-search-wrapper {
-    position: relative;
-}
-
+.settings-search-wrapper { position: relative;}
 .settings-search-bar {
     width: 100%;
     padding: 10px 12px;
@@ -43,11 +34,9 @@
     outline: 1px solid var(--accent-color);
     border-color: var(--accent-color);
 }
-
 .settings-section {
     margin-bottom: 40px;
 }
-
 .settings-section h2 {
     font-size: 18px;
     font-weight: 500;
@@ -56,7 +45,6 @@
     border-bottom: 1px solid var(--border-color-light);
     color: var(--text-color-light);
 }
-
 .setting-row {
     display: flex;
     justify-content: space-between;
@@ -64,24 +52,20 @@
     padding: 12px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
-
 .setting-info {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
-
 .setting-info label {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-color-light);
 }
-
 .setting-desc {
     font-size: 13px;
     color: var(--text-color-subtle);
 }
-
 .setting-code {
     font-family: 'Consolas', monospace;
     font-size: 12px;
@@ -91,7 +75,6 @@
     border-radius: 3px;
     align-self: flex-start;
 }
-
 .settings-number-input {
     background-color: var(--bg-hover);
     border: 1px solid var(--border-color-light);
@@ -100,13 +83,11 @@
     border-radius: 2px;
     width: 60px;
 }
-
 .settings-empty {
     padding: 20px 0;
     text-align: center;
     color: var(--text-color-subtle);
 }
-
 .settings-select {
     appearance: none;
     -webkit-appearance: none;
@@ -125,24 +106,19 @@
     background-size: 16px;
     transition: all 0.2s ease;
 }
-
 .settings-select:hover {
     background-color: #3e3e42;
     border-color: var(--accent-color);
 }
-
 .settings-select:focus {
     border-color: var(--accent-color);
     box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
 }
-
 .settings-select option {
     background-color: var(--bg-panel);
     color: var(--text-color);
     padding: 10px;
 }
-
-/* 设置页面的头部按钮 */
 .settings-header-btn {
     display: flex;
     align-items: center;
@@ -158,17 +134,14 @@
     transition: all 0.2s ease;
     outline: none;
 }
-
 .settings-header-btn:hover {
     background-color: var(--bg-hover);
     color: var(--text-color-light);
     border-color: var(--accent-color);
 }
-
 .settings-header-btn:active {
     background-color: rgba(255, 255, 255, 0.1);
 }
-
 .settings-header-btn svg {
     opacity: 0.8;
 }

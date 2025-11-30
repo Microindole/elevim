@@ -17,12 +17,8 @@
     align-items: center;
     gap: 15px;
 }
-.status-group-left {
-    justify-content: flex-start;
-}
-.status-group-right {
-    justify-content: flex-end;
-}
+.status-group-left { justify-content: flex-start;}
+.status-group-right { justify-content: flex-end;}
 .status-item {
     display: flex;
     align-items: center;
@@ -31,9 +27,8 @@
     border-radius: 3px;
     transition: background-color 0.15s;
 }
-
 .status-item.hover-bright:hover {
-    background-color: rgba(255, 255, 255, 0.1); /* 浅色悬停背景 */
-    color: var(--text-color-light); /* 悬停时文字变亮白色 */
+    background-color: rgba(255, 255, 255, 0.1);
+    color: var(--text-color-light);
     cursor: default;
 }

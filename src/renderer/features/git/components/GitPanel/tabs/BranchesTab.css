@@ -1,9 +1,5 @@
 /* src/renderer/features/git/components/GitPanel/tabs/BranchesTab.css */
-
-.git-branches {
-    padding: 12px;
-}
-
+.git-branches { padding: 12px;}
 .git-branch-header {
     display: flex;
     justify-content: space-between;
@@ -12,15 +8,8 @@
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border-color-light);
 }
-
-.git-branch-header span {
-    font-size: 13px;
-}
-
-.git-branch-header strong {
-    color: var(--git-green);
-}
-
+.git-branch-header span { font-size: 13px;}
+.git-branch-header strong { color: var(--git-green);}
 .git-new-branch-btn {
     padding: 4px 12px;
     background-color: var(--accent-color);
@@ -32,17 +21,14 @@
     cursor: pointer;
     transition: background-color 0.2s;
 }
-
 .git-new-branch-btn:hover {
     background-color: #009aff;
 }
-
 .git-branch-list {
     display: flex;
     flex-direction: column;
     gap: 4px;
 }
-
 .git-branch-item {
     display: flex;
     align-items: center;
@@ -51,26 +37,21 @@
     cursor: pointer;
     transition: background-color 0.15s;
 }
-
 .git-branch-item:not(.current):hover {
     background-color: var(--bg-hover);
 }
-
 .git-branch-item.current {
     background-color: rgba(152, 195, 121, 0.15);
     cursor: default;
 }
-
 .git-branch-icon {
     margin-right: 8px;
     color: var(--git-green);
     font-size: 14px;
 }
-
 .git-branch-name {
     font-size: 13px;
 }
-
 .git-branch-item.current .git-branch-name {
     font-weight: 600;
     color: var(--git-green);

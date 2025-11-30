@@ -1,5 +1,4 @@
 /* src/renderer/features/workbench/components/ActivityBar/ActivityBar.css */
-
 .activity-bar {
     width: 50px;
     height: 100%;
@@ -36,20 +35,16 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    /* 移除左边框效果 */
 }
 
-/* Hover 效果 - 只让图标变亮 */
 .activity-btn:hover {
-    color: var(--text-color-light); /* #ffffff */
+    color: var(--text-color-light);
 }
 
-/* Active 状态 - 只让图标变亮 */
 .activity-btn.active {
-    color: var(--text-color-light); /* #ffffff */
+    color: var(--text-color-light);
 }
 
-/* SVG 图标样式 */
 .activity-btn svg {
     width: 24px;
     height: 24px;

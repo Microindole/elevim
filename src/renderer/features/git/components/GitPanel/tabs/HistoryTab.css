@@ -7,7 +7,7 @@
 .git-commit-item {
     display: flex;
     flex-direction: row;
-    min-height: 32px; /* 固定最小高度 */
+    min-height: 32px;
     position: relative;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
@@ -15,35 +15,26 @@
 .git-commit-item:hover {
     background-color: var(--bg-hover);
 }
-
 .git-commit-item.selected {
     background-color: rgba(255, 255, 255, 0.08);
 }
-
 .git-graph-col {
     flex-shrink: 0;
     position: relative;
     align-self: stretch;
     overflow: visible;
 }
-
-/* 覆盖掉默认的 circle 样式 */
 .graph-svg circle {
     transition: r 0.2s;
-    /* 增强镂空效果 */
-    stroke: var(--bg-sidebar); /* 确保这个颜色和你的背景色一致 */
+    stroke: var(--bg-sidebar);
 }
-
-
 .git-commit-item.selected .graph-svg circle {
-    stroke: rgba(55, 55, 61, 1); /* 如果选中状态背景变了，这里也要微调 */
+    stroke: rgba(55, 55, 61, 1);
 }
 
 .git-commit-item:hover circle {
     r: 5;
 }
-
-/* 右侧内容区 */
 .git-commit-content {
     flex: 1;
     min-width: 0; /* 防止 flex 子元素溢出 */
@@ -52,8 +43,6 @@
     flex-direction: column;
     justify-content: center;
 }
-
-/* 主要信息行 (Message + Hash + Date) */
 .git-commit-row-main {
     display: flex;
     align-items: baseline;
@@ -103,8 +92,6 @@
     line-height: 14px;
     white-space: nowrap;
 }
-
-/* --- 详情面板 (展开部分) --- */
 .git-commit-details-panel {
     margin-top: 8px;
     background-color: rgba(0, 0, 0, 0.2);
@@ -163,8 +150,6 @@
     background: var(--bg-hover);
     color: var(--text-color-light);
 }
-
-/* 加载更多按钮 */
 .load-more-container {
     padding: 10px;
     display: flex;

@@ -1,11 +1,7 @@
 /* src/renderer/features/git/components/GitPanel/tabs/ChangesTab.css */
-
-/* Changes Tab */
 .git-changes {
     padding-bottom: 8px;
 }
-
-/* Actions Bar */
 .git-actions-bar {
     display: flex;
     gap: 8px;
@@ -13,8 +9,6 @@
     border-bottom: 1px solid var(--border-color-light);
     background-color: var(--bg-sidebar);
 }
-
-/* Commit Box */
 .git-commit-box {
     padding: 8px 12px;
     border-bottom: 1px solid var(--border-color-light);
@@ -60,7 +54,6 @@
     cursor: not-allowed;
 }
 
-/* File Sections */
 .git-section {
     margin-bottom: 12px;
 }
@@ -76,8 +69,6 @@
     border-top: 1px solid var(--border-color-light);
     border-bottom: 1px solid var(--border-color-light);
 }
-
-/* File Items */
 .git-file-item {
     display: flex;
     align-items: center;
@@ -97,26 +88,14 @@
     color: var(--git-green);
 }
 
-/* Git 状态颜色 */
 .git-file-item .git-file-status[data-status="modified"],
-.git-file-item .git-file-status[data-status="wd-modified"] {
-    color: var(--git-yellow);
-}
+.git-file-item .git-file-status[data-status="wd-modified"] { color: var(--git-yellow);}
 .git-file-item .git-file-status[data-status="added"],
-.git-file-item .git-file-status[data-status="untracked"] {
-    color: var(--git-green);
-}
+.git-file-item .git-file-status[data-status="untracked"] { color: var(--git-green);}
 .git-file-item .git-file-status[data-status="deleted"],
-.git-file-item .git-file-status[data-status="wd-deleted"] {
-    color: var(--git-red-light);
-}
-.git-file-item .git-file-status[data-status="renamed"] {
-    color: var(--git-green);
-}
-.git-file-item .git-file-status[data-status="conflicted"] {
-    color: var(--git-red);
-}
-
+.git-file-item .git-file-status[data-status="wd-deleted"] { color: var(--git-red-light);}
+.git-file-item .git-file-status[data-status="renamed"] { color: var(--git-green);}
+.git-file-item .git-file-status[data-status="conflicted"] { color: var(--git-red);}
 .git-file-path {
     flex: 1;
     overflow: hidden;

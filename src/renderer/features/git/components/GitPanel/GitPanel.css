@@ -1,6 +1,4 @@
 /* src/renderer/features/git/components/GitPanel/GitPanel.css */
-
-/* 基础布局 */
 .git-panel {
     width: 100%;
     height: 100%;
@@ -9,8 +7,6 @@
     flex-direction: column;
     color: var(--text-color);
 }
-
-/* Header */
 .git-panel-header {
     display: flex;
     justify-content: space-between;
@@ -19,7 +15,6 @@
     background-color: var(--bg-sidebar);
     border-bottom: 1px solid var(--border-color-light);
 }
-
 .git-panel-header h3 {
     margin: 0;
     font-size: 14px;
@@ -41,8 +36,6 @@
     background-color: var(--bg-hover);
     color: var(--text-color-light);
 }
-
-/* Tabs */
 .git-tabs {
     display: flex;
     background-color: var(--bg-sidebar);
@@ -70,8 +63,6 @@
     color: var(--text-color-light);
     border-bottom-color: var(--accent-color);
 }
-
-/* Content Area */
 .git-content {
     flex: 1;
     overflow-y: auto;
@@ -99,8 +90,6 @@
     color: var(--text-color-subtle);
     font-size: 13px;
 }
-
-/* 通用按钮样式 */
 .git-action-btn {
     width: 24px;
     height: 24px;
@@ -162,7 +151,7 @@
 }
 
 .git-init-btn {
-    width: 100%; /* 使其成为一个块级按钮 */
+    width: 100%;
     padding: 8px 16px;
     background-color: var(--accent-color);
     border: none;
@@ -176,5 +165,5 @@
 }
 
 .git-init-btn:hover {
-    background-color: #009aff; /* 悬停时更亮的蓝色 */
+    background-color: #009aff;
 }

@@ -1,6 +1,4 @@
 /* src/renderer/features/git/components/GitPanel/PublishRepoModal.css */
-
-/* Tabs 区域 - 扁平化设计 */
 .publish-modal-tabs {
     display: flex;
     gap: 0;
