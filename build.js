@@ -19,12 +19,7 @@ async function build() {
             outfile: 'dist/renderer/index.js',
             bundle: true,
             platform: 'browser',
-            // 核心修复：把 CSS loader 加回来，并指定输出路径
             loader: { '.css': 'css' },
-            // esbuild 在打包时，会将 CSS 导入语句提取出来，
-            // 并生成一个单独的 CSS 文件。
-            // 默认情况下，它会生成一个与 outfile 同名的 .css 文件，
-            // 即 'dist/renderer/index.css'。这是我们想要的行为。
         });
         console.log('✅ Renderer JS and CSS built successfully!');
 

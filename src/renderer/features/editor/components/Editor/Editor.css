@@ -10,21 +10,25 @@
     height: 100%;
 }
 .cm-cursor {
-    border-left-width: 2px;
-    border-left-color: var(--accent-color);
-    animation: cm-blink 1.2s steps(1) infinite;
+    /*border-left: none; !* 移除左边框 *!*/
+    background-color: var(--accent-color); /* 使用背景色 */
+    width: 0.1em; /* 设置宽度为字符宽度的大约 60% */
+    opacity: 0.5; /* 半透明，否则会挡住文字 */
+    animation: cm-blink-smooth 1s ease-in-out infinite;
+}
+
+/* 失去焦点时隐藏 */
+.cm-editor:not(.cm-focused) .cm-cursor {
+    opacity: 0 !important;
+    animation: none;
 }
 
 @keyframes cm-blink {
     50% { opacity: 0; }
 }
-
-/* --- 2. 基础行样式 --- */
 .cm-line {
     font-variant-ligatures: none;
 }
-
-/* --- 4. 滚动条美化 --- */
 .cm-scroller::-webkit-scrollbar {
     width: 12px;
     height: 12px;
@@ -40,8 +44,6 @@
 .cm-scroller::-webkit-scrollbar-thumb:hover {
     background-color: #4f4f4f;
 }
-
-/* --- 5. 搜索匹配 --- */
 .cm-searchMatch {
     background-color: rgba(255, 255, 0, 0.2);
     border-bottom: 1px solid rgba(255, 255, 0, 0.5);
