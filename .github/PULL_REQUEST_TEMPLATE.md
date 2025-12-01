@@ -24,7 +24,7 @@
 
 **PR 自查清单**
 
-- [ ] 我已经阅读了 [CONTRIBUTING.md](../CONTRIBUTING.md) 指南。
+- [ ] 我已经阅读了 [CONTRIBUTING.md](CONTRIBUTING.md) 指南。
 - [ ] 我的 PR 标题遵循了**约定式提交**规范。
 - [ ] 我已经对我的修改进行了本地测试。
 - [ ] 我已经为我的代码添加了必要的注释（如果适用）。
