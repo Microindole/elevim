@@ -1,25 +1,61 @@
 /* src/renderer/app/App.css */
 
+/* 全局布局容器 */
 .main-layout {
     display: flex;
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background-color: var(--bg-editor); /* 使用变量 */
+    background-color: var(--bg-editor);
+    overflow: hidden; /* 防止整体出现滚动条 */
 }
 
+/* 标题栏 (Top) */
+.layout-header {
+    flex-shrink: 0;
+    transition: transform 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+}
+
+/* 主内容区域 (Middle) - 包含 ActivityBar 和右侧工作台 */
 .main-content-area {
     display: flex;
-    flex-direction: column;
+    flex-direction: row; /* 关键：横向排列 */
     flex-grow: 1;
     overflow: hidden;
+    position: relative; /* 为绝对定位的元素提供锚点 */
 }
 
-.app-container {
+/* 左侧活动栏 - 固定宽度，不伸缩 */
+.layout-activity-bar {
+    flex-shrink: 0;
+    z-index: 10;
+    transition: transform 0.3s ease, width 0.3s ease, opacity 0.3s ease;
+}
+
+/* 右侧工作台容器 - 包含侧边栏、编辑器、终端、状态栏 */
+.workbench-container {
     display: flex;
+    flex-direction: column; /* 关键：内部纵向排列 */
     flex-grow: 1;
     overflow: hidden;
+    min-width: 0; /* 防止 Flex 子元素内容过多导致溢出 */
+}
+
+/* 上半部分：侧边栏 + 编辑器 */
+.app-container {
+    display: flex;
+    flex-direction: row; /* 横向排列 Sidebar 和 Editor */
+    flex-grow: 1; /* 占据除终端外的剩余垂直空间 */
+    overflow: hidden;
     background-color: var(--bg-sidebar);
+    position: relative;
+}
+
+/* 侧边栏容器 */
+.layout-sidebar {
+    display: flex;
+    flex-shrink: 0;
+    transition: width 0.1s ease; /* 稍微加一点过渡，或者去掉以提高性能 */
 }
 
 .sidebar {
@@ -30,6 +66,7 @@
     flex-shrink: 0;
 }
 
+/* 侧边栏拖拽条 */
 .resizer {
     width: 5px;
     cursor: col-resize;
@@ -38,14 +75,18 @@
     flex-shrink: 0;
     border-left: 1px solid var(--border-color-dark);
     border-right: 1px solid var(--border-color-dark);
+    z-index: 5; /* 确保在图层上方 */
 }
 .resizer:hover { background-color: var(--accent-color); }
 
+/* 编辑器区域 */
 .editor-container {
     flex-grow: 1;
     height: 100%;
     display: flex;
     background-color: var(--bg-editor);
+    overflow: hidden;
+    min-width: 0;
 }
 
 .welcome-placeholder {
@@ -58,15 +99,26 @@
     font-size: 1.2em;
 }
 
-/* 终端面板的拖动条 */
-.terminal-resizer {
-    height: 5px;
-    cursor: row-resize;
-    background-color: var(--bg-resizer); /* 使用变量 */
+/* 下半部分：底部容器 (Terminal + Status Bar) */
+.layout-footer {
+    display: flex;
+    flex-direction: column;
     flex-shrink: 0;
+    transition: transform 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+    background-color: var(--bg-editor);
+    border-top: 1px solid var(--border-color-light);
+}
+
+/* 终端面板的拖动条 (水平线) */
+.terminal-resizer {
+    height: 4px; /* 稍微细一点更精致 */
+    cursor: row-resize;
+    background-color: var(--bg-resizer);
+    flex-shrink: 0;
+    width: 100%;
 }
 .terminal-resizer:hover {
-    background-color: var(--accent-color); /* 使用变量 */
+    background-color: var(--accent-color);
 }
 
 /* 终端面板容器 */
@@ -75,32 +127,18 @@
     flex-shrink: 0;
     overflow: hidden;
     display: flex;
+    background-color: var(--bg-editor);
 }
 
-/* 定义过渡基础 */
-.layout-header,
-.layout-activity-bar,
-.layout-footer {
-    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    opacity: 1;
-    overflow: hidden;
-    flex-shrink: 0;
-}
+/* ----------------------- */
+/* Zen Mode (禅模式) 样式 */
+/* ----------------------- */
 
-.layout-sidebar {
-    /*transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);*/
-    display: flex;
-    flex-direction: row;
-    flex-shrink: 0;
-}
-
-/* Zen Mode 激活时的隐藏状态 */
+/* 隐藏状态的通用类 */
 .zen-hidden {
     opacity: 0;
-    pointer-events: none; /* 防止点击 */
+    pointer-events: none;
 }
-
-/* 针对不同部位的具体隐藏逻辑 */
 
 /* 1. 标题栏：向上收起 */
 .layout-header.zen-hidden {
@@ -114,13 +152,19 @@
     transform: translateX(-100%);
 }
 
-/* 3. 底部状态栏：向下收起 */
+/* 3. 底部区域：向下收起 */
 .layout-footer.zen-hidden {
     height: 0 !important;
     transform: translateY(100%);
 }
 
-/* 编辑器区域的背景过渡（可选） */
+/* 4. 侧边栏：在代码中通过 sidebarWidth=0 隐藏，这里辅助处理 */
+.layout-sidebar.zen-hidden {
+    width: 0 !important;
+    overflow: hidden;
+}
+
+/* 编辑器区域在禅模式下的背景处理 */
 .zen-mode-active .editor-container {
-    background-color: var(--bg-editor); /* 确保背景色平滑过渡 */
+    background-color: var(--bg-editor);
 }

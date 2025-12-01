@@ -103,90 +103,92 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                 />
             </div>
             <div className="main-content-area">
-                <div className="app-container">
-                    <div className={`layout-activity-bar ${zenClass}`}>
-                        <ActivityBar
-                            activeView={sidebar.activeSidebarView}
-                            onViewChange={sidebar.handleSidebarViewChange}
+                <div className={`layout-activity-bar ${zenClass}`}>
+                    <ActivityBar
+                        activeView={sidebar.activeSidebarView}
+                        onViewChange={sidebar.handleSidebarViewChange}
+                    />
+                </div>
+                <div className="workbench-container">
+                    <div className="app-container">
+                        <div
+                            className={`layout-sidebar ${zenClass}`}
+                            style={{
+                                width: isZenMode ? 0 : sidebar.activeSidebarView ? (sidebar.sidebarWidth + 3) : 0,
+                                overflow: 'hidden'
+                            }}
+                        >
+                            {sidebar.activeSidebarView && (
+                                <>
+                                    <div className="sidebar" style={{width: sidebar.sidebarWidth}}>
+                                        {sidebar.activeSidebarView === 'explorer' && fileTree.data && (
+                                            <FileTree
+                                                treeData={fileTree.data}
+                                                onFileSelect={fileTree.handleFileTreeSelectWrapper}
+                                                gitStatus={git.status}
+                                            />
+                                        )}
+                                        {sidebar.activeSidebarView === 'git' && (
+                                            <GitPanel onClose={() => sidebar.handleViewChange('git')}/>
+                                        )}
+                                        {sidebar.activeSidebarView === 'search' && (
+                                            <SearchPanel
+                                                folderPath={fileTree.currentOpenFolderPath.current}
+                                                onResultClick={search.openFileToLine}
+                                                onReplaceComplete={search.handleReplaceComplete}
+                                            />
+                                        )}
+                                    </div>
+                                    <div className="resizer" onMouseDown={sidebar.startResizing}/>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="editor-container">
+                            <Allotment>
+                                {fileOps.groups.map((group: any) => (
+                                    <Allotment.Pane key={group.id} minSize={200}>
+                                        <EditorGroup
+                                            groupId={group.id}
+                                            files={group.files}
+                                            activeIndex={group.activeIndex}
+                                            isActiveGroup={group.id === fileOps.activeGroupId}
+                                            onActivate={() => fileOps.activateGroup(group.id)}
+                                            onTabClick={(index: number) => fileOps.setGroupActiveIndex(group.id, index)}
+                                            onTabClose={(index: number) => fileOps.closeTab(group.id, index)}
+                                            onDocChange={fileOps.onEditorContentChange}
+                                            onSave={fileOps.handleSave}
+                                            onCursorChange={fileOps.handleCursorChange}
+                                            fontSize={settings?.fontSize || 14}
+                                            programmaticChangeRef={fileOps.programmaticChangeRef}
+                                            jumpToLine={fileOps.jumpToLine}
+                                            onJumpComplete={() => fileOps.setJumpToLine(null)}
+                                            projectPath={fileTree.currentOpenFolderPath.current}
+                                            onOpenFile={handleBreadcrumbFileSelect}
+                                            themeColors={themeColors}
+                                            zenModeConfig={props.zenModeConfig}
+                                        />
+                                    </Allotment.Pane>
+                                ))}
+                            </Allotment>
+                        </div>
+                    </div>
+                    <div className={`layout-footer ${zenClass}`}>
+                        {terminal.isVisible && (
+                            <>
+                                <div className="terminal-resizer" onMouseDown={terminal.startResize}/>
+                                <div className="terminal-panel" style={{height: terminal.height}}>
+                                    <TerminalComponent/>
+                                </div>
+                            </>
+                        )}
+                        <StatusBar
+                            cursorLine={fileOps.cursorLine}
+                            cursorCol={fileOps.cursorCol}
+                            currentBranch={git.currentBranch}
+                            encoding={fileEncoding}
                         />
                     </div>
-                    <div
-                        className={`layout-sidebar ${zenClass}`}
-                        style={{
-                            width: isZenMode ? 0 : sidebar.activeSidebarView ? (sidebar.sidebarWidth + 3) : 0,
-                            overflow: 'hidden'
-                        }}
-                    >
-                        {sidebar.activeSidebarView && (
-                        <>
-                            <div className="sidebar" style={{ width: sidebar.sidebarWidth }}>
-                                {sidebar.activeSidebarView === 'explorer' && fileTree.data && (
-                                    <FileTree
-                                        treeData={fileTree.data}
-                                        onFileSelect={fileTree.handleFileTreeSelectWrapper}
-                                        gitStatus={git.status}
-                                    />
-                                )}
-                                {sidebar.activeSidebarView === 'git' && (
-                                    <GitPanel onClose={() => sidebar.handleViewChange('git')} />
-                                )}
-                                {sidebar.activeSidebarView === 'search' && (
-                                    <SearchPanel
-                                        folderPath={fileTree.currentOpenFolderPath.current}
-                                        onResultClick={search.openFileToLine}
-                                        onReplaceComplete={search.handleReplaceComplete}
-                                    />
-                                )}
-                            </div>
-                            <div className="resizer" onMouseDown={sidebar.startResizing} />
-                        </>
-                    )}
-                    </div>
-
-                    <div className="editor-container">
-                        <Allotment>
-                            {fileOps.groups.map((group: any) => (
-                                <Allotment.Pane key={group.id} minSize={200}>
-                                    <EditorGroup
-                                        groupId={group.id}
-                                        files={group.files}
-                                        activeIndex={group.activeIndex}
-                                        isActiveGroup={group.id === fileOps.activeGroupId}
-                                        onActivate={() => fileOps.activateGroup(group.id)}
-                                        onTabClick={(index: number) => fileOps.setGroupActiveIndex(group.id, index)}
-                                        onTabClose={(index: number) => fileOps.closeTab(group.id, index)}
-                                        onDocChange={fileOps.onEditorContentChange}
-                                        onSave={fileOps.handleSave}
-                                        onCursorChange={fileOps.handleCursorChange}
-                                        fontSize={settings?.fontSize || 14}
-                                        programmaticChangeRef={fileOps.programmaticChangeRef}
-                                        jumpToLine={fileOps.jumpToLine}
-                                        onJumpComplete={() => fileOps.setJumpToLine(null)}
-                                        projectPath={fileTree.currentOpenFolderPath.current}
-                                        onOpenFile={handleBreadcrumbFileSelect}
-                                        themeColors={themeColors}
-                                        zenModeConfig={props.zenModeConfig}
-                                    />
-                                </Allotment.Pane>
-                            ))}
-                        </Allotment>
-                    </div>
-                </div>
-                <div className={`layout-footer ${zenClass}`}>
-                    {terminal.isVisible && (
-                        <>
-                            <div className="terminal-resizer" onMouseDown={terminal.startResize} />
-                            <div className="terminal-panel" style={{ height: terminal.height }}>
-                                <TerminalComponent />
-                            </div>
-                        </>
-                    )}
-                    <StatusBar
-                        cursorLine={fileOps.cursorLine}
-                        cursorCol={fileOps.cursorCol}
-                        currentBranch={git.currentBranch}
-                        encoding={fileEncoding}
-                    />
                 </div>
             </div>
         </div>
