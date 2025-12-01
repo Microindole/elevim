@@ -19,14 +19,16 @@ function decodeBuffer(buffer: Buffer): { content: string, encoding: string } {
             encoding = DEFAULT_ENCODING;
         }
 
-        console.log(`[Encoding] Detected: ${encoding} (Confidence: ${detection?.confidence || 0})`);
+        // 调试该功能时使用，现在先注释
+        // console.log(`[Encoding] Detected: ${encoding} (Confidence: ${detection?.confidence || 0})`);
 
         const content = buffer.toString(encoding as BufferEncoding);
         // 返回大写的编码名称以便显示
         return { content, encoding: encoding.toUpperCase() };
 
     } catch (e) {
-        console.error('[Encoding] Failed to decode buffer, falling back to UTF-8', e);
+        // 调试该功能时使用，现在先注释
+        // console.error('[Encoding] Failed to decode buffer, falling back to UTF-8', e);
         return { content: buffer.toString(DEFAULT_ENCODING), encoding: 'UTF-8' };
     }
 }

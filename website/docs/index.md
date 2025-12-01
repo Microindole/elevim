@@ -4,7 +4,7 @@ pageType: home
 hero:
   name: Elevim
   text: 极速、现代、轻量
-  tagline: 基于 Electron 与 CodeMirror 6 构建的下一代文本编辑器。
+  tagline: 基于 Electron 与 CodeMirror 6 构建的文本编辑器。
   actions:
     - theme: brand
       text: 快速开始

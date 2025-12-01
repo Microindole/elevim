@@ -2,7 +2,7 @@
 import { IpcMain } from 'electron';
 import * as pty from 'node-pty';
 import { IpcHandlerSharedState } from './state';
-import { terminalChannels, IPC_CHANNELS } from '../../shared/constants'; // <-- 关键修改
+import { terminalChannels, IPC_CHANNELS } from '../../shared/constants';
 
 export const registerTerminalHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedState) => void = (
     ipcMain,
@@ -12,6 +12,7 @@ export const registerTerminalHandlers: (ipcMain: IpcMain, state: IpcHandlerShare
     let isPtyStarting = false;
 
     ipcMain.on(terminalChannels.INIT, () => {
+        // 如果终端已经在运行，则复用，不重新创建
         if (state.getPty() || isPtyStarting) {
             console.warn('[Main] Ignoring redundant TERMINAL_INIT request.');
             return;
@@ -19,8 +20,8 @@ export const registerTerminalHandlers: (ipcMain: IpcMain, state: IpcHandlerShare
         isPtyStarting = true;
         console.log('[Main] Received TERMINAL_INIT - attempting to spawn.');
 
+        // 防御性清理：如果状态里有进程但实际上死了（虽然不太可能），先清理
         if (state.getPty()) {
-            console.log('[Main] Killing existing pty process (unexpected)');
             try { state.getPty()!.kill(); } catch (e) { console.error('[Main] Error killing existing pty:', e); }
             state.setPty(null);
         }
@@ -30,17 +31,25 @@ export const registerTerminalHandlers: (ipcMain: IpcMain, state: IpcHandlerShare
             const app = state.getApp();
             const mainWindow = state.getMainWindow();
 
-            console.log(`[Main] Spawning shell: ${shell} in ${app.getPath('home')}`);
+            // --- [修改核心] 动态计算启动目录 (CWD) ---
+            // 1. 尝试获取当前打开的项目文件夹路径
+            const projectRoot = state.getFolder();
+
+            // 2. 如果有打开的文件夹，就用它；如果没有，回退到操作系统默认的家目录 (Win11/Linux 通用)
+            const cwd = projectRoot || app.getPath('home');
+
+            console.log(`[Main] Spawning shell: ${shell} in ${cwd}`);
+
             const newPty = pty.spawn(shell, [], {
                 name: 'xterm-color',
                 cols: 80, rows: 30,
-                cwd: app.getPath('home'),
+                cwd: cwd, // 使用动态计算的路径
                 env: process.env
             });
 
             newPty.onData((data: string) => {
                 if (!mainWindow.isDestroyed()) {
-                    mainWindow.webContents.send(IPC_CHANNELS.TERMINAL_OUT, data); // <-- 使用保留的事件
+                    mainWindow.webContents.send(IPC_CHANNELS.TERMINAL_OUT, data);
                 }
             });
 
@@ -49,8 +58,6 @@ export const registerTerminalHandlers: (ipcMain: IpcMain, state: IpcHandlerShare
                 if (state.getPty() === newPty) {
                     state.setPty(null);
                     isPtyStarting = false;
-                } else {
-                    console.log("[Main] An older/orphaned pty process instance exited.");
                 }
             });
 
@@ -68,20 +75,16 @@ export const registerTerminalHandlers: (ipcMain: IpcMain, state: IpcHandlerShare
     ipcMain.on(terminalChannels.IN, (_event, data: string) => {
         if (state.getPty()) {
             state.getPty()!.write(data);
-        } else {
-            console.warn('[Main] Attempted to write to non-existent pty process');
         }
     });
 
     ipcMain.on(terminalChannels.RESIZE, (_event, size: { cols: number, rows: number }) => {
-        if (state.getPty() && size && typeof size.cols === 'number' && typeof size.rows === 'number' && size.cols > 0 && size.rows > 0) {
+        if (state.getPty() && size && size.cols > 0 && size.rows > 0) {
             try {
                 state.getPty()!.resize(size.cols, size.rows);
             } catch (e) {
                 console.error('[Main] Failed to resize pty:', e);
             }
-        } else {
-            console.warn('[Main] Invalid resize parameters received or pty not running:', size);
         }
     });
 };
