@@ -43,7 +43,7 @@
 
 ## 🤝 贡献
 
-欢迎提交 Pull Requests！有关详细信息，请参阅 [贡献指南](CONTRIBUTING.md)。
+欢迎提交 Pull Requests！有关详细信息，请参阅 [贡献指南](.github/CONTRIBUTING.md)。
 
 ## 📄 许可证
 

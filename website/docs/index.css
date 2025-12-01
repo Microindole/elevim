@@ -1,0 +1,49 @@
+:root {
+    /* --- 极简蓝主题 (Light Mode) --- */
+
+    /* 品牌色：经典的科技蓝，不偏紫，不偏绿 */
+    --rp-c-brand: #0066CC;
+    --rp-c-brand-dark: #004C99;
+    --rp-c-brand-light: #3385D6;
+
+    /* 链接颜色跟随品牌色 */
+    --rp-c-link: var(--rp-c-brand);
+
+    /* 背景色：保持极致的纯白和浅灰，去除杂色 */
+    --rp-c-bg: #ffffff;
+    --rp-c-bg-soft: #f8fafc; /* 极浅的灰蓝，用于侧边栏 */
+    --rp-c-bg-mute: #f1f5f9;
+
+    /* 字体优化 */
+    --rp-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+html.dark {
+    /* --- 极客深色主题 (Dark Mode) --- */
+
+    /* 品牌色：在深色背景上稍微提亮，增加可读性 */
+    --rp-c-brand: #3b82f6;
+    --rp-c-brand-dark: #2563eb;
+    --rp-c-brand-light: #60a5fa;
+
+    /* 背景色：使用 Slate (蓝灰色系) 而不是纯黑，更有质感 */
+    --rp-c-bg: #0f172a;       /* Slate 900 */
+    --rp-c-bg-soft: #1e293b;  /* Slate 800 */
+    --rp-c-bg-mute: #334155;  /* Slate 700 */
+}
+
+/* 细节微调 */
+div[class*="language-"] {
+    border-radius: 6px; /* 代码块圆角更小，更硬朗 */
+}
+
+/* 隐藏首页 Hero 区域可能的默认渐变文字效果，强制使用纯色 */
+.rspress-home-hero-text {
+    background: none !important;
+    -webkit-text-fill-color: var(--rp-c-text-1) !important;
+    color: var(--rp-c-text-1) !important;
+}
+
+.rspress-home-hero-name {
+    color: var(--rp-c-brand);
+}
