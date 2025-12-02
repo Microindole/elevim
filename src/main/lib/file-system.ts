@@ -148,7 +148,7 @@ export async function replaceInDirectory(
 }
 
 // --------------------------
-// 2. 知识图谱核心逻辑 (Knowledge Graph)
+// 2. 知识图谱核心逻辑 (修复版)
 // --------------------------
 
 export interface GraphData {
@@ -181,15 +181,13 @@ export async function buildKnowledgeGraph(rootPath: string): Promise<GraphData> 
     const links: GraphData['links'] = [];
     const filePaths = await getAllMarkdownFiles(rootPath);
 
-    // 使用 Set 存储所有合法的节点 ID (全小写，用于忽略大小写匹配)
-    // 同时也保留原始 ID 用于前端展示
-    const nodeMap = new Map<string, string>(); // Key: lowercase-id, Value: original-id
+    // 建立节点映射：Key 为小写文件名(无后缀)，Value 为真实 ID
+    const nodeMap = new Map<string, string>();
 
     // 1. 创建节点
     for (const filePath of filePaths) {
-        // ID 默认为文件名 (不含后缀)
-        const name = path.basename(filePath, path.extname(filePath));
-        const id = name; // 也可以用 filePath 作为 ID，但文件名更适合 WikiLink
+        const name = path.basename(filePath, path.extname(filePath)); // 移除 .md
+        const id = name;
 
         nodes.push({
             id: id,
@@ -198,18 +196,17 @@ export async function buildKnowledgeGraph(rootPath: string): Promise<GraphData> 
             val: 1
         });
 
-        // 存入 Map，Key 用小写，方便后续查找
         nodeMap.set(id.toLowerCase(), id);
     }
 
-    console.log(`[Graph] Found ${nodes.length} nodes.`);
-
     // 2. 解析引用关系
+    // 这个正则匹配 [[Target]] 或 [[Target|Alias]]
     const linkRegex = /\[\[([^|\]\n]+)(\|([^\]\n]+))?\]\]/g;
 
     for (const filePath of filePaths) {
         try {
             const content = await fs.readFile(filePath, 'utf-8');
+            // 源文件 ID (无后缀)
             const sourceName = path.basename(filePath, path.extname(filePath));
             const sourceId = sourceName;
 
@@ -218,24 +215,19 @@ export async function buildKnowledgeGraph(rootPath: string): Promise<GraphData> 
             for (const match of matches) {
                 let rawTarget = match[1].trim();
 
-                // 处理目标 ID：去掉可能的 .md 后缀
+                // [关键修复]：如果链接写的是 [[a.md]]，这里去掉后缀变成 "a"
                 let targetName = rawTarget.replace(/\.md$/i, "");
                 let targetKey = targetName.toLowerCase();
 
-                // 检查是否存在该节点 (忽略大小写)
                 if (nodeMap.has(targetKey)) {
                     const realTargetId = nodeMap.get(targetKey)!;
 
-                    // 避免自引用
                     if (sourceId !== realTargetId) {
                         links.push({
                             source: sourceId,
                             target: realTargetId
                         });
                     }
-                } else {
-                    // 调试日志：方便查看为什么没匹配上
-                    // console.log(`[Graph] Link not found: [[${rawTarget}]] in ${sourceName}`);
                 }
             }
         } catch (e) {
@@ -243,6 +235,6 @@ export async function buildKnowledgeGraph(rootPath: string): Promise<GraphData> 
         }
     }
 
-    console.log(`[Graph] Built ${links.length} links.`);
+    console.log(`[Graph] Built ${nodes.length} nodes, ${links.length} links.`);
     return { nodes, links };
 }
