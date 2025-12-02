@@ -23,7 +23,7 @@ const defaultSettings: AppSettings = {
         fullScreen: true,
         centerLayout: true,
         hideLineNumbers: false,
-        typewriterScroll: true,
+        typewriterScroll: false,
         focusMode: false,
     }
 };

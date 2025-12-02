@@ -67,3 +67,28 @@
     background-color: rgba(255, 255, 255, 0.1); /* 悬停时加背景 */
     text-decoration-color: var(--accent-color); /* 下划线变亮 */
 }
+
+.cm-wiki-link-widget {
+    color: var(--accent-color);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    text-decoration-color: rgba(255, 255, 255, 0.3);
+    padding: 0 2px;
+    border-radius: 4px;
+    background-color: rgba(33, 150, 243, 0.1); /* 淡淡的蓝色背景 */
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.cm-wiki-link-widget:hover {
+    background-color: rgba(33, 150, 243, 0.2);
+    text-decoration-color: var(--accent-color);
+    box-shadow: 0 0 0 1px var(--accent-color); /* 悬停时加个边框 */
+}
+
+/* Wiki Link Source (编辑状态：展开后的源码 [[...]]) */
+.cm-wiki-link-source {
+    color: var(--text-color-subtle); /* 让括号稍微暗淡一点 */
+}

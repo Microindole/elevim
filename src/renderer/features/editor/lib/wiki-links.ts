@@ -5,69 +5,64 @@ import {
     EditorView,
     ViewPlugin,
     ViewUpdate,
-    MatchDecorator
+    MatchDecorator,
+    WidgetType
 } from "@codemirror/view";
-import {
-    CompletionContext,
-    CompletionResult
-} from "@codemirror/autocomplete";
+import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 
-// ----------------------
-// 1. 自动补全逻辑
-// ----------------------
-export function createWikiLinkCompletion(projectPath: string | null) {
-    return async (context: CompletionContext): Promise<CompletionResult | null> => {
-        // 匹配光标前的 [[ 以及其后的任意字符（直到行尾或特定字符）
-        const word = context.matchBefore(/\[\[[\w\s\.-]*$/);
-        if (!word) return null;
-        if (!projectPath) return null;
+// =========================================================
+// 1. 定义 WikiLink Widget (渲染别名的 UI 组件)
+// =========================================================
+class WikiLinkWidget extends WidgetType {
+    constructor(readonly filename: string, readonly alias: string) {
+        super();
+    }
 
-        try {
-            // 通过 IPC 读取项目下的所有文件 (扁平化列表)
-            // 注意：这里利用了之前实现的 readDirectoryFlat
-            const result = await window.electronAPI.file.readDirectoryFlat(projectPath);
+    toDOM() {
+        // 创建一个 span 元素来代替原始文本
+        const span = document.createElement("span");
+        span.className = "cm-wiki-link-widget"; // 使用新的 CSS 类名
+        span.textContent = this.alias; // 只显示别名 (如果没有别名，传入的也是文件名)
+        span.dataset.filename = this.filename; // 存入文件名用于点击
+        return span;
+    }
 
-            if (!result || !result.children) return null;
-
-            const options = result.children
-                .filter((item: any) => !item.isDir) // 只建议文件，不建议文件夹
-                .map((item: any) => {
-                    // 去掉扩展名用于显示 (例如 "doc.md" -> "doc")
-                    const label = item.name.replace(/\.[^/.]+$/, "");
-                    return {
-                        label: label,
-                        detail: item.name, // 在详情里显示完整文件名
-                        apply: label + "]]", // 补全时自动闭合 ]]
-                        type: "file"
-                    };
-                });
-
-            return {
-                from: word.from + 2, // 从 [[ 之后开始补全
-                options,
-                // filter: false // 如果你想完全自己控制过滤逻辑，可以设为 false。这里交给 CodeMirror 默认模糊匹配即可。
-            };
-        } catch (e) {
-            console.error("Wiki link completion error:", e);
-            return null;
-        }
-    };
+    // 告诉 CodeMirror 忽略此 Widget 内部的事件，让编辑器处理点击
+    ignoreEvent() { return false; }
 }
 
-// ----------------------
-// 2. 装饰器逻辑 (样式 + 点击检测)
-// ----------------------
+// =========================================================
+// 2. 装饰器逻辑 (核心：支持别名 + 光标自动展开)
+// =========================================================
 
-// 使用正则表达式匹配 [[...]]
-const wikiLinkMatcher = new MatchDecorator({
-    regexp: /\[\[([\w\s\.-]+)\]\]/g,
-    decoration: (match) => {
+// 正则：匹配 [[filename]] 或 [[filename|alias]]
+// 捕获组 1: filename
+// 捕获组 3: alias (可选)
+const WIKI_LINK_REGEX = /\[\[([^|\]\n]+)(\|([^\]\n]+))?\]\]/g;
+
+const wikiLinkDecorator = new MatchDecorator({
+    regexp: WIKI_LINK_REGEX,
+    decorate: (add, from, to, match, view) => {
         const filename = match[1];
-        // 使用 Mark 装饰器：它只改变样式，不改变底层文本结构，编辑时光标可以进入
-        return Decoration.mark({
-            class: "cm-wiki-link", // CSS 类名
-            attributes: { "data-filename": filename } // 存入文件名以便点击时读取
-        });
+        const alias = match[3] || filename; // 有别名用别名，没有用文件名
+
+        // 获取当前光标/选区的位置
+        const { from: selFrom, to: selTo } = view.state.selection.main;
+
+        // 【核心逻辑】
+        // 如果光标在这个链接范围内 (Overlap)，则不进行 Replace，显示源码。
+        // 为了体验更好，我们在两侧加一点 buffer (比如光标紧贴着由括号时也展开)
+        if (selTo >= from && selFrom <= to) {
+            // 光标在链接上：
+            // 我们不仅不替换，还可以加一个高亮样式让源码更好看 (可选)
+            add(from, to, Decoration.mark({ class: "cm-wiki-link-source" }));
+        } else {
+            // 光标不在链接上：
+            // 使用 Widget 替换掉整段 [[...]] 文本
+            add(from, to, Decoration.replace({
+                widget: new WikiLinkWidget(filename, alias),
+            }));
+        }
     }
 });
 
@@ -75,31 +70,29 @@ export const wikiLinkPlugin = ViewPlugin.fromClass(class {
     decorations: DecorationSet;
 
     constructor(view: EditorView) {
-        this.decorations = wikiLinkMatcher.createDeco(view);
+        this.decorations = wikiLinkDecorator.createDeco(view);
     }
 
     update(update: ViewUpdate) {
-        this.decorations = wikiLinkMatcher.updateDeco(update, this.decorations);
+        // 这里的关键是：当选区(Selection)变化时，也必须重新计算装饰器
+        // 这样才能实现“光标移入展开，移出折叠”的效果
+        if (update.docChanged || update.selectionSet || update.viewportChanged) {
+            this.decorations = wikiLinkDecorator.createDeco(update.view);
+        }
     }
 }, {
     decorations: v => v.decorations,
 
     eventHandlers: {
-        // 监听鼠标按下事件
         mousedown: (e, view) => {
             const target = e.target as HTMLElement;
-            // 检查点击目标是否是 wiki-link
-            if (target.matches(".cm-wiki-link") || target.closest(".cm-wiki-link")) {
-                const linkNode = target.matches(".cm-wiki-link") ? target : target.closest(".cm-wiki-link") as HTMLElement;
-                const filename = linkNode?.dataset.filename;
-
-                // 如果按下了 Ctrl (或 Command)，或者是直接点击（取决于你的偏好，这里默认直接点击跳转）
-                // 也可以加上 if (e.ctrlKey || e.metaKey) 来强制要求按键
+            // 检查点击的是否是我们的 Widget
+            if (target.classList.contains("cm-wiki-link-widget")) {
+                e.preventDefault();
+                const filename = target.dataset.filename;
                 if (filename) {
-                    e.preventDefault(); // 阻止默认的光标放置行为
-                    console.log(`[WikiLink] Clicked: ${filename}`);
-
-                    // 发送自定义事件，由 AppController 接收并处理打开逻辑
+                    console.log(`[WikiLink] Opening: ${filename}`);
+                    // 触发自定义事件打开文件
                     window.dispatchEvent(new CustomEvent('wiki-link-click', {
                         detail: { filename }
                     }));
@@ -108,3 +101,40 @@ export const wikiLinkPlugin = ViewPlugin.fromClass(class {
         }
     }
 });
+
+// =========================================================
+// 3. 自动补全逻辑 (保持原有功能，稍作优化)
+// =========================================================
+export function createWikiLinkCompletion(projectPath: string | null) {
+    return async (context: CompletionContext): Promise<CompletionResult | null> => {
+        const word = context.matchBefore(/\[\[[\w\s\.-]*$/);
+        if (!word) return null;
+        if (!projectPath) return null;
+
+        try {
+            // @ts-ignore
+            const result = await window.electronAPI.file.readDirectoryFlat(projectPath);
+            if (!result || !result.children) return null;
+
+            const options = result.children
+                .filter((item: any) => !item.isDir)
+                .map((item: any) => {
+                    const label = item.name.replace(/\.[^/.]+$/, "");
+                    return {
+                        label: label,
+                        detail: item.name,
+                        apply: label + "]]",
+                        type: "file"
+                    };
+                });
+
+            return {
+                from: word.from + 2,
+                options
+            };
+        } catch (e) {
+            console.error(e);
+            return null;
+        }
+    };
+}
