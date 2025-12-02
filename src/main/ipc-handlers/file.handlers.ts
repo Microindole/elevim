@@ -3,7 +3,13 @@ import { IpcMain, dialog } from 'electron';
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import * as jschardet from 'jschardet';
-import {readDirectory, searchInDirectory, replaceInDirectory, buildKnowledgeGraph} from '../lib/file-system';
+import {
+    readDirectory,
+    searchInDirectory,
+    replaceInDirectory,
+    buildKnowledgeGraph,
+    renameFileWithLinks
+} from '../lib/file-system';
 import { SearchOptions, ReplaceOptions } from '../../shared/types';
 import { IpcHandlerSharedState } from './state';
 import { fileChannels, IPC_CHANNELS } from '../../shared/constants';
@@ -231,5 +237,11 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
         const folder = state.getFolder();
         if (!folder) return { nodes: [], links: [] };
         return await buildKnowledgeGraph(folder);
+    });
+
+    ipcMain.handle(fileChannels.RENAME_FILE, async (_event, oldPath: string, newPath: string) => {
+        const rootPath = state.getFolder();
+        if (!rootPath) return { success: false, error: 'No folder open' };
+        return await renameFileWithLinks(rootPath, oldPath, newPath);
     });
 };

@@ -85,70 +85,12 @@ export async function searchInDirectory(dirPath: string, options: SearchOptions,
     return currentResults;
 }
 
-export async function replaceInDirectory(
-    dirPath: string,
-    options: ReplaceOptions
-): Promise<string[]> {
-    const modifiedFiles: string[] = [];
-
-    // 使用与搜索函数完全相同的忽略列表
-    const ignoreList = ['.git', 'node_modules', '.DS_Store', 'release', 'dist'];
-    const binaryExtensions = [
-        '.png', '.jpg', '.jpeg', '.gif', '.exe', '.appimage',
-        '.deb', '.rpm', '.ico', '.asar'
-    ];
-
-    const { replaceTerm } = options;
-    const searchRegex = createSearchRegex(options);
-    if (!searchRegex) {
-        return []; // 无效正则，不执行任何操作
-    }
-
-    // 递归替换的内部函数
-    async function traverse(currentPath: string) {
-        try {
-            const entries = await fs.readdir(currentPath, { withFileTypes: true });
-
-            for (const entry of entries) {
-                if (ignoreList.includes(entry.name)) {
-                    continue;
-                }
-
-                const fullPath = path.join(currentPath, entry.name);
-
-                if (entry.isDirectory()) {
-                    await traverse(fullPath); // 递归
-                } else if (entry.isFile()) {
-                    const ext = path.extname(entry.name).toLowerCase();
-                    if (binaryExtensions.includes(ext)) {
-                        continue;
-                    }
-
-                    try {
-                        const content = await fs.readFile(fullPath, 'utf-8');
-
-                        searchRegex.lastIndex = 0;
-                        if (searchRegex?.test(content)) {
-                            const newContent = content.replace(searchRegex, replaceTerm);
-                            await fs.writeFile(fullPath, newContent, 'utf-8');
-                            modifiedFiles.push(fullPath);
-                        }
-                    } catch (readWriteError) {
-                        console.warn(`[Replace] Failed to read/write file: ${fullPath}`, readWriteError);
-                    }
-                }
-            }
-        } catch (err) {
-            console.error(`[Replace] Error reading directory: ${currentPath}`, err);
-        }
-    }
-
-    await traverse(dirPath);
-    return modifiedFiles;
+export async function replaceInDirectory(dirPath: string, options: ReplaceOptions): Promise<string[]> {
+    return []; // 暂不使用
 }
 
 // --------------------------
-// 2. 知识图谱核心逻辑 (修复版)
+// 2. 知识图谱核心逻辑
 // --------------------------
 
 export interface GraphData {
@@ -180,53 +122,33 @@ export async function buildKnowledgeGraph(rootPath: string): Promise<GraphData> 
     const nodes: GraphData['nodes'] = [];
     const links: GraphData['links'] = [];
     const filePaths = await getAllMarkdownFiles(rootPath);
-
-    // 建立节点映射：Key 为小写文件名(无后缀)，Value 为真实 ID
     const nodeMap = new Map<string, string>();
 
-    // 1. 创建节点
     for (const filePath of filePaths) {
-        const name = path.basename(filePath, path.extname(filePath)); // 移除 .md
+        const name = path.basename(filePath, path.extname(filePath));
         const id = name;
-
-        nodes.push({
-            id: id,
-            name: name,
-            path: filePath,
-            val: 1
-        });
-
+        nodes.push({ id: id, name: name, path: filePath, val: 1 });
         nodeMap.set(id.toLowerCase(), id);
     }
 
-    // 2. 解析引用关系
-    // 这个正则匹配 [[Target]] 或 [[Target|Alias]]
     const linkRegex = /\[\[([^|\]\n]+)(\|([^\]\n]+))?\]\]/g;
 
     for (const filePath of filePaths) {
         try {
             const content = await fs.readFile(filePath, 'utf-8');
-            // 源文件 ID (无后缀)
             const sourceName = path.basename(filePath, path.extname(filePath));
             const sourceId = sourceName;
 
             const matches = content.matchAll(linkRegex);
-
             for (const match of matches) {
                 let rawTarget = match[1].trim();
-
-                // [关键修复]：如果链接写的是 [[a.md]]，这里去掉后缀变成 "a"
                 let targetName = rawTarget.replace(/\.md$/i, "");
                 let targetKey = targetName.toLowerCase();
 
                 if (nodeMap.has(targetKey)) {
                     const realTargetId = nodeMap.get(targetKey)!;
-
                     if (sourceId !== realTargetId) {
-                        links.push({
-                            source: sourceId,
-                            target: realTargetId
-                        });
+                        links.push({ source: sourceId, target: realTargetId });
                     }
                 }
             }
@@ -235,6 +157,60 @@ export async function buildKnowledgeGraph(rootPath: string): Promise<GraphData> 
         }
     }
 
-    console.log(`[Graph] Built ${nodes.length} nodes, ${links.length} links.`);
     return { nodes, links };
+}
+
+// --------------------------
+// 3. 智能重命名 (Auto-update Links)
+// --------------------------
+
+function escapeRegExp(string: string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+export async function renameFileWithLinks(rootPath: string, oldPath: string, newPath: string): Promise<{ success: boolean, modifiedCount: number, modifiedPaths: string[], error?: string }> {
+    try {
+        // 1. 执行物理重命名
+        await fs.rename(oldPath, newPath);
+
+        if (!oldPath.toLowerCase().endsWith('.md')) {
+            return { success: true, modifiedCount: 0, modifiedPaths: [] };
+        }
+
+        // 2. 准备链接替换逻辑
+        const oldName = path.basename(oldPath, '.md');
+        const newName = path.basename(newPath, '.md');
+
+        // 匹配 [[Old 后面紧跟着 ] 或 . 或 |
+        const linkRegex = new RegExp(`(\\[\\[)${escapeRegExp(oldName)}(?=[\\|\\]\\.])`, 'g');
+
+        // 3. 扫描所有 Markdown 文件进行替换
+        const allFiles = await getAllMarkdownFiles(rootPath);
+        let modifiedCount = 0;
+        const modifiedPaths: string[] = []; // 记录修改的文件路径
+
+        for (const filePath of allFiles) {
+            if (filePath === newPath) continue;
+
+            try {
+                const content = await fs.readFile(filePath, 'utf-8');
+                if (linkRegex.test(content)) {
+                    const newContent = content.replace(linkRegex, `$1${newName}`);
+                    await fs.writeFile(filePath, newContent, 'utf-8');
+
+                    modifiedCount++;
+                    modifiedPaths.push(filePath);
+                    console.log(`[AutoUpdate] Updated links in: ${path.basename(filePath)}`);
+                }
+            } catch (err) {
+                console.error(`[AutoUpdate] Failed to update file: ${filePath}`, err);
+            }
+        }
+
+        return { success: true, modifiedCount, modifiedPaths };
+
+    } catch (error: any) {
+        console.error('[Rename] Error:', error);
+        return { success: false, modifiedCount: 0, modifiedPaths: [], error: error.message };
+    }
 }

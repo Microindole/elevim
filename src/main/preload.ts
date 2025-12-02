@@ -62,6 +62,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getGraphData: (): Promise<any> => {
             return ipcRenderer.invoke(fileChannels.GET_GRAPH_DATA);
         },
+        renameFile: (oldPath: string, newPath: string): Promise<{ success: boolean, modifiedCount: number, error?: string }> => {
+            return ipcRenderer.invoke(fileChannels.RENAME_FILE, oldPath, newPath);
+        },
     },
 
     // --- 命名空间: window ---

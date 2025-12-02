@@ -100,6 +100,7 @@ interface IFileAPI {
     readDirectoryFlat: (folderPath: string)=> Promise<any>;
     readFileContent: (filePath: string) => Promise<string | null>;
     getGraphData: () => Promise<{ nodes: any[], links: any[] }>;
+    renameFile: (oldPath: string, newPath: string) => Promise<{ success: boolean, modifiedCount: number, error?: string }>;
 }
 
 // --- 窗口 & 对话框 API ---

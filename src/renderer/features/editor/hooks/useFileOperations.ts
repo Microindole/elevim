@@ -4,20 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { OpenFile } from '../components/Tabs/Tabs';
 import { EditorGroup } from '../../../types/layout';
 
-const welcomeFile: OpenFile = {
-    id: 'welcome',
-    path: null,
-    name: "Welcome",
-    content: "// Welcome to Elevim!\n// Use Ctrl+\\ to split editor.",
-    isDirty: false,
-    encoding: 'UTF-8'
-};
-
-// 路径标准化
 const normalizePath = (path: string | null) => {
     if (!path) return '';
-    // 1. 统一将反斜杠替换为正斜杠
-    // 2. 转为小写（解决 Windows 盘符大小写不一致问题）
     return path.replace(/\\/g, '/').toLowerCase();
 };
 
@@ -49,6 +37,68 @@ export function useFileOperations() {
         stateRef.current = { groups, activeGroupId };
     }, [groups, activeGroupId]);
 
+    // =========================================================
+    // [核心修复] 监听重命名事件，实现自动刷新
+    // =========================================================
+    useEffect(() => {
+        const handleFileRenamed = async (e: Event) => {
+            const detail = (e as CustomEvent).detail;
+            const { oldPath, newPath, modifiedPaths } = detail;
+            const normOldPath = normalizePath(oldPath);
+
+            // 1. 更新被重命名文件 (A.md -> B.md) 的 Tab 路径
+            setGroups(prev => prev.map(g => ({
+                ...g,
+                files: g.files.map(f => {
+                    if (f.path && normalizePath(f.path) === normOldPath) {
+                        return {
+                            ...f,
+                            path: newPath,
+                            name: newPath.split(/[\\/]/).pop() || 'Untitled'
+                        };
+                    }
+                    return f;
+                })
+            })));
+
+            // 2. 刷新引用了该文件的其他文件 (C.md)
+            if (modifiedPaths && modifiedPaths.length > 0) {
+                console.log('[Editor] Reloading modified files:', modifiedPaths);
+
+                for (const modPath of modifiedPaths) {
+                    const normModPath = normalizePath(modPath);
+
+                    try {
+                        // 使用静默读取 API
+                        // @ts-ignore
+                        const newContent = await window.electronAPI.file.readFileContent(modPath);
+
+                        if (newContent !== null) {
+                            setGroups(prev => prev.map(g => ({
+                                ...g,
+                                files: g.files.map(f => {
+                                    // 如果编辑器里打开了这个文件，更新其 content
+                                    if (f.path && normalizePath(f.path) === normModPath) {
+                                        console.log(`[Editor] Auto-reloaded content for: ${f.name}`);
+                                        // 标记 programmaticChange，防止触发 onChange 回环
+                                        programmaticChangeRef.current = true;
+                                        return { ...f, content: newContent };
+                                    }
+                                    return f;
+                                })
+                            })));
+                        }
+                    } catch (err) {
+                        console.error("Failed to reload file:", modPath);
+                    }
+                }
+            }
+        };
+
+        window.addEventListener('file-renamed', handleFileRenamed);
+        return () => window.removeEventListener('file-renamed', handleFileRenamed);
+    }, []);
+
     const activateGroup = useCallback((groupId: string) => {
         setActiveGroupId(groupId);
     }, []);
@@ -59,7 +109,6 @@ export function useFileOperations() {
         encoding: string,
         line?: number
     ) => {
-        // 用于跳转的最终路径（默认为传入路径）
         let finalJumpPath = filePath;
 
         const { groups, activeGroupId } = stateRef.current;
@@ -70,7 +119,7 @@ export function useFileOperations() {
             const targetPath = normalizePath(filePath);
             const existingFile = currentGroup.files.find(f => normalizePath(f.path) === targetPath);
             if (existingFile && existingFile.path) {
-                finalJumpPath = existingFile.path; // 使用已存在的路径格式
+                finalJumpPath = existingFile.path;
             }
         }
 
@@ -80,7 +129,6 @@ export function useFileOperations() {
             return prevGroups.map(group => {
                 if (group.id !== currentActiveId) return group;
 
-                // 如果是 Welcome 页，替换它
                 if (group.files.length === 1 && group.files[0].name === "Welcome") {
                     const newFile: OpenFile = {
                         id: uuidv4(),
@@ -93,16 +141,13 @@ export function useFileOperations() {
                     return { ...group, files: [newFile], activeIndex: 0 };
                 }
 
-                // B. 使用标准化路径检查文件是否已存在
                 const targetPath = normalizePath(filePath);
                 const existingIndex = group.files.findIndex(f => normalizePath(f.path) === targetPath);
 
                 if (existingIndex > -1) {
-                    // 如果已存在，直接激活该 Tab
                     return { ...group, activeIndex: existingIndex };
                 }
 
-                // 新增文件
                 const newFile: OpenFile = {
                     id: uuidv4(),
                     path: filePath,
@@ -209,14 +254,12 @@ export function useFileOperations() {
         setActiveGroupId(groupId);
     }, []);
 
-    // [修复核心]：增加 fileId 参数，确保只更新特定的文件
     const onEditorContentChange = useCallback((doc: string, fileId: string) => {
         if (programmaticChangeRef.current) {
             programmaticChangeRef.current = false;
             return;
         }
         setGroups(prev => {
-            // 1. 先找到触发变更的那个文件的 Path (为了处理分屏同步)
             let sourcePath: string | null = null;
             for (const group of prev) {
                 const f = group.files.find(f => f.id === fileId);
@@ -226,12 +269,10 @@ export function useFileOperations() {
                 }
             }
 
-            // 2. 遍历所有组，精确更新匹配的文件
             return prev.map(group => {
                 return {
                     ...group,
                     files: group.files.map(f => {
-                        // 匹配条件：ID 相同 (同一个标签页) OR 路径相同 (分屏的同一个文件)
                         const isTarget = f.id === fileId;
                         const isSyncedPath = sourcePath && f.path && normalizePath(f.path) === sourcePath;
 
@@ -296,13 +337,12 @@ export function useFileOperations() {
         setCursorCol(col);
     }, []);
 
-    // 切换到下一个标签页
     const nextEditor = useCallback(() => {
         setGroups(prevGroups => {
             const currentActiveId = stateRef.current.activeGroupId;
             return prevGroups.map(g => {
                 if (g.id === currentActiveId && g.files.length > 1) {
-                    const nextIndex = (g.activeIndex + 1) % g.files.length; // 循环切换
+                    const nextIndex = (g.activeIndex + 1) % g.files.length;
                     return { ...g, activeIndex: nextIndex };
                 }
                 return g;
@@ -310,13 +350,11 @@ export function useFileOperations() {
         });
     }, []);
 
-    // 切换到上一个标签页
     const previousEditor = useCallback(() => {
         setGroups(prevGroups => {
             const currentActiveId = stateRef.current.activeGroupId;
             return prevGroups.map(g => {
                 if (g.id === currentActiveId && g.files.length > 1) {
-                    // 循环切换逻辑
                     const prevIndex = (g.activeIndex - 1 + g.files.length) % g.files.length;
                     return { ...g, activeIndex: prevIndex };
                 }

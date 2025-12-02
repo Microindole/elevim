@@ -1,0 +1,77 @@
+/* src/renderer/features/explorer/components/FileTree/RenameModal.css */
+.rename-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 2000; /* 确保在最上层 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.rename-modal-container {
+    width: 400px;
+    background-color: var(--bg-sidebar);
+    border: 1px solid var(--border-color-light);
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    color: var(--text-color);
+}
+
+.rename-modal-header {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color-light);
+}
+
+.rename-modal-input {
+    width: 100%;
+    padding: 8px 10px;
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-color-light);
+    color: var(--text-color);
+    border-radius: 3px;
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.rename-modal-input:focus {
+    border-color: var(--accent-color);
+}
+
+.rename-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.rename-btn {
+    padding: 6px 16px;
+    border-radius: 3px;
+    font-size: 12px;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.rename-btn.cancel {
+    background-color: transparent;
+    color: var(--text-color);
+    border-color: var(--border-color-light);
+}
+
+.rename-btn.confirm {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.rename-btn:hover {
+    opacity: 0.9;
+}

@@ -7,11 +7,12 @@ import { getIcon } from './icon-map';
 interface TreeNodeProps {
     node: FileNode;
     onFileSelect: (filePath: string) => void;
+    onContextMenu: (e: React.MouseEvent, path: string) => void;
     gitStatus: GitStatusMap;
     activeFile: string | null;
 }
 
-const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, gitStatus, activeFile }) => {
+const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, onContextMenu, gitStatus, activeFile }) => {
     const [isOpen, setIsOpen] = useState(false);
     const isDirectory = !!node.children;
 
@@ -59,7 +60,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, gitStatus, acti
 
     return (
         <div className="tree-node">
-            <div className="node-content" onClick={handleToggle}>
+            <div
+                className="node-content"
+                onClick={handleToggle}
+                onContextMenu={(e) => onContextMenu(e, node.path)}
+            >
                 {isDirectory ? (
                     <span className={`caret ${isOpen ? 'caret-open' : ''}`}></span>
                 ) : (
@@ -81,6 +86,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({ node, onFileSelect, gitStatus, acti
                             key={childNode.path}
                             node={childNode}
                             onFileSelect={onFileSelect}
+                            onContextMenu={onContextMenu}
                             gitStatus={gitStatus}
                             activeFile={activeFile}
                         />

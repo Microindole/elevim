@@ -48,6 +48,7 @@ export const fileChannels = {
     READ_DIRECTORY_FLAT: 'file:read-directory-flat',
     READ_FILE_CONTENT: 'file:read-file-content',
     GET_GRAPH_DATA: 'file:get-graph-data',
+    RENAME_FILE: 'file:rename-file',
 };
 
 export const gitChannels = {
