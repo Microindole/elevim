@@ -257,7 +257,6 @@ export function useFileOperations() {
             setGroups(prev => prev.map(g => ({
                 ...g,
                 files: g.files.map(f => {
-                    // 标准化比较
                     if ((f.path && normalizePath(f.path) === normalizePath(file.path)) || (file.path === null && f === file)) {
                         return {
                             ...f,
@@ -269,6 +268,7 @@ export function useFileOperations() {
                     return f;
                 })
             })));
+            window.dispatchEvent(new Event('folder-changed'));
         }
     }, []);
 

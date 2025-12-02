@@ -97,6 +97,7 @@ interface IFileAPI {
     globalSearch: (options: SearchOptions) => Promise<SearchResult[]>;
     globalReplace: (options: ReplaceOptions) => Promise<string[]>;
     readDirectoryFlat: (folderPath: string)=> Promise<any>;
+    readFileContent: (filePath: string) => Promise<string | null>;
 }
 
 // --- 窗口 & 对话框 API ---

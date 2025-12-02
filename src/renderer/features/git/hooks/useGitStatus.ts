@@ -8,19 +8,19 @@ export function useGitStatus(
 ) {
     const [gitStatus, setGitStatus] = useState<GitStatusMap | null>({});
 
+    // 核心函数：同时刷新 Git 状态 和 文件树结构
     const fetchGitStatus = useCallback(async () => {
         const currentFolder = currentOpenFolderPath.current;
         if (currentFolder) {
             try {
-                const status = await window.electronAPI.git.getGitStatus(); // MODIFIED
+                // 1. 获取最新 Git 状态 (颜色)
+                const status = await window.electronAPI.git.getGitStatus();
                 setGitStatus(status);
 
-                const updatedTree = await window.electronAPI.file.readDirectory(currentFolder); // MODIFIED
+                // 2. [关键修复] 获取最新文件树 (结构)
+                const updatedTree = await window.electronAPI.file.readDirectory(currentFolder);
                 if (updatedTree) {
-                    console.log("Directory structure updated.");
                     setFileTree(updatedTree);
-                } else {
-                    console.warn("Failed to refresh directory structure.");
                 }
             } catch (error) {
                 setGitStatus({});
@@ -31,17 +31,36 @@ export function useGitStatus(
         }
     }, [currentOpenFolderPath, setFileTree]);
 
+    // 监听 Git 状态变化 (外部文件变动会触发这个)
     useEffect(() => {
-        const unsubscribe = window.electronAPI.git.onGitStatusChange((status: GitStatusMap | null) => { // MODIFIED
-            console.log('[Renderer] Git status updated');
+        const unsubscribe = window.electronAPI.git.onGitStatusChange(async (status: GitStatusMap | null) => {
+            console.log('[Renderer] Git status updated, refreshing tree...');
             setGitStatus(status);
+
+            // [修复] 当收到 Git 变更通知时，强制重新读取目录结构
+            // 这样外部新建文件时，文件树才会更新
+            if (currentOpenFolderPath.current) {
+                const tree = await window.electronAPI.file.readDirectory(currentOpenFolderPath.current);
+                if (tree) setFileTree(tree);
+            }
         });
 
         return () => {
             unsubscribe();
-            window.electronAPI.git.stopGitWatcher(); // MODIFIED
+            window.electronAPI.git.stopGitWatcher();
         };
-    }, []);
+    }, [currentOpenFolderPath, setFileTree]); // 添加依赖
+
+    // [修复] 监听 'folder-changed' 自定义事件 (用于内部保存文件后触发)
+    useEffect(() => {
+        const handleFolderChange = () => {
+            console.log('[Renderer] Folder changed event received');
+            fetchGitStatus();
+        };
+
+        window.addEventListener('folder-changed', handleFolderChange);
+        return () => window.removeEventListener('folder-changed', handleFolderChange);
+    }, [fetchGitStatus]);
 
     return {
         gitStatus,

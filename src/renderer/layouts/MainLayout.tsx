@@ -13,6 +13,7 @@ import GitPanel from '../features/git/components/GitPanel/GitPanel';
 import ActivityBar from '../features/workbench/components/ActivityBar/ActivityBar';
 import SearchPanel from '../features/search/components/SearchPanel/SearchPanel';
 import {AppSettings, ZenModeConfig} from '../../shared/types';
+import BacklinksPanel from "../features/knowledge/BacklinksPanel";
 
 // 定义这个 Layout 需要的所有数据接口
 export interface MainLayoutProps {
@@ -136,6 +137,13 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                                                 folderPath={fileTree.currentOpenFolderPath.current}
                                                 onResultClick={search.openFileToLine}
                                                 onReplaceComplete={search.handleReplaceComplete}
+                                            />
+                                        )}
+                                        {sidebar.activeSidebarView === 'references' && (
+                                            <BacklinksPanel
+                                                currentFilePath={fileOps.activeFile?.path ?? null}
+                                                projectPath={fileTree.currentOpenFolderPath.current}
+                                                onOpenFile={search.openFileToLine} // 复用搜索的跳转逻辑
                                             />
                                         )}
                                     </div>

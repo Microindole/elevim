@@ -3,7 +3,7 @@ import React from 'react';
 import './ActivityBar.css';
 import { VSCodeIcons } from './icons';
 
-export type SidebarView = 'explorer' | 'search' | 'git' | 'settings' | null;
+export type SidebarView = 'explorer' | 'search' | 'git' | 'references' | 'settings' | null;
 
 interface ActivityBarProps {
     activeView: SidebarView;
@@ -42,6 +42,13 @@ export default function ActivityBar({ activeView, onViewChange }: ActivityBarPro
                     onClick={() => handleClick('git')}
                 >
                     {VSCodeIcons.git}
+                </button>
+                <button
+                    className={`activity-btn ${activeView === 'references' ? 'active' : ''}`}
+                    title="Backlinks / References"
+                    onClick={() => handleClick('references')}
+                >
+                    {VSCodeIcons.references}
                 </button>
             </div>
             <div className="bottom-icons">

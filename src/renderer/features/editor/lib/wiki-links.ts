@@ -6,9 +6,13 @@ import {
     ViewPlugin,
     ViewUpdate,
     MatchDecorator,
-    WidgetType
+    WidgetType,
+    hoverTooltip
 } from "@codemirror/view";
 import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
+import MarkdownIt from 'markdown-it';
+
+const md = new MarkdownIt();
 
 // =========================================================
 // 1. 定义 WikiLink Widget (渲染别名的 UI 组件)
@@ -19,46 +23,31 @@ class WikiLinkWidget extends WidgetType {
     }
 
     toDOM() {
-        // 创建一个 span 元素来代替原始文本
         const span = document.createElement("span");
-        span.className = "cm-wiki-link-widget"; // 使用新的 CSS 类名
-        span.textContent = this.alias; // 只显示别名 (如果没有别名，传入的也是文件名)
-        span.dataset.filename = this.filename; // 存入文件名用于点击
+        span.className = "cm-wiki-link-widget";
+        span.textContent = this.alias;
+        span.dataset.filename = this.filename;
         return span;
     }
 
-    // 告诉 CodeMirror 忽略此 Widget 内部的事件，让编辑器处理点击
     ignoreEvent() { return false; }
 }
 
 // =========================================================
-// 2. 装饰器逻辑 (核心：支持别名 + 光标自动展开)
+// 2. 装饰器逻辑 (支持别名 + 光标自动展开)
 // =========================================================
-
-// 正则：匹配 [[filename]] 或 [[filename|alias]]
-// 捕获组 1: filename
-// 捕获组 3: alias (可选)
 const WIKI_LINK_REGEX = /\[\[([^|\]\n]+)(\|([^\]\n]+))?\]\]/g;
 
 const wikiLinkDecorator = new MatchDecorator({
     regexp: WIKI_LINK_REGEX,
     decorate: (add, from, to, match, view) => {
         const filename = match[1];
-        const alias = match[3] || filename; // 有别名用别名，没有用文件名
-
-        // 获取当前光标/选区的位置
+        const alias = match[3] || filename;
         const { from: selFrom, to: selTo } = view.state.selection.main;
 
-        // 【核心逻辑】
-        // 如果光标在这个链接范围内 (Overlap)，则不进行 Replace，显示源码。
-        // 为了体验更好，我们在两侧加一点 buffer (比如光标紧贴着由括号时也展开)
         if (selTo >= from && selFrom <= to) {
-            // 光标在链接上：
-            // 我们不仅不替换，还可以加一个高亮样式让源码更好看 (可选)
             add(from, to, Decoration.mark({ class: "cm-wiki-link-source" }));
         } else {
-            // 光标不在链接上：
-            // 使用 Widget 替换掉整段 [[...]] 文本
             add(from, to, Decoration.replace({
                 widget: new WikiLinkWidget(filename, alias),
             }));
@@ -74,25 +63,19 @@ export const wikiLinkPlugin = ViewPlugin.fromClass(class {
     }
 
     update(update: ViewUpdate) {
-        // 这里的关键是：当选区(Selection)变化时，也必须重新计算装饰器
-        // 这样才能实现“光标移入展开，移出折叠”的效果
         if (update.docChanged || update.selectionSet || update.viewportChanged) {
             this.decorations = wikiLinkDecorator.createDeco(update.view);
         }
     }
 }, {
     decorations: v => v.decorations,
-
     eventHandlers: {
         mousedown: (e, view) => {
             const target = e.target as HTMLElement;
-            // 检查点击的是否是我们的 Widget
             if (target.classList.contains("cm-wiki-link-widget")) {
                 e.preventDefault();
                 const filename = target.dataset.filename;
                 if (filename) {
-                    console.log(`[WikiLink] Opening: ${filename}`);
-                    // 触发自定义事件打开文件
                     window.dispatchEvent(new CustomEvent('wiki-link-click', {
                         detail: { filename }
                     }));
@@ -103,7 +86,7 @@ export const wikiLinkPlugin = ViewPlugin.fromClass(class {
 });
 
 // =========================================================
-// 3. 自动补全逻辑 (保持原有功能，稍作优化)
+// 3. 自动补全逻辑 (修复双括号问题)
 // =========================================================
 export function createWikiLinkCompletion(projectPath: string | null) {
     return async (context: CompletionContext): Promise<CompletionResult | null> => {
@@ -123,7 +106,8 @@ export function createWikiLinkCompletion(projectPath: string | null) {
                     return {
                         label: label,
                         detail: item.name,
-                        apply: label + "]]",
+                        // [修复] 这里去掉了 + "]]"，因为编辑器会自动补全闭合括号
+                        apply: label,
                         type: "file"
                     };
                 });
@@ -137,4 +121,72 @@ export function createWikiLinkCompletion(projectPath: string | null) {
             return null;
         }
     };
+}
+
+// =========================================================
+// 4. 悬停预览插件 (包含类型修复)
+// =========================================================
+export function createWikiLinkHover(projectPath: string | null) {
+    return hoverTooltip(async (view, pos, side) => {
+        if (!projectPath) return null;
+
+        const { from, to, text } = view.state.doc.lineAt(pos);
+        const relativePos = pos - from;
+
+        const matches = Array.from(text.matchAll(/\[\[([^|\]]+)(?:\|[^\]]+)?\]\]/g));
+        const match = matches.find(m => {
+            const start = m.index!;
+            const end = start + m[0].length;
+            return relativePos >= start && relativePos <= end;
+        });
+
+        if (!match) return null;
+        const filename = match[1];
+
+        // 预先获取数据
+        let contentHtml = "Loading...";
+        let isError = false;
+
+        try {
+            // @ts-ignore
+            const dirData = await window.electronAPI.file.readDirectoryFlat(projectPath);
+            const targetFile = dirData.children.find((f: any) =>
+                f.name === filename || f.name === `${filename}.md`
+            );
+
+            if (targetFile) {
+                const fileContent = await window.electronAPI.file.readFileContent(targetFile.path);
+                if (fileContent) {
+                    const summary = fileContent.slice(0, 500) + (fileContent.length > 500 ? "\n\n..." : "");
+                    contentHtml = md.render(summary);
+                } else {
+                    contentHtml = "(Empty file)";
+                }
+            } else {
+                contentHtml = `File not created: ${filename}`;
+                isError = true;
+            }
+        } catch (e) {
+            contentHtml = "Error loading preview";
+            isError = true;
+        }
+
+        return {
+            pos: from + match.index!,
+            end: from + match.index! + match[0].length,
+            above: true,
+            create: () => {
+                const dom = document.createElement("div");
+                dom.className = "wiki-hover-tooltip";
+                dom.style.cssText = "padding: 8px; max-width: 400px; max-height: 300px; overflow: auto; font-size: 13px;";
+                if (isError) {
+                    dom.textContent = contentHtml;
+                    dom.style.color = "#ff6b6b";
+                } else {
+                    dom.innerHTML = contentHtml;
+                }
+                return { dom };
+            }
+        };
+    });
 }

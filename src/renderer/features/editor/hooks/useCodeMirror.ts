@@ -38,7 +38,7 @@ import {EditorColors, Keymap, ZenModeConfig} from '../../../../shared/types';
 import {createLspCompletionSource} from "../lib/lsp-completion";
 import {typewriterScrollPlugin} from "../lib/typewriter-scroll";
 import {focusModePlugin} from "../lib/focus-mode";
-import {createWikiLinkCompletion, wikiLinkPlugin} from "../lib/wiki-links";
+import { wikiLinkPlugin, createWikiLinkCompletion, createWikiLinkHover } from "../lib/wiki-links";
 
 interface UseCodeMirrorProps {
     content: string;
@@ -244,6 +244,7 @@ export function useCodeMirror(props: UseCodeMirrorProps) {
             definitionKeymap,
             ...lspExtensions,
             zenModeCompartment.of([]),
+            (projectPath ? [createWikiLinkHover(projectPath)] : []),
         ];
 
         const startState = EditorState.create({

@@ -217,4 +217,13 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
             return { children: [] };
         }
     });
+
+    ipcMain.handle(fileChannels.READ_FILE_CONTENT, async (_event, filePath: string) => {
+        try {
+            // 纯读取，不发送 FILE_OPENED 事件，不修改 state
+            return await fs.readFile(filePath, 'utf-8');
+        } catch (error) {
+            return null; // 文件不存在或读取失败
+        }
+    });
 };

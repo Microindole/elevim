@@ -46,6 +46,7 @@ export const fileChannels = {
     GLOBAL_SEARCH: 'file:global-search',
     GLOBAL_REPLACE: 'file:global-replace',
     READ_DIRECTORY_FLAT: 'file:read-directory-flat',
+    READ_FILE_CONTENT: 'file:read-file-content',
 };
 
 export const gitChannels = {
@@ -116,7 +117,6 @@ export const sessionChannels = {
     SAVE_SESSION: 'session:save'
 };
 
-// LSP 通道
 export const lspChannels = {
     START: 'lsp:start', // 启动服务器
     SEND: 'lsp:send',   // 发送消息 (Request/Notification)

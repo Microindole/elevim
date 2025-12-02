@@ -166,36 +166,35 @@ export function useAppController() {
 
             if (!currentRoot) return;
 
-            // 用户点击了 [[My Note]]，我们需要找到 My Note.md 或 My Note.txt
             console.log(`[WikiLink] Resolving: ${filename}`);
 
             try {
-                // 1. 获取目录下所有文件
                 // @ts-ignore
                 const result = await window.electronAPI.file.readDirectoryFlat(currentRoot);
-
                 if (!result || !result.children) return;
 
-                // 2. 模糊查找文件
                 const targetFile = result.children.find((f: any) => {
                     if (f.isDir) return false;
-                    // 匹配文件名 (带后缀 或 不带后缀)
-                    return f.name === filename ||
-                        f.name.split('.')[0] === filename;
+                    return f.name === filename || f.name.split('.')[0] === filename;
                 });
 
                 if (targetFile) {
-                    // 3. 找到文件 -> 打开
-                    console.log(`[WikiLink] Opening: ${targetFile.path}`);
-                    fileOps.openFile(targetFile.path, "", "UTF-8");
+                    console.log(`[WikiLink] Opening existing file: ${targetFile.path}`);
+                    // 使用现有的 openFile API (它会读取内容并返回)
+                    const content = await window.electronAPI.file.openFile(targetFile.path);
+
+                    if (content !== null) {
+                        // 将读取到的 content 传进去，而不是空字符串
+                        fileOps.openFile(targetFile.path, content, "UTF-8");
+                    }
                 } else {
-                    // 4. 未找到 -> 询问创建
+                    // 创建新文件的逻辑
                     const create = confirm(`File "${filename}" not found. Create it?`);
                     if (create) {
-                        // 默认创建为 .md 文件
                         const newPath = `${currentRoot}/${filename}.md`;
-                        // 打开一个新文件 (内容为空或带标题)，保存时才会真正写入磁盘
-                        fileOps.openFile(newPath, `# ${filename}\n\n`, "UTF-8");
+                        // 新文件确实是空的，或者你可以给个默认标题
+                        const defaultContent = `# ${filename}\n\n`;
+                        fileOps.openFile(newPath, defaultContent, "UTF-8");
                     }
                 }
             } catch (err) {
@@ -205,7 +204,7 @@ export function useAppController() {
 
         window.addEventListener('wiki-link-click', handleWikiLinkClick);
         return () => window.removeEventListener('wiki-link-click', handleWikiLinkClick);
-    }, [fileTree.currentOpenFolderPath, fileOps]);
+    }, [fileTree.currentOpenFolderPath, fileOps]); // 依赖项检查
 
     // 5. 组装返回给 View 的 Props
     return {

@@ -56,6 +56,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         readDirectoryFlat: (folderPath: string): Promise<any> => {
             return ipcRenderer.invoke(fileChannels.READ_DIRECTORY_FLAT, folderPath);
         },
+        readFileContent: (filePath: string): Promise<string | null> => {
+            return ipcRenderer.invoke(fileChannels.READ_FILE_CONTENT, filePath);
+        },
     },
 
     // --- 命名空间: window ---
