@@ -47,6 +47,7 @@ export const fileChannels = {
     GLOBAL_REPLACE: 'file:global-replace',
     READ_DIRECTORY_FLAT: 'file:read-directory-flat',
     READ_FILE_CONTENT: 'file:read-file-content',
+    GET_GRAPH_DATA: 'file:get-graph-data',
 };
 
 export const gitChannels = {

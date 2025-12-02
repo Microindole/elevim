@@ -30,6 +30,7 @@ export const COMMAND_MANIFEST: CommandMetadata[] = [
     // --- Navigation (新增) ---
     { id: 'workbench.action.nextEditor', label: 'Next Editor', defaultKeybinding: 'Ctrl+Tab' },
     { id: 'workbench.action.previousEditor', label: 'Previous Editor', defaultKeybinding: 'Ctrl+Shift+Tab' },
+    { id: 'view.toggleGraph', label: 'Toggle Knowledge Graph', defaultKeybinding: 'Ctrl+G' },
 ];
 
 /**

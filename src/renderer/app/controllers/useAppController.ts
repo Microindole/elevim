@@ -22,6 +22,7 @@ export function useAppController() {
     const [isPaletteOpen, setIsPaletteOpen] = useState(false);
     const [settings, setSettings] = useState<AppSettings | null>(null);
     const [isZenMode, setIsZenMode] = useState(false);
+    const [isGraphOpen, setIsGraphOpen] = useState(false);
 
     // 1. 初始化基础 Hooks
     const fileOps = useFileOperations();
@@ -52,6 +53,11 @@ export function useAppController() {
         if (modifiedFiles.length > 0) {
             console.log('Replace complete.');
         }
+    }, []);
+
+    // 切换图谱命令
+    const toggleGraph = useCallback(() => {
+        setIsGraphOpen(prev => !prev);
     }, []);
 
     // 3. 处理高级状态 (Git, Session, Events)
@@ -143,12 +149,14 @@ export function useAppController() {
         'view.toggleZenMode': toggleZenMode,
         'workbench.action.nextEditor': fileOps.nextEditor,
         'workbench.action.previousEditor': fileOps.previousEditor,
+        'view.toggleGraph': toggleGraph,
         // 'editor.save' 通常是编辑器内部处理
     }), [
         handleMenuNewFile, handleMenuOpenFile, fileTree.handleMenuOpenFolder,
         fileOps.handleSave, handleMenuSaveAsFile, handleMenuCloseWindow,
         terminal.setIsTerminalVisible, sidebar.handleViewChange, fileOps.splitEditor,
         toggleZenMode, fileOps.nextEditor, fileOps.previousEditor,
+        toggleGraph,
     ]);
 
     // 键盘快捷键
@@ -266,5 +274,8 @@ export function useAppController() {
         handleBreadcrumbFileSelect: handleFileTreeSelectWrapper,
         isZenMode,
         zenModeConfig: isZenMode ? (settings?.zenMode || null) : null,
+
+        isGraphOpen,
+        setIsGraphOpen,
     };
 }

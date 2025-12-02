@@ -14,6 +14,7 @@ import ActivityBar from '../features/workbench/components/ActivityBar/ActivityBa
 import SearchPanel from '../features/search/components/SearchPanel/SearchPanel';
 import {AppSettings, ZenModeConfig} from '../../shared/types';
 import BacklinksPanel from "../features/knowledge/BacklinksPanel";
+import GraphView from "../features/knowledge/GraphView";
 
 // 定义这个 Layout 需要的所有数据接口
 export interface MainLayoutProps {
@@ -74,6 +75,8 @@ export interface MainLayoutProps {
     handleBreadcrumbFileSelect: (path: string) => void;
     isZenMode: boolean;
     zenModeConfig: ZenModeConfig | null;
+    isGraphOpen: boolean;
+    setIsGraphOpen: (open: boolean) => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = (props) => {
@@ -81,15 +84,22 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
         settings, isPaletteOpen, setIsPaletteOpen,
         fileOps, sidebar, fileTree, git, terminal, search,
         commands, menuHandlers, handleBreadcrumbFileSelect,
-        isZenMode
+        isZenMode,isGraphOpen, setIsGraphOpen,
     } = props;
 
     const themeColors = settings ? settings.theme.colors : null;
+    const isDark = settings?.theme.mode === 'dark';
     const fileEncoding = fileOps.activeFile ? fileOps.activeFile.encoding : null;
     const zenClass = isZenMode ? 'zen-hidden' : '';
 
     return (
         <div className={`main-layout ${isZenMode ? 'zen-mode-active' : ''}`}>
+            <GraphView
+                isOpen={isGraphOpen}
+                onClose={() => setIsGraphOpen(false)}
+                onOpenFile={(path) => search.openFileToLine(path, 1)}
+                isDark={isDark}
+            />
             <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} commands={commands} />
             <div className={`layout-header ${zenClass}`}>
                 <TitleBar

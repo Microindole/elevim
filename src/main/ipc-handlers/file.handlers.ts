@@ -3,7 +3,7 @@ import { IpcMain, dialog } from 'electron';
 import * as fs from 'node:fs/promises';
 import * as path from 'path';
 import * as jschardet from 'jschardet';
-import { readDirectory, searchInDirectory, replaceInDirectory } from '../lib/file-system';
+import {readDirectory, searchInDirectory, replaceInDirectory, buildKnowledgeGraph} from '../lib/file-system';
 import { SearchOptions, ReplaceOptions } from '../../shared/types';
 import { IpcHandlerSharedState } from './state';
 import { fileChannels, IPC_CHANNELS } from '../../shared/constants';
@@ -225,5 +225,11 @@ export const registerFileHandlers: (ipcMain: IpcMain, state: IpcHandlerSharedSta
         } catch (error) {
             return null; // 文件不存在或读取失败
         }
+    });
+
+    ipcMain.handle(fileChannels.GET_GRAPH_DATA, async () => {
+        const folder = state.getFolder();
+        if (!folder) return { nodes: [], links: [] };
+        return await buildKnowledgeGraph(folder);
     });
 };

@@ -17,7 +17,8 @@ export type CommandId =
     | 'view.toggleZenMode'
     | 'editor.save'
     | 'workbench.action.nextEditor'
-    | 'workbench.action.previousEditor';
+    | 'workbench.action.previousEditor'
+    | 'view.toggleGraph';
 
 // --- 设置 ---
 export type Keymap = Record<CommandId, string>;
@@ -98,6 +99,7 @@ interface IFileAPI {
     globalReplace: (options: ReplaceOptions) => Promise<string[]>;
     readDirectoryFlat: (folderPath: string)=> Promise<any>;
     readFileContent: (filePath: string) => Promise<string | null>;
+    getGraphData: () => Promise<{ nodes: any[], links: any[] }>;
 }
 
 // --- 窗口 & 对话框 API ---
