@@ -222,8 +222,14 @@ export interface IElectronAPI {
     lsp: ILspAPI;
 }
 
+export interface IRpcAPI {
+    invoke: (service: string, method: string, ...args: any[]) => Promise<any>;
+    onEvent: (callback: (payload: { service: string, event: string, args: any[] }) => void) => () => void;
+}
+
 declare global {
     interface Window {
         electronAPI: IElectronAPI;
+        rpc: IRpcAPI;
     }
 }

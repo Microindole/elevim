@@ -2,9 +2,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-
-// 导入唯一的 CSS 入口文件
 import './index.css';
+import { initRpcClient } from '../utils/rpc-client'; // 导入
+
+// 初始化 RPC
+initRpcClient();
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(

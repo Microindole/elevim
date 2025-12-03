@@ -2,9 +2,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { ChildProcess, spawn } from 'child_process';
-import { BrowserWindow } from 'electron';
 import * as rpc from 'vscode-jsonrpc/node';
-import { IPC_CHANNELS } from '../../shared/constants';
 
 // 调试开关：开启后会在控制台打印所有 LSP 通信日志
 const DEBUG_LSP = true;
@@ -46,7 +44,7 @@ const SERVER_MAP: Record<string, { bin: string; args: string[] }> = {
     }
 };
 
-export function startLspServer(mainWindow: BrowserWindow, languageId: string) {
+export function startLspServer(languageId: string, onNotification: (method: string, params: any) => void) {
     if (sessions.has(languageId)) return;
 
     const config = SERVER_MAP[languageId];
@@ -90,14 +88,11 @@ export function startLspServer(mainWindow: BrowserWindow, languageId: string) {
 
         connection.listen();
 
-        // 1. 监听 Notification (单向通知)
         connection.onNotification((method, params) => {
             if (DEBUG_LSP && method !== 'textDocument/publishDiagnostics') {
                 // console.log(`[LSP-In][${languageId}] Notification: ${method}`);
             }
-            if (!mainWindow.isDestroyed()) {
-                mainWindow.webContents.send(IPC_CHANNELS.LSP_NOTIFICATION, { languageId, method, params });
-            }
+            onNotification(method, params);
         });
 
         // 2. [新增] 关键修复：监听 Request (双向请求)

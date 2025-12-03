@@ -4,105 +4,106 @@ import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import './Terminal.css';
+import { api } from '../../../../utils/rpc-client';
 
 export default function TerminalComponent() {
     const terminalRef = useRef<HTMLDivElement>(null);
     const terminalInstance = useRef<Terminal | null>(null);
     const fitAddon = useRef<FitAddon | null>(null);
-    const initIpcSent = useRef(false);
+
+    // [状态追踪]
+    const isInitialized = useRef(false); // xterm 是否创建
+    const backendInited = useRef(false); // 后端是否已请求初始化
 
     useEffect(() => {
-        if (!terminalRef.current || terminalInstance.current) return;
-        const termContainer = terminalRef.current;
-        console.log('[Renderer] TerminalComponent useEffect run');
+        if (!terminalRef.current || isInitialized.current) return;
+
+        // 如果容器不可见，暂不初始化
+        if (terminalRef.current.clientWidth === 0) return;
+
+        isInitialized.current = true;
 
         const term = new Terminal({
             cursorBlink: true,
+            fontSize: 13,
+            fontFamily: "'JetBrains Mono', 'Consolas', monospace",
             theme: {
                 background: '#1e1e1e',
                 foreground: '#d4d4d4',
-                cursor: '#007acc',
-                selectionBackground: '#3e3e42',
-                selectionForeground: '#ffffff'
-            }
+            },
+            allowProposedApi: true
         });
 
         const addon = new FitAddon();
         term.loadAddon(addon);
+
+        // 挂载
         term.open(terminalRef.current);
         terminalInstance.current = term;
         fitAddon.current = addon;
 
-        if (!initIpcSent.current) {
-            console.log('[Renderer] Calling terminalInit via IPC');
-            window.electronAPI.terminal.terminalInit(); // MODIFIED
-            initIpcSent.current = true;
+        // [关键修复] 只调用一次 init，使用 backendInited 标记
+        if (!backendInited.current) {
+            backendInited.current = true;
+            // 给一点延迟，让之前的 dispose 跑完
+            setTimeout(() => {
+                api.terminal.init().catch(console.error);
+            }, 100);
         }
 
-        term.onData((data) => {
-            if (terminalInstance.current) {
-                window.electronAPI.terminal.terminalWrite(data); // MODIFIED
-            }
+        // 数据流
+        const onData = term.onData((data) => {
+            api.terminal.write(data);
         });
 
-        const unregisterOnData = window.electronAPI.terminal.onTerminalData((data) => { // MODIFIED
-            if (terminalInstance.current) {
-                terminalInstance.current?.write(data);
-            }
+        const unsubscribe = api.terminal.on('data', (data: string) => {
+            terminalInstance.current?.write(data);
         });
 
-        // 8. Handle resize (as before)
+        // 尺寸适配
         const handleResize = () => {
-            if (fitAddon.current && terminalInstance.current) {
+            if (!terminalRef.current || !fitAddon.current || !terminalInstance.current) return;
+            if (terminalRef.current.clientWidth === 0) return;
+
+            requestAnimationFrame(() => {
                 try {
                     fitAddon.current?.fit();
-
-                    // 通知主进程的 PTY 终端尺寸变了
-                    const { cols, rows } = terminalInstance.current;
+                    const { cols, rows } = terminalInstance.current!;
                     if (cols > 0 && rows > 0) {
-                        window.electronAPI.terminal.terminalResize({ cols, rows }); // MODIFIED
+                        api.terminal.resize(cols, rows);
                     }
-                } catch (e) {
-                    console.error('[Renderer] Error during terminal fit/resize:', e);
-                }
-            }
+                } catch {}
+            });
         };
 
-        // 监视 .terminal-wrapper 元素
-        const resizeObserver = new ResizeObserver(() => {
-            // 使用 setTimeout 避免 "ResizeObserver loop limit exceeded" 错误
-            setTimeout(() => handleResize(), 0);
-        });
-
-        // 开始观察
-        resizeObserver.observe(termContainer);
-
-        // 同时也监听窗口 resize
+        // 使用 ResizeObserver 仅用于触发 resize，不用于触发 init
+        const observer = new ResizeObserver(() => handleResize());
+        observer.observe(terminalRef.current);
         window.addEventListener('resize', handleResize);
-        handleResize();
 
-        // 9. Cleanup (as before)
+        // 初始适配
+        setTimeout(() => handleResize(), 150);
+
         return () => {
-            console.log('[Renderer] TerminalComponent cleanup executing');
-            resizeObserver.unobserve(termContainer);
-            unregisterOnData();
+            console.log('[Terminal] Component Unmount');
+            observer.disconnect();
             window.removeEventListener('resize', handleResize);
-
-            if (terminalInstance.current) {
-                terminalInstance.current?.dispose();
-                console.log('[Renderer] xterm instance disposed');
-            }
+            unsubscribe();
+            onData.dispose();
+            term.dispose();
 
             terminalInstance.current = null;
-            fitAddon.current = null;
-            initIpcSent.current = false;
-            console.log('[Renderer] TerminalComponent cleanup finished');
+            isInitialized.current = false;
+            backendInited.current = false;
+
+            // 卸载时通知后端销毁
+            api.terminal.dispose().catch(console.error);
         };
     }, []);
 
     return (
         <div className="terminal-container">
-            <div ref={terminalRef} className="terminal-wrapper" />
+            <div ref={terminalRef} className="terminal-wrapper" style={{ width: '100%', height: '100%' }} />
         </div>
     );
 }
