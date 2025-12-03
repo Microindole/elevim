@@ -2,28 +2,33 @@
 import { app, BrowserWindow, protocol } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
-import { registerIpcHandlers } from './ipc-handlers';
-import { readDirectory } from './lib/file-system';
-import { IPC_CHANNELS } from '../shared/constants';
+import { initRpcHandler, registerService } from './utils/rpc-handler';
 import { parseCliArguments } from './cli/cli-handler';
 import { CliAction } from './cli/cli-action.types';
 import { getWindowState, saveWindowState } from './lib/session';
 
+// 导入所有服务
+import { FileService } from './services/file.service';
+import { GitService } from './services/git.service';
+import { TerminalService } from './services/terminal.service';
+import { SettingsService } from './services/settings.service';
+import { WindowService } from './services/window.service';
+import { MenuService } from './services/menu.service';
+import { GitHubService } from './services/github.service';
+import { SessionService } from './services/session.service';
+import { LspService } from './services/lsp.service';
+import { CliService } from './services/cli.service';
+import { readDirectory } from './lib/file-system';
+
 const cliAction: CliAction = parseCliArguments(process.argv);
 
-// --- 1. 处理快速退出命令 ---
 if (cliAction.type === 'exit-fast') {
-  if (cliAction.isError) {
-    console.error(cliAction.message);
-  } else {
-    console.log(cliAction.message);
-  }
+  if (cliAction.isError) console.error(cliAction.message);
+  else console.log(cliAction.message);
   app.quit();
 }
 
-// --- 2. Protocol 注册（在 app.ready 之前） ---
-console.log('[Protocol] Registering elevim:// protocol...');
-
+// Protocol 注册
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
     app.setAsDefaultProtocolClient('elevim', process.execPath, [path.resolve(process.argv[1])]);
@@ -32,170 +37,102 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient('elevim');
 }
 
-// --- 3. 单实例锁（处理 protocol URL） ---
 const gotTheLock = app.requestSingleInstanceLock();
-
 if (!gotTheLock) {
-  console.log('[App] Another instance is running, quitting...');
   app.quit();
 } else {
-  // Windows/Linux: 在第二个实例启动时处理 URL
-  app.on('second-instance', (event, commandLine, workingDirectory) => {
-    console.log('[Protocol] second-instance:', commandLine);
-
-    // 查找 elevim:// URL
-    const protocolUrl = commandLine.find(arg => arg.startsWith('elevim://'));
-    if (protocolUrl) {
-      console.log('[Protocol] Received in second instance:', protocolUrl);
-      // URL 会自动传递给已打开的授权窗口
-    }
-
-    // 如果有主窗口，聚焦它
+  app.on('second-instance', () => {
     const windows = BrowserWindow.getAllWindows();
     if (windows.length > 0) {
-      const mainWindow = windows[0];
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
+      if (windows[0].isMinimized()) windows[0].restore();
+      windows[0].focus();
+    }
+  });
+}
+
+function setupServices(mainWindow: BrowserWindow) {
+  // 1. 初始化 RPC 基础
+  initRpcHandler();
+
+  // 2. 实例化服务
+  const fileService = new FileService(mainWindow);
+  const gitService = new GitService(fileService);
+  const terminalService = new TerminalService(mainWindow, fileService);
+  const settingsService = new SettingsService(mainWindow);
+  const windowService = new WindowService(mainWindow);
+  const menuService = new MenuService(fileService);
+  const githubService = new GitHubService(mainWindow);
+  const sessionService = new SessionService(fileService);
+  const lspService = new LspService(mainWindow);
+  const cliService = new CliService();
+
+  // 3. 注册服务
+  registerService('file', fileService);
+  registerService('git', gitService);
+  registerService('terminal', terminalService);
+  registerService('settings', settingsService);
+  registerService('window', windowService);
+  registerService('menu', menuService);
+  registerService('github', githubService);
+  registerService('session', sessionService);
+  registerService('lsp', lspService);
+  registerService('cli', cliService);
+
+  return { cliService };
+}
+
+async function createWindow() {
+  const state = getWindowState();
+  const mainWindow = new BrowserWindow({
+    x: state.x, y: state.y, width: state.width, height: state.height,
+    icon: path.join(app.getAppPath(), 'resources/logo.png'),
+    frame: false,
+    titleBarStyle: 'hidden',
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
     }
   });
 
-  // macOS: 处理 open-url 事件
-  app.on('open-url', (event, url) => {
-    event.preventDefault();
-    console.log('[Protocol] open-url:', url);
-    // URL 会自动传递给已打开的授权窗口
-  });
-}
-
-function createWindow(mainWindow: BrowserWindow) {
+  if (state.isMaximized) mainWindow.maximize();
+  mainWindow.on('close', () => saveWindowState(mainWindow));
+  mainWindow.once('ready-to-show', () => mainWindow.show());
   mainWindow.loadFile('index.html');
-  registerIpcHandlers(mainWindow);
 
-  mainWindow.on('closed', () => {
-    // Window cleanup
-  });
-}
+  // 启动服务
+  const { cliService } = setupServices(mainWindow);
 
-// 此函数只负责加载内容和注册 IPC
-function setupWindow(mainWindow: BrowserWindow) {
-  mainWindow.loadFile('index.html');
-  registerIpcHandlers(mainWindow);
-}
-
-// 配置代理（仅在环境变量设置时使用）
-const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY || process.env.ALL_PROXY;
-if (proxyUrl) {
-  console.log('[Proxy] Using proxy from environment:', proxyUrl);
-  app.commandLine.appendSwitch('proxy-server', proxyUrl);
-} else {
-  console.log('[Proxy] No proxy configured, using direct connection');
-}
-
-if (cliAction.type.startsWith('start-gui')) {
-  app.whenReady().then(() => {
-    protocol.registerStringProtocol('elevim', (request, callback) => {
-      console.log('[Protocol] Handler called:', request.url);
-      callback('OK');
-    });
-
-    const state = getWindowState();
-
-    const mainWindow = new BrowserWindow({
-      x: state.x,
-      y: state.y,
-      width: state.width,
-      height: state.height,
-      icon: path.join(app.getAppPath(), 'resources/logo.png'),
-      frame: false,
-      titleBarStyle: 'hidden',
-      show: false, // 先隐藏，准备好再显示，防止闪烁
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-      }
-    });
-
-    // 如果之前是最大化状态，恢复最大化
-    if (state.isMaximized) {
-      mainWindow.maximize();
+  // 处理 CLI 启动参数
+  mainWindow.webContents.on('did-finish-load', async () => {
+    if (cliAction.type === 'start-gui-open-folder') {
+      const tree = await readDirectory(cliAction.folderPath);
+      cliService.emit('open-folder', {
+        name: path.basename(cliAction.folderPath),
+        path: cliAction.folderPath,
+        children: tree
+      });
+    } else if (cliAction.type === 'start-gui-open-file') {
+      const content = await fs.promises.readFile(cliAction.filePath, 'utf-8');
+      cliService.emit('open-file', { content, filePath: cliAction.filePath });
     }
-
-    mainWindow.on('close', () => {
-      saveWindowState(mainWindow);
-    });
-
-    // 准备好后再显示
-    mainWindow.once('ready-to-show', () => {
-      mainWindow.show();
-    });
-
-    // Material Icon Protocol
-    protocol.registerFileProtocol('material-icon', (request, callback) => {
-      try {
-        const iconName = request.url.replace('material-icon://', '');
-        const possiblePaths = [
-          path.join(process.cwd(), 'node_modules/material-icon-theme/icons', iconName),
-          path.join(__dirname, '../../node_modules/material-icon-theme/icons', iconName),
-          path.join(app.getAppPath(), 'node_modules/material-icon-theme/icons', iconName),
-        ];
-        for (const iconPath of possiblePaths) {
-          if (fs.existsSync(iconPath)) {
-            callback({ path: iconPath });
-            return;
-          }
-        }
-        console.warn('[Icon] Not found:', iconName);
-        callback({ error: -6 });
-      } catch (error) {
-        console.error('[Icon] Error:', error);
-        callback({ error: -2 });
-      }
-    });
-
-    // 处理 CLI 参数
-    mainWindow.webContents.on('did-finish-load', async () => {
-      try {
-        switch(cliAction.type) {
-          case 'start-gui-open-folder':
-            const fileTree = await readDirectory(cliAction.folderPath);
-            mainWindow.webContents.send(IPC_CHANNELS.OPEN_FOLDER_FROM_CLI, {
-              name: path.basename(cliAction.folderPath),
-              path: cliAction.folderPath,
-              children: fileTree
-            });
-            break;
-
-          case 'start-gui-open-file':
-            const content = await fs.promises.readFile(cliAction.filePath, 'utf-8');
-            mainWindow.webContents.send(IPC_CHANNELS.OPEN_FILE_FROM_CLI, {
-              content: content,
-              filePath: cliAction.filePath
-            });
-            break;
-
-          case 'start-gui-open-diff':
-            mainWindow.webContents.send(IPC_CHANNELS.OPEN_DIFF_FROM_CLI, cliAction.filePath);
-            break;
-        }
-      } catch (e) {
-        console.error('Failed to send CLI action to renderer:', e);
-      }
-    });
-
-    setupWindow(mainWindow);
-
-    app.on('activate', () => {
-      if (BrowserWindow.getAllWindows().length === 0) {
-        // 注意：如果在这里重新创建窗口，逻辑会稍微复杂一点，
-        // 简单起见这里可以留空或重新执行上面的创建逻辑
-      }
-    });
   });
 }
+
+app.whenReady().then(() => {
+  protocol.registerStringProtocol('elevim', (request, callback) => callback('OK'));
+
+  // Material Icon Protocol
+  protocol.registerFileProtocol('material-icon', (request, callback) => {
+    const iconName = request.url.replace('material-icon://', '');
+    const p = path.join(app.getAppPath(), 'node_modules/material-icon-theme/icons', iconName);
+    callback({ path: p });
+  });
+
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });
