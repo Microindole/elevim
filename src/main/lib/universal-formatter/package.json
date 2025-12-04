@@ -1,0 +1,23 @@
+{
+  "name": "universal-formatter",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "clang-format": "^1.8.0",
+    "prettier": "^3.7.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/prettier": "^2.7.3",
+    "prettier-plugin-java": "^2.7.7",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
