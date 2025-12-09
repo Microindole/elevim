@@ -1,229 +1,176 @@
+# ============================================================================
 # sidecars/health_check/main.py
+# ============================================================================
 import sys
 import os
 import json
 import time
 
-# [关键] 强制设置标准输出为 UTF-8，否则 Windows 下传给 Electron 的中文会乱码
+
+from .core.scanner import ProjectScanner
+from .integrations.git_analyzer import GitAnalyzer
+
+
+# 强制 UTF-8 输出
 sys.stdout.reconfigure(encoding='utf-8')
 
-# 导入同目录下的模块
-from config import IGNORE_DIRS, IGNORE_EXTS, LANG_MAP, FAT_FILE_THRESHOLD
-from analyzer import FileAnalyzer
-from utils import get_file_hash, format_size
 
-# 尝试导入可选模块，如果没写好不报错
-try:
-    from git_ops import get_git_churn
-except ImportError:
-    def get_git_churn(path): return {}
+class HealthCheckService:
+    """健康检查服务 - 可作为独立模块或 Electron 子进程使用"""
 
-try:
-    from reporter import generate_html_report
-except ImportError:
-    def generate_html_report(data): return None
+    def __init__(self):
+        self.running = False
 
+    def scan_project(self, root_path, options=None):
+        """
+        扫描项目
 
-def scan_project(root_path):
-    stats = {
-        "summary": {
-            "files": 0,       # 文件总数
-            "lines": 0,       # 代码总行数
-            "size": 0,        # 总大小 (Bytes)
-            "scanTime": 0,    # 耗时 (秒)
-            "issues": 0       # 发现的问题总数
-        },
-        "languages": {},      # 语言分布 { "Python": 1000, "TS": 500 }
-        "hotspots": [],       # 热点文件 (高频修改 + 高复杂)
-        "badSmells": [],      # 坏味道 (文件太大、嵌套太深)
-        "secrets": [],        # 安全隐患
-        "duplicates": [],     # 重复文件组
-        "todos": [],          # 所有 TODO
-        "files_data": []      # 所有文件的元数据 (用于前端绘图)
-    }
-    
-    start_time = time.time()
-    
-    # 1. 获取 Git 变更频率 (Churn)
-    # 这步可能会花一点点时间，但对于识别技术债至关重要
-    git_churn_map = get_git_churn(root_path)
-    
-    # 用于查重的哈希表: { "md5_hash": ["file1", "file2"] }
-    hash_map = {}
+        Args:
+            root_path: 项目根目录
+            options: 可选配置
+                - enable_git: 是否启用 Git 分析（默认 True）
+                - enable_dependencies: 是否分析依赖（默认 True）
 
-    # 2. 遍历文件系统
-    for root, dirs, files in os.walk(root_path):
-        # 过滤目录 (修改 dirs 列表会影响 os.walk 的后续递归)
-        dirs[:] = [d for d in dirs if d not in IGNORE_DIRS]
-        
-        for file in files:
-            # 过滤扩展名
-            ext = os.path.splitext(file)[1].lower()
-            if ext in IGNORE_EXTS:
-                continue
-                
-            full_path = os.path.join(root, file)
-            rel_path = os.path.relpath(full_path, root_path)
-            
-            # --- 基础信息收集 ---
+        Returns:
+            dict: 扫描结果
+        """
+        options = options or {}
+        start_time = time.time()
+
+        # 1. 基础扫描
+        scanner = ProjectScanner(root_path, options)
+        stats = scanner.scan()
+
+        # 2. Git 分析（可选）
+        if options.get('enable_git', True):
+            git = GitAnalyzer(root_path)
+            churn_map = git.get_churn_map()
+
+            # 填充 churn 数据
+            for file_data in stats['files_data']:
+                rel_path = file_data['path'].replace('\\', '/')
+                file_data['churn'] = churn_map.get(rel_path, 0)
+
+            # 识别热点
+            for file_data in stats['files_data']:
+                if file_data['complexity'] > 20 and file_data['churn'] > 5:
+                    stats['hotspots'].append({
+                        'file': file_data['path'],
+                        'complexity': file_data['complexity'],
+                        'churn': file_data['churn'],
+                        'score': file_data['complexity'] * file_data['churn']
+                    })
+
+        stats['summary']['scan_time'] = round(time.time() - start_time, 2)
+
+        return stats
+
+    def run_as_service(self):
+        """作为子进程服务运行（Electron 集成模式）"""
+        self.running = True
+
+        # 发送就绪信号
+        print(json.dumps({"type": "status", "msg": "ready"}), flush=True)
+
+        # 消息循环
+        while self.running:
             try:
-                fsize = os.path.getsize(full_path)
-                stats["summary"]["size"] += fsize
-            except:
-                continue # 文件可能被占用或删除了，跳过
+                line = sys.stdin.readline()
+                if not line:
+                    break
 
-            stats["summary"]["files"] += 1
-            
-            # --- 查重逻辑 ---
-            # 计算文件哈希
-            fhash = get_file_hash(full_path)
-            if fhash:
-                if fhash in hash_map:
-                    hash_map[fhash].append(rel_path)
+                try:
+                    req = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                req_id = req.get("id")
+                cmd = req.get("command", "scan")
+
+                if cmd == "scan":
+                    self._handle_scan(req_id, req)
+                elif cmd == "stop":
+                    self.running = False
+                    self._send_response(req_id, {"status": "stopped"})
                 else:
-                    hash_map[fhash] = [rel_path]
+                    self._send_error(req_id, f"Unknown command: {cmd}")
 
-            # --- 深度分析 ---
-            analyzer = FileAnalyzer(full_path, rel_path)
-            
-            if analyzer.analyze():
-                report = analyzer.get_report()
-                
-                # 获取该文件的 Git 修改次数
-                # 注意路径分隔符：Git 输出通常是 '/', Windows 是 '\\'
-                # 我们在 git_ops 里最好统一处理，或者这里 normalize
-                norm_rel_path = rel_path.replace('\\', '/')
-                churn = git_churn_map.get(norm_rel_path, 0)
-                
-                # 统计语言
-                lang = LANG_MAP.get(ext, 'Other')
-                if lang not in stats["languages"]:
-                    stats["languages"][lang] = {"files": 0, "lines": 0, "code": 0}
-                
-                stats["languages"][lang]["files"] += 1
-                stats["languages"][lang]["lines"] += report["lines"]
-                stats["languages"][lang]["code"] += report["code"]
-                
-                stats["summary"]["lines"] += report["lines"]
+            except Exception as e:
+                self._send_error(None, str(e))
 
-                # 收集列表数据
-                # 将文件内的 TODO/Secrets 加上文件路径信息，扁平化存入总表
-                if report["todos"]:
-                    stats["todos"].extend([{**t, "file": rel_path} for t in report["todos"]])
-                
-                if report["secrets"]:
-                    stats["secrets"].extend([{**s, "file": rel_path} for s in report["secrets"]])
-                
-                # --- 智能诊断 ---
-                
-                # A. 识别"坏味道" (静态特征)
-                issues = []
-                if report["lines"] > FAT_FILE_THRESHOLD:
-                    issues.append(f"文件过大 ({report['lines']} 行)")
-                if report["complexity"] > 60: # 经验阈值
-                    issues.append(f"逻辑太复杂 (分数 {report['complexity']})")
-                if report["maxIndent"] > 6:
-                    issues.append(f"嵌套过深 ({report['maxIndent']} 层)")
-                
-                if issues:
-                    stats["badSmells"].append({
-                        "file": rel_path,
-                        "issues": issues,
-                        "score": report["complexity"]
-                    })
+    def _handle_scan(self, req_id, req):
+        """处理扫描请求"""
+        target_path = req.get("path")
 
-                # B. 识别"热点" (动态特征 + 静态特征)
-                # 修改次数多(>5) 且 复杂度高(>20) 的文件就是技术债热点
-                is_hotspot = report["complexity"] > 20 and churn > 5
-                if is_hotspot:
-                    stats["hotspots"].append({
-                        "file": rel_path,
-                        "complexity": report["complexity"],
-                        "churn": churn,
-                        "score": report["complexity"] * churn # 热度分数
-                    })
-                
-                # 保存元数据供前端图表使用 (散点图)
-                stats["files_data"].append({
-                    "name": file,
-                    "path": rel_path,
-                    "lines": report["lines"],
-                    "complexity": report["complexity"],
-                    "churn": churn
-                })
+        if not target_path or not os.path.exists(target_path):
+            self._send_error(req_id, "Path not found")
+            return
 
-    # --- 后处理 ---
-
-    # 1. 整理重复文件 (只保留列表长度 > 1 的)
-    for k, v in hash_map.items():
-        if len(v) > 1:
-            stats["duplicates"].append(v)
-            
-    # 2. 统计汇总
-    stats["summary"]["scanTime"] = round(time.time() - start_time, 2)
-    stats["summary"]["sizeFormatted"] = format_size(stats["summary"]["size"])
-    stats["summary"]["issues"] = len(stats["secrets"]) + len(stats["hotspots"]) + len(stats["badSmells"])
-    
-    # 3. 排序 (让前端拿到最有价值的数据在前)
-    # 热点按 (复杂度 * 修改频率) 降序
-    stats["hotspots"].sort(key=lambda x: x["score"], reverse=True)
-    # 坏味道按 复杂度 降序
-    stats["badSmells"].sort(key=lambda x: x["score"], reverse=True)
-    
-    return stats
-
-def main():
-    # 1. 发送握手信号，告诉父进程服务已启动
-    print(json.dumps({"type": "status", "msg": "ready"}), flush=True)
-
-    # 2. 进入消息循环
-    while True:
         try:
-            # 阻塞读取一行 (来自 Electron 的 stdin)
-            line = sys.stdin.readline()
-            if not line:
-                break # EOF, 父进程关闭了管道，退出
-            
-            # 解析请求
-            try:
-                req = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-
-            req_id = req.get("id")
-            target_path = req.get("path")
-            generate_report = req.get("generateReport", False)
-
-            # 校验
-            if not target_path or not os.path.exists(target_path):
-                error_res = {"id": req_id, "success": False, "error": "Path not found"}
-                print(json.dumps(error_res), flush=True)
-                continue
-
-            # 执行核心逻辑
-            result_data = scan_project(target_path)
-            
-            # 可选：生成 HTML 报告
-            report_path = None
-            if generate_report:
-                report_path = generate_html_report(result_data)
-            
-            # 构造成功响应
-            response = {
-                "id": req_id,
-                "success": True,
-                "data": result_data,
-                "reportPath": report_path
-            }
-            
-            # 发送响应 (必须 flush)
-            print(json.dumps(response), flush=True)
-
+            options = req.get("options", {})
+            result = self.scan_project(target_path, options)
+            self._send_response(req_id, {"success": True, "data": result})
         except Exception as e:
-            # 捕获所有未处理异常，防止服务崩溃
-            # 实际生产中可以把 e 写入日志文件
-            error_res = {"error": str(e)}
-            print(json.dumps(error_res), flush=True)
+            self._send_error(req_id, str(e))
 
+    def _send_response(self, req_id, data):
+        """发送响应"""
+        response = {"id": req_id, **data}
+        print(json.dumps(response), flush=True)
+
+    def _send_error(self, req_id, error):
+        """发送错误"""
+        response = {"id": req_id, "success": False, "error": error}
+        print(json.dumps(response), flush=True)
+
+# ============================================================================
+# 命令行入口
+# ============================================================================
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description='代码健康检查工具')
+    parser.add_argument('path', help='项目路径')
+    parser.add_argument('--mode', choices=['service', 'cli'], default='cli',
+                        help='运行模式: service=子进程模式, cli=命令行模式')
+    parser.add_argument('--report', action='store_true',
+                        help='生成HTML报告')
+    parser.add_argument('--no-git', action='store_true',
+                        help='禁用Git分析')
+
+    args = parser.parse_args()
+
+    service = HealthCheckService()
+
+    if args.mode == 'service':
+        # 子进程模式（供 Electron 调用）
+        service.run_as_service()
+    else:
+        # CLI 模式
+        print(f"🔍 扫描项目: {args.path}")
+        result = service.scan_project(args.path, {
+            'enable_git': not args.no_git
+        })
+
+        print(f"\n📊 扫描完成！")
+        print(f"  • 文件: {result['summary']['files']}")
+        print(f"  • 代码行: {result['summary']['code_lines']}")
+        print(f"  • 问题: {result['summary']['issues']}")
+        print(f"  • 耗时: {result['summary']['scan_time']}s")
+
+        if args.report:
+            # 注意：这里的导入路径需要根据运行方式适配
+            # 如果使用 python -m health_check.main 运行，则用相对导入
+            try:
+                from .reporters.html_reporter import generate_html_report
+            except ImportError:
+                # 如果直接 python main.py 运行，尝试绝对导入或调整路径
+                # 这里为了简单，假设是作为模块运行
+                from .reporters.html_reporter import generate_html_report
+
+            report_path = generate_html_report(result)
+            print(f"\n📄 报告已生成: {report_path}")
+
+            # 自动打开
+            import webbrowser
+            webbrowser.open('file://' + report_path)
