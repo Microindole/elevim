@@ -51,12 +51,22 @@ export interface IGitService {
 
 // --- Terminal Service ---
 export interface ITerminalService {
-    init(): Promise<void>;
-    write(data: string): Promise<void>;
-    resize(cols: number, rows: number): Promise<void>;
-    dispose(): Promise<void>;
+    // 创建终端，支持传入 cwd，返回终端 ID
+    createTerminal(options?: { cwd?: string }): Promise<string>;
+
+    // 针对特定 ID 的操作
+    write(termId: string, data: string): Promise<void>;
+    resize(termId: string, cols: number, rows: number): Promise<void>;
+    dispose(termId: string): Promise<void>;
+
+    // 获取当前活动终端列表
+    listTerminals(): Promise<string[]>;
+
     // Events
-    on(event: 'data', listener: (data: string) => void): void;
+    // data 事件结构变为 { termId, data }
+    on(event: 'data', listener: (payload: { termId: string, data: string }) => void): void;
+    // exit 事件
+    on(event: 'exit', listener: (payload: { termId: string, code: number }) => void): void;
 }
 
 // --- Settings Service ---

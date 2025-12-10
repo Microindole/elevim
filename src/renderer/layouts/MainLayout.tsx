@@ -8,13 +8,13 @@ import EditorGroup from '../features/editor/components/EditorGroup/EditorGroup';
 import FileTree from '../features/explorer/components/FileTree/FileTree';
 import StatusBar from '../features/workbench/components/StatusBar/StatusBar';
 import CommandPalette from '../features/workbench/components/CommandPalette/CommandPalette';
-import TerminalComponent from '../features/terminal/components/Terminal/Terminal';
 import GitPanel from '../features/git/components/GitPanel/GitPanel';
 import ActivityBar from '../features/workbench/components/ActivityBar/ActivityBar';
 import SearchPanel from '../features/search/components/SearchPanel/SearchPanel';
 import {AppSettings, ZenModeConfig} from '../../shared/types';
 import BacklinksPanel from "../features/knowledge/BacklinksPanel";
 import GraphView from "../features/knowledge/GraphView";
+import TerminalManager from "../features/terminal/components/Terminal/TerminalManager";
 
 // 定义这个 Layout 需要的所有数据接口
 export interface MainLayoutProps {
@@ -196,7 +196,7 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             <>
                                 <div className="terminal-resizer" onMouseDown={terminal.startResize}/>
                                 <div className="terminal-panel" style={{height: terminal.height}}>
-                                    <TerminalComponent/>
+                                    <TerminalManager/>
                                 </div>
                             </>
                         )}

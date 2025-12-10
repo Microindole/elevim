@@ -4,75 +4,67 @@ import * as pty from 'node-pty';
 import * as os from 'os';
 import * as fs from 'fs';
 import { app, BrowserWindow } from 'electron';
+import { v4 as uuidv4 } from 'uuid';
 import { ITerminalService } from '../../shared/api-contract';
 import { FileService } from './file.service';
 
 export class TerminalService extends EventEmitter implements ITerminalService {
-    private ptyProcess: pty.IPty | null = null;
+    private terminals: Map<string, pty.IPty> = new Map();
     private shell: string;
     private shellArgs: string[];
 
-    private isInitializing = false;
-    private isProcessAlive = false;
-
     constructor(private mainWindow: BrowserWindow, private fileService: FileService) {
         super();
+        this.detectShell();
 
-        // 根据平台选择 shell
+        // [关键] 全局异常拦截：静默处理 EPIPE 错误，防止应用崩溃
+        process.on('uncaughtException', (error: any) => {
+            if (error.code === 'EPIPE' || error.message.includes('EPIPE')) {
+                // 这是一个预期的 Windows PTY 关闭错误，静默忽略即可
+                // 如果你想看，可以取消下面这行的注释
+                // console.warn('[Terminal] Suppressed background EPIPE error');
+            } else {
+                console.error('Uncaught exception:', error);
+                // 对于其他未知严重错误，仍然抛出
+                // process.exit(1); // 生产环境通常不希望直接退出，视情况而定
+            }
+        });
+    }
+
+    private detectShell() {
         if (os.platform() === 'win32') {
-            // 优先使用 PowerShell 7 (pwsh)，其 UTF-8 支持更好
             const pwsh7 = 'C:\\Program Files\\PowerShell\\7\\pwsh.exe';
             const pwsh5 = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
 
             if (fs.existsSync(pwsh7)) {
                 this.shell = pwsh7;
-                // pwsh 7 默认就是 UTF-8，只需添加 -NoLogo
                 this.shellArgs = ['-NoLogo'];
             } else {
-                // PowerShell 5 需要通过配置文件或启动参数设置 UTF-8
                 this.shell = pwsh5;
                 this.shellArgs = [
-                    '-NoLogo',
-                    '-NoExit',  // [关键] 保持交互模式
-                    '-Command',
+                    '-NoLogo', '-NoExit', '-Command',
                     '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8'
                 ];
             }
         } else {
             this.shell = process.env.SHELL || '/bin/bash';
-            this.shellArgs = [];
+            this.shellArgs = ['--login'];
         }
     }
 
-    async init(): Promise<void> {
-        if (this.isInitializing) {
-            console.log('[Terminal] Init ignored: already initializing.');
-            return;
-        }
+    async init(): Promise<void> { /* 兼容保留 */ }
 
-        if (this.ptyProcess && this.isProcessAlive) {
-            console.log('[Terminal] Process already running, reusing.');
-            return;
-        }
+    async createTerminal(options?: { cwd?: string }): Promise<string> {
+        const termId = uuidv4();
 
-        this.isInitializing = true;
+        let cwd = options?.cwd;
+        if (!cwd) cwd = this.fileService.getCurrentFolder();
+        if (!cwd || !fs.existsSync(cwd)) cwd = app.getPath('home');
+
+        // console.log(`[Terminal] Creating ${termId} at ${cwd}`);
 
         try {
-            await this.dispose();
-
-            const projectRoot = this.fileService.getCurrentFolder();
-            let cwd = projectRoot || app.getPath('home');
-
-            try {
-                await fs.promises.access(cwd);
-            } catch (e) {
-                console.warn(`[Terminal] Invalid CWD "${cwd}", falling back to Home.`);
-                cwd = app.getPath('home');
-            }
-
-            console.log(`[Terminal] Spawning ${this.shell} with args:`, this.shellArgs);
-
-            this.ptyProcess = pty.spawn(this.shell, this.shellArgs, {
+            const ptyProcess = pty.spawn(this.shell, this.shellArgs, {
                 name: 'xterm-256color',
                 cols: 80,
                 rows: 30,
@@ -80,71 +72,75 @@ export class TerminalService extends EventEmitter implements ITerminalService {
                 env: process.env as any
             });
 
-            this.isProcessAlive = true;
-            console.log('[Terminal] PTY process spawned successfully');
+            this.terminals.set(termId, ptyProcess);
 
-            this.ptyProcess.onData((data) => {
+            // 数据转发
+            ptyProcess.onData((data) => {
                 if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-                    try {
-                        this.emit('data', data);
-                    } catch (err) {
-                        console.error('[Terminal] Data emit error:', err);
-                    }
+                    this.emit('data', { termId, data });
                 }
             });
 
-            this.ptyProcess.onExit(({ exitCode, signal }) => {
-                console.log(`[Terminal] Process exited: code=${exitCode}, signal=${signal}`);
-                this.isProcessAlive = false;
-                this.ptyProcess = null;
+            // 退出清理
+            ptyProcess.onExit(({ exitCode }) => {
+                this.emit('exit', { termId, code: exitCode });
+                this.terminals.delete(termId);
             });
 
-        } catch (error: any) {
-            console.error('[Terminal] Spawn Error:', error);
-            this.ptyProcess = null;
-            this.isProcessAlive = false;
-        } finally {
-            this.isInitializing = false;
+            return termId;
+        } catch (error) {
+            console.error('[Terminal] Create failed:', error);
+            throw error;
         }
     }
 
-    async write(data: string): Promise<void> {
-        if (this.ptyProcess && this.isProcessAlive) {
+    async write(termId: string, data: string): Promise<void> {
+        const term = this.terminals.get(termId);
+        if (term) {
             try {
-                this.ptyProcess.write(data);
-            } catch (e) {
-                console.error('[Terminal] Write failed:', e);
-                this.isProcessAlive = false;
+                term.write(data);
+            } catch (err) {
+                // 忽略写入时的并发错误
             }
         }
     }
 
-    async resize(cols: number, rows: number): Promise<void> {
-        if (this.ptyProcess && this.isProcessAlive && cols > 0 && rows > 0) {
+    async resize(termId: string, cols: number, rows: number): Promise<void> {
+        const term = this.terminals.get(termId);
+        // 只有当尺寸有效且终端存在时才调整
+        if (term && cols > 0 && rows > 0) {
             try {
-                this.ptyProcess.resize(Math.floor(cols), Math.floor(rows));
-            } catch (e) {
-                console.error('[Terminal] Resize failed:', e);
+                term.resize(Math.floor(cols), Math.floor(rows));
+            } catch (err) {
+                // 忽略调整时的并发错误
             }
         }
     }
 
-    async dispose(): Promise<void> {
-        if (this.ptyProcess) {
-            console.log('[Terminal] Disposing PTY process...');
-            const proc = this.ptyProcess;
+    async dispose(termId: string): Promise<void> {
+        const term = this.terminals.get(termId);
+        if (!term) return;
 
-            this.ptyProcess = null;
-            this.isProcessAlive = false;
+        // 1. 立即移除引用
+        this.terminals.delete(termId);
 
-            try {
-                (proc as any).removeAllListeners();
-                proc.kill();
-            } catch (e) {
-                console.warn('[Terminal] Kill failed:', e);
+        try {
+            // 2. 尝试暂停数据流 (黑科技修复)
+            if (typeof (term as any).pause === 'function') {
+                (term as any).pause();
             }
 
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // 3. 移除监听器
+            (term as any).removeAllListeners();
+
+            // 4. 杀死进程
+            term.kill();
+        } catch (error) {
+            console.warn(`[Terminal] Dispose warn:`, error);
         }
+    }
+
+    async listTerminals(): Promise<string[]> {
+        return Array.from(this.terminals.keys());
     }
 }
