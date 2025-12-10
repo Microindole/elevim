@@ -250,7 +250,8 @@ export function useAppController() {
         terminal: {
             height: terminal.terminalHeight,
             isVisible: terminal.isTerminalVisible,
-            startResize: terminal.startTerminalResize
+            startResize: terminal.startTerminalResize,
+            close: terminal.closeTerminal
         },
 
         // Search View Data

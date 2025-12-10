@@ -52,6 +52,7 @@ export interface MainLayoutProps {
         height: number;
         isVisible: boolean;
         startResize: () => void;
+        close: () => void;
     };
 
     // Search
@@ -196,7 +197,7 @@ export const MainLayout: React.FC<MainLayoutProps> = (props) => {
                             <>
                                 <div className="terminal-resizer" onMouseDown={terminal.startResize}/>
                                 <div className="terminal-panel" style={{height: terminal.height}}>
-                                    <TerminalManager/>
+                                    <TerminalManager onClose={terminal.close} />
                                 </div>
                             </>
                         )}

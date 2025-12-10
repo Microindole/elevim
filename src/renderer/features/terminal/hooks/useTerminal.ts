@@ -33,6 +33,12 @@ export function useTerminal() {
         }
     }, []);
 
+    // [新增] 关闭终端的方法 - 带日志
+    const closeTerminal = useCallback(() => {
+        console.log('[useTerminal] closeTerminal() called - hiding terminal panel');
+        setIsTerminalVisible(false);
+    }, []);
+
     useEffect(() => {
         const handleMove = (e: MouseEvent) => resizeTerminal(e);
         const handleUp = () => stopTerminalResize();
@@ -49,6 +55,7 @@ export function useTerminal() {
         terminalHeight,
         isTerminalVisible,
         setIsTerminalVisible,
-        startTerminalResize
+        startTerminalResize,
+        closeTerminal,
     };
 }
