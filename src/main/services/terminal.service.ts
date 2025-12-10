@@ -9,31 +9,57 @@ import { FileService } from './file.service';
 
 export class TerminalService extends EventEmitter implements ITerminalService {
     private ptyProcess: pty.IPty | null = null;
-    private shell = os.platform() === 'win32'
-        ? 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
-        : (process.env.SHELL || '/bin/bash');
+    private shell: string;
+    private shellArgs: string[];
 
-    // [新增] 初始化锁，防止前端并发调用导致进程泄漏
     private isInitializing = false;
+    private isProcessAlive = false;
 
     constructor(private mainWindow: BrowserWindow, private fileService: FileService) {
         super();
+
+        // 根据平台选择 shell
+        if (os.platform() === 'win32') {
+            // 优先使用 PowerShell 7 (pwsh)，其 UTF-8 支持更好
+            const pwsh7 = 'C:\\Program Files\\PowerShell\\7\\pwsh.exe';
+            const pwsh5 = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+
+            if (fs.existsSync(pwsh7)) {
+                this.shell = pwsh7;
+                // pwsh 7 默认就是 UTF-8，只需添加 -NoLogo
+                this.shellArgs = ['-NoLogo'];
+            } else {
+                // PowerShell 5 需要通过配置文件或启动参数设置 UTF-8
+                this.shell = pwsh5;
+                this.shellArgs = [
+                    '-NoLogo',
+                    '-NoExit',  // [关键] 保持交互模式
+                    '-Command',
+                    '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8'
+                ];
+            }
+        } else {
+            this.shell = process.env.SHELL || '/bin/bash';
+            this.shellArgs = [];
+        }
     }
 
     async init(): Promise<void> {
-        // [关键修复] 如果正在初始化，直接忽略本次请求
         if (this.isInitializing) {
             console.log('[Terminal] Init ignored: already initializing.');
+            return;
+        }
+
+        if (this.ptyProcess && this.isProcessAlive) {
+            console.log('[Terminal] Process already running, reusing.');
             return;
         }
 
         this.isInitializing = true;
 
         try {
-            // 1. 彻底销毁旧进程
             await this.dispose();
 
-            // 2. 计算路径
             const projectRoot = this.fileService.getCurrentFolder();
             let cwd = projectRoot || app.getPath('home');
 
@@ -44,64 +70,81 @@ export class TerminalService extends EventEmitter implements ITerminalService {
                 cwd = app.getPath('home');
             }
 
-            console.log(`[Terminal] Spawning ${this.shell} at ${cwd}`);
+            console.log(`[Terminal] Spawning ${this.shell} with args:`, this.shellArgs);
 
-            // 3. 创建新进程
-            this.ptyProcess = pty.spawn(this.shell, [], {
-                name: 'xterm-color',
+            this.ptyProcess = pty.spawn(this.shell, this.shellArgs, {
+                name: 'xterm-256color',
                 cols: 80,
                 rows: 30,
                 cwd: cwd,
                 env: process.env as any
             });
 
-            // 4. 绑定事件
+            this.isProcessAlive = true;
+            console.log('[Terminal] PTY process spawned successfully');
+
             this.ptyProcess.onData((data) => {
                 if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-                    this.emit('data', data);
+                    try {
+                        this.emit('data', data);
+                    } catch (err) {
+                        console.error('[Terminal] Data emit error:', err);
+                    }
                 }
             });
 
             this.ptyProcess.onExit(({ exitCode, signal }) => {
-                console.log(`[Terminal] Exited: ${exitCode}, Signal: ${signal}`);
-                // 不要在这里置空，防止与 dispose 冲突，让 dispose 全权管理
+                console.log(`[Terminal] Process exited: code=${exitCode}, signal=${signal}`);
+                this.isProcessAlive = false;
+                this.ptyProcess = null;
             });
 
         } catch (error: any) {
             console.error('[Terminal] Spawn Error:', error);
+            this.ptyProcess = null;
+            this.isProcessAlive = false;
         } finally {
-            // [关键] 无论成功失败，释放锁
             this.isInitializing = false;
         }
     }
 
     async write(data: string): Promise<void> {
-        if (this.ptyProcess) {
-            try { this.ptyProcess.write(data); } catch (e) {}
+        if (this.ptyProcess && this.isProcessAlive) {
+            try {
+                this.ptyProcess.write(data);
+            } catch (e) {
+                console.error('[Terminal] Write failed:', e);
+                this.isProcessAlive = false;
+            }
         }
     }
 
     async resize(cols: number, rows: number): Promise<void> {
-        if (this.ptyProcess && cols > 0 && rows > 0) {
-            try { this.ptyProcess.resize(Math.floor(cols), Math.floor(rows)); } catch (e) {}
+        if (this.ptyProcess && this.isProcessAlive && cols > 0 && rows > 0) {
+            try {
+                this.ptyProcess.resize(Math.floor(cols), Math.floor(rows));
+            } catch (e) {
+                console.error('[Terminal] Resize failed:', e);
+            }
         }
     }
 
     async dispose(): Promise<void> {
         if (this.ptyProcess) {
             console.log('[Terminal] Disposing PTY process...');
-            // 移除监听器，防止 kill 时触发读错误
-            (this.ptyProcess as any).removeAllListeners();
+            const proc = this.ptyProcess;
+
+            this.ptyProcess = null;
+            this.isProcessAlive = false;
 
             try {
-                this.ptyProcess.kill();
+                (proc as any).removeAllListeners();
+                proc.kill();
             } catch (e) {
                 console.warn('[Terminal] Kill failed:', e);
             }
 
-            this.ptyProcess = null;
-            // 给予 OS 回收句柄的缓冲时间
-            await new Promise(resolve => setTimeout(resolve, 50));
+            await new Promise(resolve => setTimeout(resolve, 100));
         }
     }
 }

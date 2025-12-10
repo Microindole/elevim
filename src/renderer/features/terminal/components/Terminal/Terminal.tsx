@@ -11,17 +11,24 @@ export default function TerminalComponent() {
     const terminalInstance = useRef<Terminal | null>(null);
     const fitAddon = useRef<FitAddon | null>(null);
 
-    // [状态追踪]
-    const isInitialized = useRef(false); // xterm 是否创建
-    const backendInited = useRef(false); // 后端是否已请求初始化
+    const isInitialized = useRef(false);
+    const backendInited = useRef(false);
 
     useEffect(() => {
-        if (!terminalRef.current || isInitialized.current) return;
+        console.log('[Terminal UI] useEffect triggered');
 
-        // 如果容器不可见，暂不初始化
-        if (terminalRef.current.clientWidth === 0) return;
+        if (!terminalRef.current || isInitialized.current) {
+            console.log('[Terminal UI] Skipping: ref or already initialized');
+            return;
+        }
+
+        if (terminalRef.current.clientWidth === 0) {
+            console.log('[Terminal UI] Skipping: container width is 0');
+            return;
+        }
 
         isInitialized.current = true;
+        console.log('[Terminal UI] Starting initialization...');
 
         const term = new Terminal({
             cursorBlink: true,
@@ -36,29 +43,48 @@ export default function TerminalComponent() {
 
         const addon = new FitAddon();
         term.loadAddon(addon);
-
-        // 挂载
         term.open(terminalRef.current);
+
         terminalInstance.current = term;
         fitAddon.current = addon;
 
-        // [关键修复] 只调用一次 init，使用 backendInited 标记
+        console.log('[Terminal UI] xterm created and opened');
+
+        // 测试输出
+        term.writeln('\x1b[33m[Debug] Terminal UI initialized, waiting for backend...\x1b[0m');
+
+        // 后端初始化
         if (!backendInited.current) {
             backendInited.current = true;
-            // 给一点延迟，让之前的 dispose 跑完
+            console.log('[Terminal UI] Calling api.terminal.init()...');
+
             setTimeout(() => {
-                api.terminal.init().catch(console.error);
-            }, 100);
+                api.terminal.init()
+                    .then(() => {
+                        console.log('[Terminal UI] Backend init SUCCESS');
+                        term.writeln('\x1b[32m[Debug] Backend connected\x1b[0m');
+                    })
+                    .catch(err => {
+                        console.error('[Terminal UI] Backend init FAILED:', err);
+                        term.writeln('\x1b[31m[Debug] Backend init failed: ' + err.message + '\x1b[0m');
+                    });
+            }, 150);
         }
 
-        // 数据流
+        // 数据流 - 添加日志
         const onData = term.onData((data) => {
-            api.terminal.write(data);
+            console.log('[Terminal UI] User input, length:', data.length);
+            api.terminal.write(data).catch(err => {
+                console.error('[Terminal UI] Write failed:', err);
+            });
         });
 
         const unsubscribe = api.terminal.on('data', (data: string) => {
+            console.log('[Terminal UI] Received data from backend, length:', data.length, 'preview:', data.substring(0, 50));
             terminalInstance.current?.write(data);
         });
+
+        console.log('[Terminal UI] Event listeners registered');
 
         // 尺寸适配
         const handleResize = () => {
@@ -69,23 +95,24 @@ export default function TerminalComponent() {
                 try {
                     fitAddon.current?.fit();
                     const { cols, rows } = terminalInstance.current!;
+                    console.log('[Terminal UI] Resized to:', cols, 'x', rows);
                     if (cols > 0 && rows > 0) {
-                        api.terminal.resize(cols, rows);
+                        api.terminal.resize(cols, rows).catch(console.error);
                     }
-                } catch {}
+                } catch (err) {
+                    console.error('[Terminal UI] Resize failed:', err);
+                }
             });
         };
 
-        // 使用 ResizeObserver 仅用于触发 resize，不用于触发 init
         const observer = new ResizeObserver(() => handleResize());
         observer.observe(terminalRef.current);
         window.addEventListener('resize', handleResize);
 
-        // 初始适配
-        setTimeout(() => handleResize(), 150);
+        setTimeout(() => handleResize(), 200);
 
         return () => {
-            console.log('[Terminal] Component Unmount');
+            console.log('[Terminal UI] Component Unmount - cleaning up');
             observer.disconnect();
             window.removeEventListener('resize', handleResize);
             unsubscribe();
@@ -94,10 +121,13 @@ export default function TerminalComponent() {
 
             terminalInstance.current = null;
             isInitialized.current = false;
-            backendInited.current = false;
 
-            // 卸载时通知后端销毁
-            api.terminal.dispose().catch(console.error);
+            // [关键] 不要在卸载时 dispose 后端进程
+            // 只在真正关闭应用时才销毁
+            // setTimeout(() => {
+            //     console.log('[Terminal UI] Calling api.terminal.dispose()');
+            //     api.terminal.dispose().catch(console.error);
+            // }, 50);
         };
     }, []);
 
