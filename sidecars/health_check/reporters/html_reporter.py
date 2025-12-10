@@ -5,6 +5,7 @@ import os
 import json
 import webbrowser
 
+# 注意：为了避免 format() 报错，CSS 和 JS 中的 { } 都替换为了 {{ }}
 TEMPLATE = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -13,129 +14,129 @@ TEMPLATE = """<!DOCTYPE html>
     <title>代码健康检查报告 v2.0</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{ 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: #f5f7fa; 
             color: #333;
             line-height: 1.6;
-        }
-        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        }}
+        .container {{ max-width: 1400px; margin: 0 auto; padding: 20px; }}
         
         /* Header */
-        .header {
+        .header {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 30px;
             border-radius: 12px;
             margin-bottom: 30px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-        .header h1 { font-size: 32px; margin-bottom: 10px; }
-        .header p { opacity: 0.9; font-size: 14px; }
+        }}
+        .header h1 {{ font-size: 32px; margin-bottom: 10px; }}
+        .header p {{ opacity: 0.9; font-size: 14px; }}
         
         /* Metrics Grid */
-        .metrics {
+        .metrics {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
-        }
-        .metric-card {
+        }}
+        .metric-card {{
             background: white;
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
             text-align: center;
             transition: transform 0.2s;
-        }
-        .metric-card:hover { transform: translateY(-4px); }
-        .metric-card h2 { 
+        }}
+        .metric-card:hover {{ transform: translateY(-4px); }}
+        .metric-card h2 {{ 
             font-size: 36px;
             font-weight: 700;
             margin-bottom: 8px;
-        }
-        .metric-card p { color: #666; font-size: 14px; }
-        .metric-card.success h2 { color: #10b981; }
-        .metric-card.warning h2 { color: #f59e0b; }
-        .metric-card.danger h2 { color: #ef4444; }
+        }}
+        .metric-card p {{ color: #666; font-size: 14px; }}
+        .metric-card.success h2 {{ color: #10b981; }}
+        .metric-card.warning h2 {{ color: #f59e0b; }}
+        .metric-card.danger h2 {{ color: #ef4444; }}
         
         /* Cards Grid */
-        .grid {
+        .grid {{
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
             gap: 20px;
             margin-bottom: 20px;
-        }
-        .card {
+        }}
+        .card {{
             background: white;
             border-radius: 12px;
             padding: 25px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-        }
-        .card.full-width { grid-column: 1 / -1; }
-        .card h3 {
+        }}
+        .card.full-width {{ grid-column: 1 / -1; }}
+        .card h3 {{
             font-size: 18px;
             margin-bottom: 15px;
             padding-left: 12px;
             border-left: 4px solid #667eea;
-        }
+        }}
         
         /* Table */
-        .table-container {
+        .table-container {{
             max-height: 400px;
             overflow-y: auto;
-        }
-        table {
+        }}
+        table {{
             width: 100%;
             border-collapse: collapse;
             font-size: 13px;
-        }
-        thead { 
+        }}
+        thead {{ 
             position: sticky;
             top: 0;
             background: #f9fafb;
             z-index: 10;
-        }
-        th {
+        }}
+        th {{
             text-align: left;
             padding: 12px;
             font-weight: 600;
             border-bottom: 2px solid #e5e7eb;
-        }
-        td {
+        }}
+        td {{
             padding: 10px 12px;
             border-bottom: 1px solid #f3f4f6;
-        }
-        tr:hover { background: #f9fafb; }
+        }}
+        tr:hover {{ background: #f9fafb; }}
         
         /* Badges */
-        .badge {
+        .badge {{
             display: inline-block;
             padding: 4px 10px;
             border-radius: 6px;
             font-size: 12px;
             font-weight: 500;
-        }
-        .badge-danger { background: #fee2e2; color: #dc2626; }
-        .badge-warning { background: #fef3c7; color: #d97706; }
-        .badge-info { background: #dbeafe; color: #2563eb; }
+        }}
+        .badge-danger {{ background: #fee2e2; color: #dc2626; }}
+        .badge-warning {{ background: #fef3c7; color: #d97706; }}
+        .badge-info {{ background: #dbeafe; color: #2563eb; }}
         
         /* Charts */
-        .chart { height: 350px; }
+        .chart {{ height: 350px; }}
         
         /* Empty State */
-        .empty {
+        .empty {{
             text-align: center;
             padding: 40px;
             color: #9ca3af;
-        }
-        .empty svg {
+        }}
+        .empty svg {{
             width: 64px;
             height: 64px;
             margin-bottom: 10px;
             opacity: 0.3;
-        }
+        }}
     </style>
 </head>
 <body>
@@ -228,29 +229,29 @@ TEMPLATE = """<!DOCTYPE html>
         
         // 语言饼图
         const langChart = echarts.init(document.getElementById('langChart'));
-        const langData = Object.entries(data.languages).map(([name, info]) => ({
+        const langData = Object.entries(data.languages).map(([name, info]) => ({{
             value: info.code,
-            name: `${name} (${info.files})`
-        }));
+            name: `${{name}} (${{info.files}})`
+        }}));
         
-        langChart.setOption({
-            tooltip: { 
+        langChart.setOption({{
+            tooltip: {{ 
                 trigger: 'item',
-                formatter: '{b}: {c} 行 ({d}%)'
-            },
-            series: [{
+                formatter: '{{b}}: {{c}} 行 ({{d}}%)'
+            }},
+            series: [{{
                 type: 'pie',
                 radius: ['45%', '75%'],
                 avoidLabelOverlap: true,
-                itemStyle: {
+                itemStyle: {{
                     borderRadius: 8,
                     borderColor: '#fff',
                     borderWidth: 2
-                },
-                label: { show: true, fontSize: 12 },
+                }},
+                label: {{ show: true, fontSize: 12 }},
                 data: langData
-            }]
-        });
+            }}]
+        }});
         
         // 散点图
         const scatterChart = echarts.init(document.getElementById('scatterChart'));
@@ -262,32 +263,32 @@ TEMPLATE = """<!DOCTYPE html>
             f.lines
         ]);
         
-        scatterChart.setOption({
-            tooltip: {
-                formatter: function(param) {
-                    return `<b>${param.data[2]}</b><br/>` +
-                           `路径: ${param.data[3]}<br/>` +
-                           `修改次数: ${param.data[0]}<br/>` +
-                           `复杂度: ${param.data[1]}<br/>` +
-                           `行数: ${param.data[4]}`;
-                }
-            },
-            grid: { left: 60, right: 40, top: 60, bottom: 40 },
-            xAxis: { 
+        scatterChart.setOption({{
+            tooltip: {{
+                formatter: function(param) {{
+                    return `<b>${{param.data[2]}}</b><br/>` +
+                           `路径: ${{param.data[3]}}<br/>` +
+                           `修改次数: ${{param.data[0]}}<br/>` +
+                           `复杂度: ${{param.data[1]}}<br/>` +
+                           `行数: ${{param.data[4]}}`;
+                }}
+            }},
+            grid: {{ left: 60, right: 40, top: 60, bottom: 40 }},
+            xAxis: {{ 
                 name: '修改频率', 
                 nameLocation: 'middle',
                 nameGap: 25,
                 type: 'value',
-                splitLine: { lineStyle: { type: 'dashed', opacity: 0.3 } }
-            },
-            yAxis: { 
+                splitLine: {{ lineStyle: {{ type: 'dashed', opacity: 0.3 }} }}
+            }},
+            yAxis: {{ 
                 name: '复杂度',
                 nameLocation: 'middle',
                 nameGap: 40,
                 type: 'value',
-                splitLine: { lineStyle: { type: 'dashed', opacity: 0.3 } }
-            },
-            visualMap: {
+                splitLine: {{ lineStyle: {{ type: 'dashed', opacity: 0.3 }} }}
+            }},
+            visualMap: {{
                 min: 0,
                 max: Math.max(...scatterData.map(d => d[1])),
                 dimension: 1,
@@ -295,27 +296,27 @@ TEMPLATE = """<!DOCTYPE html>
                 right: 10,
                 top: 10,
                 text: ['高风险', '低风险'],
-                inRange: { color: ['#91cc75', '#fac858', '#ee6666'] }
-            },
-            series: [{
+                inRange: {{ color: ['#91cc75', '#fac858', '#ee6666'] }}
+            }},
+            series: [{{
                 type: 'scatter',
-                symbolSize: function(data) {
+                symbolSize: function(data) {{
                     return Math.max(8, Math.min(40, Math.sqrt(data[4]) / 2));
-                },
+                }},
                 data: scatterData,
-                emphasis: {
-                    itemStyle: {
+                emphasis: {{
+                    itemStyle: {{
                         shadowBlur: 10,
                         shadowColor: 'rgba(0, 0, 0, 0.5)'
-                    }
-                }
-            }]
-        });
+                    }}
+                }}
+            }}]
+        }});
         
-        window.addEventListener('resize', () => {
+        window.addEventListener('resize', () => {{
             langChart.resize();
             scatterChart.resize();
-        });
+        }});
     </script>
 </body>
 </html>"""
@@ -330,6 +331,7 @@ def generate_html_report(data, output_path="health_report.html"):
     if data['secrets'] or data['risks']:
         all_security = data['secrets'] + data['risks']
         for item in all_security[:20]:  # 最多显示20个
+            # 这里是 f-string，所以花括号保持单个，但 style 里的 CSS 还是要注意
             security_rows += f"""
                 <tr>
                     <td><span class="badge badge-danger">{item['type']}</span></td>
@@ -386,6 +388,7 @@ def generate_html_report(data, output_path="health_report.html"):
         issues_class = "danger"
 
     # 填充模板
+    # 这里的 TEMPLATE.format 会将双花括号 {{ }} 解析为单个 { }，并填充单花括号 {key}
     html = TEMPLATE.format(
         scan_time=data['summary']['scan_time'],
         timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -402,6 +405,7 @@ def generate_html_report(data, output_path="health_report.html"):
     )
 
     # 写入文件
+    # 使用绝对路径以防万一
     full_path = os.path.abspath(output_path)
     with open(full_path, 'w', encoding='utf-8') as f:
         f.write(html)
