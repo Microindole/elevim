@@ -6,6 +6,7 @@ import { initRpcHandler, registerService } from './utils/rpc-handler';
 import { parseCliArguments } from './cli/cli-handler';
 import { CliAction } from './cli/cli-action.types';
 import { getWindowState, saveWindowState } from './lib/session';
+import { readSettings } from './lib/settings';
 
 // 导入所有服务
 import { FileService } from './services/file.service';
@@ -83,6 +84,11 @@ function setupServices(mainWindow: BrowserWindow) {
 
 async function createWindow() {
   const state = getWindowState();
+
+  // 读取配置以决定启动模式
+  const settings = await readSettings();
+  const mode = settings.mode || 'code';
+
   const mainWindow = new BrowserWindow({
     x: state.x, y: state.y, width: state.width, height: state.height,
     icon: path.join(app.getAppPath(), 'resources/logo.png'),
@@ -99,7 +105,13 @@ async function createWindow() {
   if (state.isMaximized) mainWindow.maximize();
   mainWindow.on('close', () => saveWindowState(mainWindow));
   mainWindow.once('ready-to-show', () => mainWindow.show());
-  mainWindow.loadFile('index.html');
+  if (mode === 'writer') {
+    console.log('Starting in Writer Mode...');
+    mainWindow.loadFile('markdown.html');
+  } else {
+    console.log('Starting in Code Mode...');
+    mainWindow.loadFile('index.html');
+  }
 
   // 启动服务
   const { cliService } = setupServices(mainWindow);

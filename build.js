@@ -3,7 +3,7 @@ const esbuild = require('esbuild');
 
 async function build() {
     try {
-        // 构建主进程
+        // 1. 构建主进程
         await esbuild.build({
             entryPoints: ['src/main/index.ts', 'src/main/preload.ts'],
             outdir: 'dist/main',
@@ -13,7 +13,7 @@ async function build() {
         });
         console.log('✅ Main process built successfully!');
 
-        // 构建渲染进程的 JS 和 CSS
+        // 2. 构建 Elevim (Code) 渲染进程
         await esbuild.build({
             entryPoints: ['src/renderer/app/index.tsx'],
             outfile: 'dist/renderer/index.js',
@@ -21,7 +21,17 @@ async function build() {
             platform: 'browser',
             loader: { '.css': 'css' },
         });
-        console.log('✅ Renderer JS and CSS built successfully!');
+        console.log('✅ Elevim (Code) Renderer built successfully!');
+
+        // 3. 构建 Writer (Markdown) 渲染进程
+        await esbuild.build({
+            entryPoints: ['src/renderer-markdown/index.tsx'],
+            outfile: 'dist/renderer-markdown/index.js',
+            bundle: true,
+            platform: 'browser',
+            loader: { '.css': 'css' },
+        });
+        console.log('✅ Writer (Markdown) Renderer built successfully!');
 
     } catch (e) {
         console.error('Build failed:', e);
@@ -30,4 +40,3 @@ async function build() {
 }
 
 build();
-

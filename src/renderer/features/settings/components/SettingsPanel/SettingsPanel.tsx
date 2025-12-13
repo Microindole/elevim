@@ -338,6 +338,27 @@ export default function SettingsPanel() {
                         </div>
                     </div>
                 </div>
+
+                <div className="settings-section">
+                    <h2>启动模式 (Startup Mode)</h2>
+                    <div className="setting-item">
+                        <label>编辑器类型</label>
+                        <select
+                            value={settings.mode || 'code'}
+                            onChange={(e) => {
+                                // 调用设置服务，这会触发我们在 main 进程写的自动重启逻辑
+                                window.electronAPI.settings.setSetting('mode', e.target.value);
+                            }}
+                            style={{padding: '5px', marginLeft: '10px'}}
+                        >
+                            <option value="code">代码编辑器 (IDE Mode)</option>
+                            <option value="writer">写作模式 (Writer Mode)</option>
+                        </select>
+                        <p style={{fontSize: '0.8em', color: '#888', marginTop: '5px'}}>
+                            ⚠️ 切换模式后，应用将自动重启以加载新的内核。
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

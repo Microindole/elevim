@@ -12,7 +12,24 @@ export class SettingsService implements ISettingsService {
     }
 
     async setSetting(key: string, value: any): Promise<void> {
+        const oldSettings = await readSettings();
+
+        // 写入新设置
         await writeSettings({ [key]: value });
+
+        // 检测是否修改了模式
+        if (key === 'mode' && value !== oldSettings.mode) {
+            const { response } = await dialog.showMessageBox(this.mainWindow, {
+                type: 'info',
+                title: '切换模式',
+                message: `正在切换到 ${value === 'writer' ? '写作模式' : '代码模式'}，应用将自动重启。`,
+                buttons: ['确定']
+            });
+
+            // 重启应用
+            app.relaunch();
+            app.exit(0);
+        }
     }
 
     async importTheme(): Promise<{ success: boolean, data?: { name: string, colors: any }, message?: string }> {

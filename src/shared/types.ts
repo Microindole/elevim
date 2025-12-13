@@ -56,6 +56,7 @@ export interface ZenModeConfig {
 }
 
 export interface AppSettings {
+    mode: 'code' | 'writer'; // 编辑器模式：代码模式 或 写作模式
     fontSize: number;
     keymap: Keymap;
     theme: {

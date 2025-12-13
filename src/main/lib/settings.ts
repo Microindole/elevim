@@ -12,6 +12,7 @@ const settingsPath = path.join(app.getPath('userData'), 'settings.json');
 const defaultKeymap: Keymap = generateDefaultKeymap() as Keymap;
 
 const defaultSettings: AppSettings = {
+    mode: 'code',
     fontSize: 15,
     keymap: defaultKeymap,
     theme: {
