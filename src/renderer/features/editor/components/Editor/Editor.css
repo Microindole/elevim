@@ -1,94 +1,29 @@
 /* src/renderer/features/editor/components/Editor/Editor.css */
-#editor {
-    height: 100%;
+
+.editor-wrapper {
+    background-color: transparent;
     width: 100%;
-    font-size: 14px;
-    background-color: var(--bg-editor);
-}
-
-.cm-editor {
     height: 100%;
 }
-.cm-cursor {
-    /*border-left: none; !* 移除左边框 *!*/
-    background-color: var(--accent-color); /* 使用背景色 */
-    width: 0.1em; /* 设置宽度为字符宽度的大约 60% */
-    opacity: 0.5; /* 半透明，否则会挡住文字 */
-    animation: cm-blink-smooth 1s ease-in-out infinite;
+
+.monaco-editor .overflow-guard {
+    border-radius: 0;
 }
 
-/* 失去焦点时隐藏 */
-.cm-editor:not(.cm-focused) .cm-cursor {
-    opacity: 0 !important;
-    animation: none;
+/* --- Zen Mode Focus 效果 --- */
+
+/* 默认状态下降低所有代码的透明度 */
+.monaco-zen-focus-mode .monaco-editor .view-lines {
+    opacity: 0.25;
+    filter: blur(0.5px);
+    transition: opacity 0.3s ease, filter 0.3s ease;
 }
 
-@keyframes cm-blink {
-    50% { opacity: 0; }
-}
-.cm-line {
-    font-variant-ligatures: none;
-}
-.cm-scroller::-webkit-scrollbar {
-    width: 12px;
-    height: 12px;
-}
-.cm-scroller::-webkit-scrollbar-track {
-    background: var(--bg-editor);
-}
-.cm-scroller::-webkit-scrollbar-thumb {
-    background-color: #424242;
-    border-radius: 6px;
-    border: 3px solid var(--bg-editor);
-}
-.cm-scroller::-webkit-scrollbar-thumb:hover {
-    background-color: #4f4f4f;
-}
-.cm-searchMatch {
-    background-color: rgba(255, 255, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 0, 0.5);
-}
-.cm-searchMatch-selected {
-    background-color: rgba(255, 255, 0, 0.4);
-}
-/* Wiki Link 样式 */
-.cm-wiki-link {
-    color: var(--accent-color); /* 使用主题色 (蓝色) */
-    text-decoration: underline;
-    text-underline-offset: 3px; /* 下划线稍微远离文字 */
-    text-decoration-thickness: 1px;
-    text-decoration-color: rgba(255, 255, 255, 0.3); /* 下划线淡一点 */
-    cursor: pointer;
-    border-radius: 3px;
-    transition: all 0.2s;
+/* 鼠标悬停在编辑器上时，暂时恢复清晰，方便查看上下文 */
+.monaco-zen-focus-mode .monaco-editor:hover .view-lines {
+    opacity: 1;
+    filter: none;
 }
 
-.cm-wiki-link:hover {
-    background-color: rgba(255, 255, 255, 0.1); /* 悬停时加背景 */
-    text-decoration-color: var(--accent-color); /* 下划线变亮 */
-}
-
-.cm-wiki-link-widget {
-    color: var(--accent-color);
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-    text-decoration-thickness: 1px;
-    text-decoration-color: rgba(255, 255, 255, 0.3);
-    padding: 0 2px;
-    border-radius: 4px;
-    background-color: rgba(33, 150, 243, 0.1); /* 淡淡的蓝色背景 */
-    transition: all 0.2s ease;
-    font-weight: 500;
-}
-
-.cm-wiki-link-widget:hover {
-    background-color: rgba(33, 150, 243, 0.2);
-    text-decoration-color: var(--accent-color);
-    box-shadow: 0 0 0 1px var(--accent-color); /* 悬停时加个边框 */
-}
-
-/* Wiki Link Source (编辑状态：展开后的源码 [[...]]) */
-.cm-wiki-link-source {
-    color: var(--text-color-subtle); /* 让括号稍微暗淡一点 */
-}
+/* 注意：Monaco 很难纯 CSS 做到“只高亮当前行”，
+   上述方案是业界常用的折中方案：默认变暗，悬停变亮。*/

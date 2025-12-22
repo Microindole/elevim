@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la \"d:\\\\works\\\\elevim\\\\src\\\\markdown_renderer\"\" 2>/dev/null || echo \"Directory info not available \")",
+      "Bash(npm install:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm start)",
+      "Bash(find:*)",
+      "Bash(timeout 5 electron:*)",
+      "Bash(timeout 5 npx:*)",
+      "Bash(npm ls:*)",
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}

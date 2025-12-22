@@ -1,10 +1,10 @@
 # Elevim Editor
 
-一个使用 Electron、React (TypeScript) 和 CodeMirror 6 构建的轻量级文本编辑器。
+一个使用 Electron、React (TypeScript) 和 monaco 构建的轻量级文本编辑器。
 
 ## ✨ 功能特性
 
-* **现代编辑器核心**：基于 CodeMirror 6，提供流畅的编辑体验和动态语法高亮。
+* **现代编辑器核心**：基于 monaco，提供流畅的编辑体验和动态语法高亮。
 * **多标签页**：支持同时打开和编辑多个文件。
 * **文件树**：清晰展示项目目录结构，并集成 Git 状态高亮。
 * **集成终端**：内置 `xterm.js` 和 `node-pty` 驱动的真实终端。
