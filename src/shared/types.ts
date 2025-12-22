@@ -220,6 +220,11 @@ export interface IElectronAPI {
     github: IGitHubAPI;
     session: ISessionAPI;
     lsp: ILspAPI;
+    versions: {
+        node: string;
+        chrome: string;
+        electron: string;
+    };
 }
 
 export interface IRpcAPI {

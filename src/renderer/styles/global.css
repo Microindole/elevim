@@ -36,6 +36,40 @@ html, body, #root {
     background-color: var(--bg-editor); /* 基础背景色 */
     color: var(--text-color);
     user-select: none;
+
+    /* --- 核心布局颜色 (基于 One Dark 风格兜底) --- */
+    --editor-background: #282c34;
+    --editor-foreground: #abb2bf;
+
+    --sidebar-background: #21252b;
+    --sidebar-foreground: #9da5b4;
+
+    --activity-bar-background: #282c34;
+    --activity-bar-foreground: #9da5b4;
+    --activity-bar-active: #d19a66;
+
+    --status-bar-background: #21252b;
+    --status-bar-foreground: #9da5b4;
+
+    /* --- 通用 UI 元素 --- */
+    --border-color: #181a1f;       /* 分割线颜色 */
+    --focus-border: #61afef;       /* 聚焦时的边框色 (蓝色) */
+
+    --input-background: #3b4048;   /* 输入框背景 */
+    --input-foreground: #abb2bf;   /* 输入框文字 */
+    --input-border: #181a1f;       /* 输入框边框 */
+
+    --list-hover-background: rgba(255, 255, 255, 0.05);
+    --list-active-background: rgba(255, 255, 255, 0.1);
+
+    --text-primary: #abb2bf;
+    --text-secondary: #5c6370;     /* 灰色说明文字 */
+
+    /* --- 滚动条 --- */
+    --scrollbar-width: 10px;
+    --scrollbar-bg: transparent;
+    --scrollbar-thumb: rgba(255, 255, 255, 0.1);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
 }
 
 /* 自定义滚动条样式 */
