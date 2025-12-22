@@ -1,10 +1,10 @@
-// src/renderer/features/editor/components/Editor/Editor.tsx
 import React, { useEffect, useRef, useState } from 'react';
 import MonacoEditor, { OnMount } from "@monaco-editor/react";
 import * as monaco from 'monaco-editor';
 import { URI } from 'vscode-uri';
 
 import Breadcrumbs from '../Breadcrumbs/Breadcrumbs';
+// 引入唯一的工具库
 import { getMonacoLanguage, defineMonacoTheme, mapLspSeverity } from '../../lib/monaco-utils';
 import { EditorColors, ZenModeConfig } from "../../../../../shared/types";
 import './Editor.css';
@@ -38,7 +38,7 @@ export default function Editor(props: EditorProps) {
 
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const monacoRef = useRef<typeof monaco | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null); // 新增：用于控制 Zen 模式 CSS 类
+    const containerRef = useRef<HTMLDivElement>(null);
     const [version, setVersion] = useState(0);
 
     const languageId = getMonacoLanguage(filename);
@@ -113,7 +113,7 @@ export default function Editor(props: EditorProps) {
         });
     };
 
-    // LSP 诊断
+    // LSP 诊断监听
     useEffect(() => {
         const unsubscribe = window.electronAPI.lsp.onNotification((lang, method, params) => {
             if (lang !== languageId) return;
@@ -137,6 +137,7 @@ export default function Editor(props: EditorProps) {
         return () => { if (unsubscribe) unsubscribe(); };
     }, [languageId, fileUri]);
 
+    // 处理文档变更
     const handleEditorChange = (value: string | undefined) => {
         const newValue = value || '';
         onDocChange(newValue, fileId);
@@ -159,27 +160,25 @@ export default function Editor(props: EditorProps) {
         editorRef.current?.updateOptions({ fontSize: initialFontSize });
     }, [initialFontSize]);
 
-    // 主题更新
+    // 主题更新 (关键：现在非常干净，只依赖 themeColors)
     useEffect(() => {
         if (themeColors) {
-            const themeName = `elevim-theme-${fileId}`;
+            const themeName = 'elevim-dynamic-theme';
             defineMonacoTheme(themeName, themeColors);
             monacoRef.current?.editor.setTheme(themeName);
         }
-    }, [themeColors, fileId]);
+    }, [themeColors]);
 
-    // ✅ Zen Mode 修复与增强
+    // Zen Mode 配置
     useEffect(() => {
         if (editorRef.current && zenModeConfig) {
             editorRef.current.updateOptions({
                 lineNumbers: zenModeConfig.hideLineNumbers ? 'off' : 'on',
                 minimap: { enabled: !zenModeConfig.hideLineNumbers },
                 folding: !zenModeConfig.hideLineNumbers,
-                // Zen Mode 增加内边距
                 padding: zenModeConfig.centerLayout ? { top: 40, bottom: 40 } : { top: 12, bottom: 12 }
             });
 
-            // 切换 CSS 类以实现 Focus Mode (聚光灯效果)
             if (containerRef.current) {
                 if (zenModeConfig.focusMode) {
                     containerRef.current.classList.add('monaco-zen-focus-mode');
@@ -190,6 +189,7 @@ export default function Editor(props: EditorProps) {
         }
     }, [zenModeConfig]);
 
+    // 跳转
     useEffect(() => {
         if (editorRef.current && jumpToLine && jumpToLine.path === filePath) {
             editorRef.current.revealLineInCenter(jumpToLine.line);
@@ -200,12 +200,11 @@ export default function Editor(props: EditorProps) {
     }, [jumpToLine, filePath, onJumpComplete]);
 
     return (
-        // ✅ 绑定 ref 到这个 wrapper div
         <div ref={containerRef} className="editor-wrapper" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
             <Breadcrumbs
                 filePath={filePath}
                 projectPath={projectPath}
-                symbols={[]}
+                symbols={[]} // 这里暂时传空，等你以后接入 Monaco 的 SymbolProvider 再加回来
                 onItemClick={() => {}}
                 onFileSelect={props.onOpenFile}
             />
@@ -226,18 +225,14 @@ export default function Editor(props: EditorProps) {
                         fontSize: initialFontSize,
                         lineHeight: 1.6,
 
-                        // ✅ 修复：开启原生缩进参考线
+                        // ✅ 关键配置：只开启缩进线，关闭花里胡哨的括号线
                         guides: {
                             indentation: true,
-                            bracketPairs: true
+                            bracketPairs: false
                         },
 
-                        // ✅ 修复：开启行高亮 (gutter 表示只高亮行号栏，all 表示高亮整行)
                         renderLineHighlight: 'all',
-
-                        // ✅ 修复：开启 Ctrl + 滚轮缩放
                         mouseWheelZoom: true,
-
                         minimap: { enabled: true },
                         scrollBeyondLastLine: false,
                         automaticLayout: true,

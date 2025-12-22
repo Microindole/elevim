@@ -22,7 +22,7 @@
     "url": "https://github.com/Microindole/elevim/issues"
   },
   "homepage": "https://github.com/Microindole/elevim#readme",
-  "description": "一个使用 Electron 和 CodeMirror 构建的轻量级文本编辑器",
+  "description": "一个使用 Electron 和 Monaco 构建的轻量级文本编辑器",
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
     "@types/node": "^24.10.1",
