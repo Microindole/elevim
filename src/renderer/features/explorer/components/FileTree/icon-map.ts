@@ -4,8 +4,7 @@ import { generateManifest } from 'material-icon-theme';
 // 生成图标映射配置
 const manifest = generateManifest({});
 
-// 手动补充可能缺失的常用映射
-// material-icon-theme 有时依赖 Language ID，导致这些基础后缀在 fileExtensions 中缺失
+// 1. 手动补充可能缺失的常用映射
 const extraExtensions: Record<string, string> = {
     js: 'javascript',
     mjs: 'javascript',
@@ -19,6 +18,58 @@ const extraExtensions: Record<string, string> = {
     html: 'html',
     json: 'json',
     md: 'markdown'
+};
+
+// 2. 高优先级自定义模式映射
+// 这里专门处理那些 manifest 可能映射不准，或者需要修正图标名的情况 (如 .clone)
+const customPatterns: Record<string, string> = {
+    // 架构模式
+    'service.ts': 'angular-service.clone',
+    'service.js': 'angular-service.clone',
+    'service.tsx': 'angular-service.clone',
+    'service.jsx': 'angular-service.clone',
+
+    'component.ts': 'angular-component',
+    'component.js': 'angular-component',
+    'component.tsx': 'angular-component', // React 组件也常用这个图标
+    'component.jsx': 'angular-component',
+
+    'guard.ts': 'angular-guard',
+    'guard.js': 'angular-guard',
+    'pipe.ts': 'angular-pipe',
+    'directive.ts': 'angular-directive',
+    'resolver.ts': 'angular-resolver',
+
+    // 测试文件
+    'test.ts': 'test-ts',
+    'test.tsx': 'test-ts',
+    'spec.ts': 'test-ts',
+    'spec.tsx': 'test-ts',
+    'test.js': 'test-js',
+    'spec.js': 'test-js',
+
+    // 配置文件
+    'config.ts': 'settings',
+    'config.js': 'settings',
+    'config.json': 'settings',
+
+    // 其他常用语义
+    'api.ts': 'http',
+    'interface.ts': 'typescript-def',
+    'd.ts': 'typescript-def', // 确保 .d.ts 优先于 .ts
+};
+
+// 3. 关键字模糊匹配
+// 当所有后缀都匹配失败时，检查文件名中是否包含这些关键字
+const keywordMap: Record<string, string> = {
+    'config': 'settings',
+    'settings': 'settings',
+    'util': 'javascript-map',
+    'utils': 'javascript-map',
+    'service': 'angular-service.clone',
+    'component': 'angular-component',
+    'test': 'test-ts',
+    'docker': 'docker',
 };
 
 /**
@@ -43,7 +94,7 @@ export const getIcon = (name: string, isDirectory?: boolean, isOpen?: boolean) =
             iconName = manifest.folder || 'folder';
         }
     } else {
-        // --- 文件处理逻辑 (增强版) ---
+        // --- 文件处理逻辑 ---
         const fileExtensions = manifest.fileExtensions || {};
         const fileNames = manifest.fileNames || {};
 
@@ -51,27 +102,51 @@ export const getIcon = (name: string, isDirectory?: boolean, isOpen?: boolean) =
         if (fileNames[lowerName]) {
             iconName = fileNames[lowerName];
         } else {
-            // 2. 检查扩展名 (支持多级扩展名，如 .test.js)
+            // 2. 检查扩展名 (支持多级扩展名，从长到短匹配)
             const parts = lowerName.split('.');
 
             // 从最长的后缀开始尝试匹配
-            // 例如 "app.test.tsx" -> 先试 "test.tsx", 再试 "tsx"
+            // 例如 "app.service.ts" -> 先试 "service.ts", 再试 "ts"
             for (let i = 1; i < parts.length; i++) {
                 const ext = parts.slice(i).join('.');
 
-                // A. 先查 Manifest
-                if (fileExtensions[ext]) {
-                    iconName = fileExtensions[ext];
+                // A. [新增] 最优先：查自定义模式 (修复 service, test 等语义)
+                if (customPatterns[ext]) {
+                    iconName = customPatterns[ext];
                     break;
                 }
-                // B. 再查手动补充的映射
+
+                // B. 查 Manifest (官方映射)
+                if (fileExtensions[ext]) {
+                    iconName = fileExtensions[ext];
+
+                    // [鲁棒性修复] 拦截官方可能返回的错误图标名 (如 angular-service)
+                    // 如果 manifest 返回了 angular-service，我们强制纠正为 .clone
+                    if (iconName === 'angular-service') {
+                        iconName = 'angular-service.clone';
+                    }
+                    break;
+                }
+
+                // C. 查手动补充的基础映射
                 if (extraExtensions[ext]) {
                     iconName = extraExtensions[ext];
                     break;
                 }
             }
 
-            // 3. 如果都没找到，使用默认文件图标
+            // 3. 如果后缀匹配都失败了，尝试关键字匹配
+            // 处理例如 my_config_file.txt 这种没有标准后缀但有语义的情况
+            if (!iconName) {
+                for (const [key, icon] of Object.entries(keywordMap)) {
+                    if (lowerName.includes(key) || lowerName.includes(`.${key}.`)) {
+                        iconName = icon;
+                        break;
+                    }
+                }
+            }
+
+            // 4. 如果还没找到，使用默认文件图标
             if (!iconName) {
                 iconName = manifest.file || 'file';
             }

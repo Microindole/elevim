@@ -1,19 +1,12 @@
-// src/renderer/features/settings/components/SettingsPanel/SettingsPanel.tsx
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import './SettingsPanel.css';
-import {AppSettings, CommandId, EditorColors} from '../../../../../shared/types';
-import KeybindingInput from './KeybindingInput';
-import {PRESET_THEMES} from "../../../../../shared/themes";
-import {COMMAND_MANIFEST} from "../../../../../shared/command-manifest";
+import { AppSettings } from '../../../../../shared/types';
+import { SETTINGS_SECTIONS, SettingSectionConfig } from './SettingsRegistry';
 
 export default function SettingsPanel() {
     const [settings, setSettings] = useState<AppSettings | null>(null);
+    const [activeTabId, setActiveTabId] = useState<string>('general');
     const [searchTerm, setSearchTerm] = useState('');
-
-    const allThemes = {
-        ...PRESET_THEMES,
-        ...(settings?.customThemes || {})
-    };
 
     useEffect(() => {
         const fetchSettings = async () => {
@@ -23,320 +16,68 @@ export default function SettingsPanel() {
         fetchSettings();
     }, []);
 
+    // 统一的保存处理逻辑
     const handleSave = (key: keyof AppSettings, value: any) => {
-        const newSettings = {...settings!, [key]: value};
+        if (!settings) return;
+        const newSettings = { ...settings, [key]: value };
         setSettings(newSettings);
         window.electronAPI.settings.setSetting(key, value);
         window.dispatchEvent(new CustomEvent('settings-changed', {
-            detail: {key, value}
+            detail: { key, value }
         }));
     };
 
-    const handleColorChange = (colorKey: keyof EditorColors, newValue: string) => {
-        if (!settings) return;
-        const newColors = {...settings.theme.colors, [colorKey]: newValue};
-        const newTheme = {...settings.theme, colors: newColors};
-        handleSave('theme', newTheme);
-    };
+    if (!settings) return <div className="settings-loading">Loading configuration...</div>;
 
-    const handleImportClick = async () => {
-        const result = await window.electronAPI.settings.importTheme();
+    // 根据 ID 找到当前活动的组件
+    const activeSection = SETTINGS_SECTIONS.find(s => s.id === activeTabId) || SETTINGS_SECTIONS[0];
+    const ActiveComponent = activeSection.Component;
 
-        if (result.success && result.data && settings) {
-            const {name, colors} = result.data;
-            const newCustomThemes = {
-                ...(settings.customThemes || {}),
-                [name]: colors
-            };
-            const newActiveTheme = {
-                ...settings.theme,
-                colors: colors
-            };
-            const newSettings = {
-                ...settings,
-                customThemes: newCustomThemes,
-                theme: newActiveTheme
-            };
-
-            setSettings(newSettings);
-            window.electronAPI.settings.setSetting('customThemes', newCustomThemes);
-            window.electronAPI.settings.setSetting('theme', newActiveTheme);
-
-            window.dispatchEvent(new CustomEvent('settings-changed', {
-                detail: {key: 'theme', value: newActiveTheme}
-            }));
-
-            alert(`Theme "${name}" imported successfully!`);
-        } else if (result.message) {
-            alert(`Import failed: ${result.message}`);
-        }
-    };
-
-    const handlePresetChange = (themeName: string) => {
-        if (!settings || !allThemes[themeName]) return;
-        const newTheme = {...settings.theme, colors: allThemes[themeName]};
-        handleSave('theme', newTheme);
-    };
-
-    const handleKeymapChange = (command: CommandId, newShortcut: string) => {
-        const newKeymap = {...settings!.keymap, [command]: newShortcut};
-        handleSave('keymap', newKeymap);
-    };
-
-    const handleOpenSettingsFolder = () => {
-        window.electronAPI.settings.openSettingsFolder();
-    };
-
-    if (!settings) return <div className="settings-loading">Loading Settings...</div>;
-
-    const filteredManifest = COMMAND_MANIFEST.filter(meta =>
-        meta.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        meta.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // 简单的搜索过滤：如果 searchTerm 存在，高亮匹配的 Tab (可选增强)
+    // 这里我们简单实现：如果搜索词匹配了某个 Tab 的 Label，就显示它
+    // 或者你可以把 searchTerm 传递给 ActiveComponent 让它在内部高亮
 
     return (
-        <div className="settings-page">
-            <div className="settings-container">
+        <div className="settings-panel">
+            {/* 1. Sidebar - 动态生成 */}
+            <div className="settings-sidebar">
                 <div className="settings-header">
-                    <div style={{display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px'}}>
-                        <h1 style={{margin: 0}}>User Settings</h1>
-
-                        <button
-                            className="settings-header-btn"
-                            onClick={handleOpenSettingsFolder}
-                            title="Open settings.json folder"
+                    <h2>Settings</h2>
+                </div>
+                <div className="settings-search">
+                    <input
+                        type="text"
+                        placeholder="Search settings..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <nav className="settings-nav">
+                    {SETTINGS_SECTIONS.map((section: SettingSectionConfig) => (
+                        <div
+                            key={section.id}
+                            className={`settings-nav-item ${activeTabId === section.id ? 'active' : ''}`}
+                            onClick={() => setActiveTabId(section.id)}
                         >
-                            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"
-                                 style={{marginRight: '6px'}}>
-                                <path
-                                    d="M1.5 2.5A1.5 1.5 0 0 1 3 1h4.5l1.5 1.5h5.5A1.5 1.5 0 0 1 16 4v9.5A1.5 1.5 0 0 1 14.5 15h-13A1.5 1.5 0 0 1 0 13.5v-11zM3 2a.5.5 0 0 0-.5.5v.5h11v-.5a.5.5 0 0 0-.5-.5h-5.12L6.38 1.38A.5.5 0 0 0 6 1.5H3zm-1.5 2v9.5a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5V4H1.5z"/>
-                            </svg>
-                            Open Folder
-                        </button>
-                    </div>
-                    <div className="settings-search-wrapper">
-                        <input
-                            type="text"
-                            placeholder="Search settings..."
-                            className="settings-search-bar"
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                        />
-                    </div>
+                            <span className={`codicon codicon-${section.icon}`}></span>
+                            {section.label}
+                        </div>
+                    ))}
+                </nav>
+            </div>
+
+            {/* 2. Content - 动态渲染 */}
+            <div className="settings-content">
+                <div className="settings-content-header">
+                    <h2>{activeSection.label}</h2>
                 </div>
-
-                <div className="settings-section">
-                    <h2>Editor Theme</h2>
-
-                    <div className="setting-row">
-                        <div className="setting-info">
-                            <label>Theme Preset</label>
-                            <span className="setting-desc">Select from presets or imported themes.</span>
-                        </div>
-                        <div className="setting-control" style={{display: 'flex', gap: '10px'}}>
-                            <select
-                                className="settings-select"
-                                onChange={(e) => handlePresetChange(e.target.value)}
-                                value={Object.keys(allThemes).find(key =>
-                                    JSON.stringify(allThemes[key]) === JSON.stringify(settings?.theme.colors)
-                                ) || ""}
-                            >
-                                <option value="" disabled>Custom / Select...</option>
-
-                                <optgroup label="Presets">
-                                    {Object.keys(PRESET_THEMES).map(name => (
-                                        <option key={name} value={name}>{name}</option>
-                                    ))}
-                                </optgroup>
-
-                                {settings?.customThemes && Object.keys(settings.customThemes).length > 0 && (
-                                    <optgroup label="Imported">
-                                        {Object.keys(settings.customThemes).map(name => (
-                                            <option key={name} value={name}>{name}</option>
-                                        ))}
-                                    </optgroup>
-                                )}
-                            </select>
-
-                            <button
-                                className="git-action-btn secondary"
-                                onClick={handleImportClick}
-                                title="Import JSON Theme"
-                                style={{height: '35px', padding: '0 15px'}}
-                            >
-                                Import...
-                            </button>
-                        </div>
-                    </div>
-
-                    {settings && (
-                        <div className="colors-grid"
-                             style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '15px'}}>
-                            {Object.entries(settings.theme.colors).map(([key, value]) => (
-                                <div key={key} className="setting-row"
-                                     style={{borderBottom: '1px solid rgba(255,255,255,0.05)', padding: '5px 0'}}>
-                                    <div className="setting-info">
-                                        <label style={{fontSize: '12px'}}>{key}</label>
-                                    </div>
-                                    <div className="setting-control"
-                                         style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
-                                        <input
-                                            type="color"
-                                            value={value as string}
-                                            onChange={(e) => handleColorChange(key as keyof EditorColors, e.target.value)}
-                                            style={{
-                                                background: 'none',
-                                                border: 'none',
-                                                width: '30px',
-                                                height: '30px',
-                                                cursor: 'pointer'
-                                            }}
-                                        />
-                                        <span style={{
-                                            fontSize: '12px',
-                                            fontFamily: 'monospace',
-                                            color: '#888'
-                                        }}>{value as string}</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                <div className="settings-section">
-                    <h2>Editor</h2>
-                    <div className="setting-row">
-                        <div className="setting-info">
-                            <label>Font Size</label>
-                            <span className="setting-desc">Controls the font size in pixels.</span>
-                        </div>
-                        <div className="setting-control">
-                            <input
-                                type="number"
-                                className="settings-number-input"
-                                value={settings.fontSize}
-                                onChange={(e) => handleSave('fontSize', parseInt(e.target.value, 10))}
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="settings-section">
-                    <h2>Keyboard Shortcuts</h2>
-                    <div className="shortcuts-list">
-                        {filteredManifest.map((meta) => (
-                            <div className="setting-row shortcut-row" key={meta.id}>
-                                <div className="setting-info">
-                                    <label>{meta.label}</label>
-                                    <span className="setting-code">{meta.id}</span>
-                                </div>
-                                <div className="setting-control">
-                                    <KeybindingInput
-                                        value={settings.keymap[meta.id] || ''}
-                                        onChange={(newShortcut) => handleKeymapChange(meta.id, newShortcut)}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                        {filteredManifest.length === 0 && (
-                            <div className="settings-empty">No matching settings found</div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="settings-section">
-                    <h2>Zen Mode</h2>
-
-                    <div className="setting-row">
-                        <div className="setting-info">
-                            <label>Full Screen</label>
-                            <span
-                                className="setting-desc">Automatically enter full screen when Zen Mode is activated.</span>
-                        </div>
-                        <div className="setting-control">
-                            <input
-                                type="checkbox"
-                                checked={settings.zenMode?.fullScreen ?? true}
-                                onChange={(e) => handleSave('zenMode', {
-                                    ...settings?.zenMode,
-                                    fullScreen: e.target.checked
-                                })}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="setting-row">
-                        <div className="setting-info">
-                            <label>Center Layout</label>
-                            <span className="setting-desc">Center the editor content with a fixed width.</span>
-                        </div>
-                        <div className="setting-control">
-                            <input
-                                type="checkbox"
-                                checked={settings.zenMode?.centerLayout ?? true}
-                                onChange={(e) => handleSave('zenMode', {
-                                    ...settings?.zenMode,
-                                    centerLayout: e.target.checked
-                                })}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="setting-row">
-                        <div className="setting-info">
-                            <label>Hide Line Numbers</label>
-                            <span className="setting-desc">Hide line numbers gutter in Zen Mode.</span>
-                        </div>
-                        <div className="setting-control">
-                            <input
-                                type="checkbox"
-                                checked={settings.zenMode?.hideLineNumbers ?? false}
-                                onChange={(e) => handleSave('zenMode', {
-                                    ...settings?.zenMode,
-                                    hideLineNumbers: e.target.checked
-                                })}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="setting-row">
-                        <div className="setting-info">
-                            <label>Typewriter Scrolling</label>
-                            <span className="setting-desc">
-                                    Keep the cursor vertically centered in the editor (Zen Mode only).
-                                </span>
-                        </div>
-                        <div className="setting-control">
-                            <input
-                                type="checkbox"
-                                checked={settings.zenMode?.typewriterScroll ?? true}
-                                onChange={(e) => handleSave('zenMode', {
-                                    ...settings?.zenMode,
-                                    typewriterScroll: e.target.checked
-                                })}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="setting-row">
-                        <div className="setting-info">
-                            <label>Focus Mode</label>
-                            <span className="setting-desc">
-                                Dim all lines except the current one to help you focus.
-                            </span>
-                        </div>
-                        <div className="setting-control">
-                            <input
-                                type="checkbox"
-                                checked={settings.zenMode?.focusMode ?? false}
-                                onChange={(e) => handleSave('zenMode', {
-                                    ...settings?.zenMode,
-                                    focusMode: e.target.checked
-                                })}
-                            />
-                        </div>
-                    </div>
+                <div className="settings-scroll-area">
+                    {/* 工厂模式的核心：动态组件渲染 */}
+                    <ActiveComponent
+                        settings={settings}
+                        onSave={handleSave}
+                        searchTerm={searchTerm}
+                    />
                 </div>
             </div>
         </div>

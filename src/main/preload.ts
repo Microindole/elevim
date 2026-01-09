@@ -125,5 +125,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         onOpenFolderFromCli: (cb: any) => on('cli', 'open-folder', cb),
         onOpenFileFromCli: (cb: any) => on('cli', 'open-file', cb),
         onOpenDiffFromCli: (cb: any) => on('cli', 'open-diff', cb),
-    }
+    },
+    versions: {
+        node: process.versions.node,
+        chrome: process.versions.chrome,
+        electron: process.versions.electron,
+    },
 });
