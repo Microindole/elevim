@@ -1,12 +1,12 @@
 # 架构概览
 
-Elevim 采用经典的 **Electron** 多进程架构，结合 **React** 构建 UI，并使用 **CodeMirror 6** 作为编辑器核心。
+Elevim 采用经典的 **Electron** 多进程架构，结合 **React** 构建 UI，并使用 **Monaco** 作为编辑器核心。
 
 ## 核心技术栈
 
 * **Runtime**: Electron 30+
 * **Frontend**: React 19, TypeScript
-* **Editor Core**: CodeMirror 6
+* **Editor Core**: Monaco
 * **Terminal**: xterm.js + node-pty
 * **Build System**: esbuild + electron-builder
 

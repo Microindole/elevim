@@ -4,7 +4,7 @@ pageType: home
 hero:
   name: Elevim
   text: 极速、现代、轻量
-  tagline: 基于 Electron 与 CodeMirror 6 构建的文本编辑器
+  tagline: 基于 Electron 与 Monaco 构建的文本编辑器
   actions:
     - theme: brand
       text: 快速开始
@@ -18,7 +18,7 @@ hero:
 
 features:
   - title: ⚡️ 极致性能
-    details: 基于 CodeMirror 6 核心，启动速度极快，内存占用低，提供流畅的编码体验。
+    details: 基于 Monaco 核心，启动速度极快，内存占用低，提供流畅的编码体验。
     icon: 🚀
   - title: 🧠 个人知识库
     details: 支持 Wiki Link 双向链接、悬停预览与反向引用面板，助你构建知识网络。

@@ -10,7 +10,7 @@ function getHelpMessage(): string {
     return `
 Elevim 编辑器 (v${app.getVersion()})
 
-一个使用 Electron 和 CodeMirror 构建的轻量级文本编辑器。
+一个使用 Electron 和 Monaco 构建的轻量级文本编辑器。
 
 用法:
   elevim [命令 | 路径]

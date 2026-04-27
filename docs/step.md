@@ -1,5 +1,5 @@
 1.  **语言服务器协议 (LSP) 集成 (最关键的一步)**:
-    * 目前的自动补全主要依赖 CodeMirror 内置的简单的基于单词的补全。
+    * 目前的自动补全主要依赖 Monaco 内置的简单的基于单词的补全。
     * **建议**: 要实现真正的 "IntelliSense"（跳转定义、智能提示、错误诊断），你需要通过 IPC 连接到外部的 Language Server (如 `typescript-language-server`, `pyright`)。这是从“编辑器”迈向“IDE”的关键。
 
 2.  **扩展系统 (插件化)**:
@@ -27,7 +27,7 @@ VS Code 的 Git 功能虽然强大，但往往需要安装 GitLens 等插件才�
 * **实现思路：**
     * 利用你已有的 `git.handlers.ts` 中的 `git show <commit>:<path>` 能力。
     * 在 `Editor.tsx` 上方加个 Slider。
-    * 拖动时，调用 IPC 获取旧内容，设置 CodeMirror 为 `EditorView.editable.of(false)`。
+    * 拖动时，调用 IPC 获取旧内容，设置 Monaco 为 `EditorView.editable.of(false)`。
     * **痛点解决：** 快速回溯代码，“我昨天这个时候写了啥？”。
 
 #### 2. 智能提交伴侣 (Smart Commit)
@@ -51,7 +51,7 @@ Git 是宏观的版本控制。但在 Commit 之前，用户可能改乱了想�
 
 ---
 
-### 方向二：沉浸式 / 专注写作 (利用 CodeMirror 的灵活性)
+### 方向二：沉浸式 / 专注写作 (利用 Monaco 的灵活性)
 
 VS Code 界面元素太多。你可以做一个**“禅模式”** (Zen Mode) 的代码编辑器，甚至兼顾 Markdown 笔记。
 
@@ -59,7 +59,7 @@ VS Code 界面元素太多。你可以做一个**“禅模式”** (Zen Mode) �
 **特色功能：** 光标始终保持在屏幕垂直居中，打字时行号和其他 UI 淡出。
 
 * **实现思路：**
-    * 这是 CodeMirror 的强项。
+    * 这是 Monaco 的强项。
     * 创建一个 `ViewPlugin`，监听光标变化，强制 `scrollIntoView` 并设置 `y: 'center'`。
     * 配合 CSS 动画隐藏 Sidebar。
 
@@ -228,12 +228,12 @@ const toggleZenMode = useCallback(() => {
 
 #### 3\. 杀手级特性：打字机滚动 (Typewriter Scrolling)
 
-这是写作软件（如 iA Writer）的标配。光标永远保持在屏幕垂直方向的中间，是你现在的 CodeMirror 还没有的功能。
+这是写作软件（如 iA Writer）的标配。光标永远保持在屏幕垂直方向的中间，是你现在的 Monaco 还没有的功能。
 
 **新建 `src/renderer/lib/typewriter-scroll.ts`:**
 
 ```typescript
-import { ViewPlugin, ViewUpdate, EditorView } from "@codemirror/view";
+import { ViewPlugin, ViewUpdate, EditorView } from "@Monaco/view";
 
 export const typewriterScrollPlugin = ViewPlugin.fromClass(class {
     constructor(private view: EditorView) {}
@@ -267,7 +267,7 @@ export const typewriterScrollPlugin = ViewPlugin.fromClass(class {
         // 使用 effect 进行平滑滚动 (userEvent: false 防止干扰用户滚动)
         view.dispatch({
             effects: EditorView.scrollIntoView(head, {
-                y: "center", // CodeMirror 原生支持 'center'，这会尽量把光标放中间
+                y: "center", // Monaco 原生支持 'center'，这会尽量把光标放中间
                 yMargin: editorHeight / 2 - 50 // 强制巨大的 margin 也能达到类似效果
             })
         });
@@ -275,7 +275,7 @@ export const typewriterScrollPlugin = ViewPlugin.fromClass(class {
 });
 ```
 
-然后在你的 `useCodeMirror.ts` 里，当 `isZenMode` 为 true 时，加载这个插件。
+然后在你的 `useMonaco.ts` 里，当 `isZenMode` 为 true 时，加载这个插件。
 
 -----
 
